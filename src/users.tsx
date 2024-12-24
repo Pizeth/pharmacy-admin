@@ -1,12 +1,16 @@
 import { useMediaQuery, Theme } from "@mui/material";
 import {
-  List,
-  SimpleList,
+  BooleanField,
   Datagrid,
-  TextField,
-  ImageField,
+  DateField,
+  EditButton,
   EmailField,
-  UrlField,
+  ImageField,
+  List,
+  NumberField,
+  ReferenceField,
+  SimpleList,
+  TextField,
 } from "react-admin";
 
 export const UserList = () => {
@@ -18,18 +22,35 @@ export const UserList = () => {
           primaryText={(record) => record.name}
           secondaryText={(record) => record.username}
           tertiaryText={(record) => record.email}
+          leftAvatar={(record) => (
+            <ImageField record={record} source="avatar" />
+          )}
         />
       ) : (
-        <Datagrid>
-          <TextField source="id" />
-          <TextField source="name" />
+        <Datagrid rowClick={false}>
+          {/* <TextField source="id" /> */}
           <TextField source="username" />
           <EmailField source="email" />
-          <TextField source="address.street" />
-          <TextField source="phone" />
-          <UrlField source="website" />
-          <TextField source="company.name" />
-          <ImageField source="avatar" />
+          {/* <TextField source="password" /> */}
+          {/* <TextField source="avatar" /> */}
+          <ImageField source="avatar" title="avatar" />
+          <TextField source="role" />
+          <TextField source="authMethod" />
+          {/* <TextField source="mfaSecret" /> */}
+          <BooleanField source="mfaEnabled" />
+          <NumberField source="loginAttempts" />
+          <DateField source="lastLogin" />
+          <BooleanField source="isBan" />
+          {/* <BooleanField source="enabledFlag" /> */}
+          <BooleanField source="isLocked" />
+          {/* <TextField source="deletedAt" /> */}
+          <NumberField source="createdBy" />
+          <DateField source="creationDate" />
+          <NumberField source="lastUpdatedBy" />
+          <DateField source="lastUpdateDate" />
+          {/* <NumberField source="objectVersionId" /> */}
+          <NumberField source="profile.id" />
+          <EditButton />
         </Datagrid>
       )}
     </List>

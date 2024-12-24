@@ -1,22 +1,37 @@
 import {
+  BooleanField,
+  DateField,
   EmailField,
+  ImageField,
+  NumberField,
+  ReferenceField,
   Show,
   SimpleShowLayout,
   TextField,
-  UrlField,
 } from "react-admin";
 
 export const UserShow = () => (
   <Show>
     <SimpleShowLayout>
-      <TextField source="id" />
-      <TextField source="name" />
+      <ImageField source="avatar" title="avatar" />
       <TextField source="username" />
       <EmailField source="email" />
-      <TextField source="address.street" />
-      <TextField source="phone" />
-      <UrlField source="website" />
-      <TextField source="company.name" />
+      <TextField source="role" />
+      {/* <TextField source="authMethod" />
+      <BooleanField source="mfaEnabled" />
+      <DateField source="loginAttempts" />
+      <TextField source="lastLogin" />
+      <BooleanField source="isBan" />
+      <BooleanField source="enabledFlag" />
+      <BooleanField source="isLocked" />
+      <TextField source="deletedAt" />
+      <NumberField source="createdBy" />
+      <DateField source="creationDate" />
+      <NumberField source="lastUpdatedBy" />
+      <DateField source="lastUpdateDate" /> 
+      <NumberField source="objectVersionId" />*/}
+      {/* <ReferenceField source="objectVersionId" reference="objectVersions" /> */}
+      {/* <ReferenceField source="profile" reference="profile"/> */}
     </SimpleShowLayout>
   </Show>
 );

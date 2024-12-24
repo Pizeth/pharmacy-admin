@@ -3,24 +3,24 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build --mode development",
     "serve": "vite preview",
     "type-check": "tsc --noEmit",
     "lint": "eslint --fix --ext .js,.jsx,.ts,.tsx ./src",
     "format": "prettier --write ./src"
   },
   "dependencies": {
+    "ra-data-json-server": "^5.3.0",
     "react": "^18.3.0",
     "react-admin": "^5.3.0",
-    "react-dom": "^18.3.0",
-    "ra-data-json-server": "^5.3.0"
+    "react-dom": "^18.3.0"
   },
   "devDependencies": {
-    "@typescript-eslint/parser": "^5.60.1",
-    "@typescript-eslint/eslint-plugin": "^5.60.1",
     "@types/node": "^20.10.7",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
+    "@typescript-eslint/eslint-plugin": "^5.60.1",
+    "@typescript-eslint/parser": "^5.60.1",
     "@vitejs/plugin-react": "^4.0.1",
     "eslint": "^8.43.0",
     "eslint-config-prettier": "^8.8.0",
@@ -28,7 +28,8 @@
     "eslint-plugin-react-hooks": "^4.6.0",
     "prettier": "^3.3.3",
     "typescript": "^5.1.6",
-    "vite": "^5.3.5"
+    "vite": "^5.3.5",
+    "vite-plugin-terminal": "^1.2.0"
   },
   "name": "pharmacy-admin"
 }

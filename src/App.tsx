@@ -17,13 +17,15 @@ import {
 import { Layout } from "./Layout";
 import { dataProvider } from "./dataProvider";
 // import { authProvider } from "./authProvider";
-// import { UserList } from "./users";
+import { UserList } from "./users";
 // import { PostList, PostEdit, PostCreate } from "./posts";
 // import { UserShow } from "./userDetail";
 // import PostIcon from "@mui/icons-material/Book";
 import UserIcon from "@mui/icons-material/Group";
 import { Dashboard } from "./dashboard";
 import { ThemeName, themes } from "./theme/themes";
+import { UserShow } from "./userDetail";
+import { UserEdit } from "./userEdit";
 
 const store = localStorageStore(undefined, "ECommerce");
 
@@ -47,12 +49,12 @@ export const App = () => {
       {/* <Resource name="users" list={UserList} show={UserShow} icon={UserIcon} /> */}
       <Resource
         name="user"
-        list={ListGuesser}
+        list={UserList}
         // list={PostList}
         // create={PostCreate}
-        edit={EditGuesser}
+        edit={UserEdit}
         // edit={PostEdit}
-        show={ShowGuesser}
+        show={UserShow}
         icon={UserIcon}
       />
     </Admin>
