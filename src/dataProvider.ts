@@ -1,11 +1,12 @@
 import {
-  CreateParams,
+  // CreateParams,
   CreateResult,
   DataProvider,
   fetchUtils,
   Identifier,
   RaRecord,
 } from "react-admin";
+import FormSerializer from "./Utils/formData";
 
 const API_URL = "http://localhost:3030"; // Define your API URL here
 
@@ -33,15 +34,16 @@ interface GetManyReferenceParams extends GetListParams {
   id: Identifier;
 }
 
-// interface CreateParams<T extends RaRecord = any> {
-//   data: T;
-//   previousData: T;
-// }
+interface CreateParams<T = any> {
+  data: T;
+  picture?: { rawFile: File; src?: string; title?: string };
+}
 
 interface UpdateParams<T extends RaRecord = any> {
   id: Identifier;
   data: T;
   previousData: T;
+  picture?: { rawFile: File; src?: string; title?: string };
 }
 
 interface UpdateManyParams<T extends RaRecord = any> {
@@ -49,26 +51,44 @@ interface UpdateManyParams<T extends RaRecord = any> {
   data: Partial<T>;
 }
 
-// type PostParams = {
-//   id: string;
-//   title: string;
-//   content: string;
-//   picture: {
-//     rawFile: File;
-//     src?: string;
-//     title?: string;
-//   };
+// const createPostFormData = <T extends RaRecord>(
+//   params: CreateParams<T> | UpdateParams<T>,
+// ) => {
+//   const formData = new FormData();
+
+//   // Handle special case for file upload
+//   if (params.data.file?.rawFile) {
+//     formData.append("file", params.data.file.rawFile);
+//   }
+
+//   // Convert all other data to FormData
+//   Object.entries(params.data).forEach(([key, value]) => {
+//     if (key !== "file") {
+//       // Skip file as it's handled separately
+//       appendFormData(formData, key, value);
+//     }
+//   });
+
+//   return formData;
 // };
 
 const createPostFormData = <T extends RaRecord>(
   params: CreateParams<T> | UpdateParams<T>,
-) => {
+): FormData => {
   const formData = new FormData();
-  params.data.file?.rawFile &&
-    formData.append("file", params.data.file.rawFile);
-  params.data.title && formData.append("title", params.data.title);
-  params.data.content && formData.append("content", params.data.content);
 
+  // Handle special case for file upload
+  if (params.data.file?.rawFile) {
+    formData.append("file", params.data.file.rawFile);
+  }
+
+  // Convert all other data to FormData
+  Object.entries(params.data).forEach(([key, value]) => {
+    if (key !== "file") {
+      // Skip file as it's handled separately
+      FormSerializer.serialize(value, {}, formData, key);
+    }
+  });
   return formData;
 };
 
@@ -140,24 +160,90 @@ export const dataProvider: DataProvider = {
       total: parseInt(response.headers.get("X-Total-Count") || "0", 10),
     };
   },
+  create: async <T extends RaRecord>(
+    resource: string,
+    params: CreateParams,
+  ) => {
+    // const response = await fetchUtils.fetchJson(`${API_URL}/${resource}`, {
+    //   method: "POST",
+    //   body: JSON.stringify(params.data),
+    // });
+    // return {
+    //   data: { ...params.data, id: response.json.id } as T,
+    // };
+    const req: RequestInit = {
+      method: "POST",
+    };
+
+    if (FormSerializer.hasFileField(params.data)) {
+      console.log("has file field");
+      req.body = createPostFormData(params);
+    } else {
+      console.log("no file field");
+      req.body = JSON.stringify(params.data);
+      // req.headers = {
+      //   "Content-Type": "application/json",
+      // };
+    }
+
+    const response = await fetchUtils.fetchJson(
+      `${API_URL}/${resource}/Register`,
+      req,
+    );
+
+    // if (response.status !== 200) {
+    //   throw new Error(`Error Creating ${resource}`);
+    // }
+
+    return {
+      data: response.json.data as T,
+    };
+  },
   update: async <T extends RaRecord>(
     resource: string,
     params: UpdateParams<T>,
   ) => {
-    if (resource === "posts") {
-      const formData = createPostFormData(params);
-      formData.append("id", params.id);
-      return fetchUtils
-        .fetchJson(`${API_URL}/${resource}`, {
-          method: "PUT",
-          body: formData,
-        })
-        .then(({ json }) => ({ data: json }));
-    }
-    const response = await fetchUtils.fetchJson(`${API_URL}/${resource}`, {
+    // if (
+    //   resource === "user" ||
+    //   resource === "category" ||
+    //   resource === "subCategory" ||
+    //   resource === "manufacturer" ||
+    //   resource === "productType" ||
+    //   resource === "product"
+    // ) {
+    //   const formData = createPostFormData(params);
+    //   const response = await fetchUtils.fetchJson(`${API_URL}/${resource}`, {
+    //     method: "PUT",
+    //     body: formData,
+    //   });
+    //   return { data: response.json.data };
+    // }
+    // const response = await fetchUtils.fetchJson(`${API_URL}/${resource}`, {
+    //   method: "PUT",
+    //   body: JSON.stringify(params.data),
+    // });
+    // return {
+    //   data: response.json.data,
+    // };
+    const req: RequestInit = {
       method: "PUT",
-      body: JSON.stringify(params.data),
-    });
+    };
+
+    if (FormSerializer.hasFileField(params.data)) {
+      req.body = createPostFormData(params);
+    } else {
+      req.body = JSON.stringify(params.data);
+      req.headers = {
+        "Content-Type": "application/json",
+      };
+    }
+
+    const response = await fetchUtils.fetchJson(`${API_URL}/${resource}`, req);
+
+    if (response.status !== 200) {
+      throw new Error(`Error updating ${resource}`);
+    }
+
     return {
       data: response.json.data,
     };
@@ -199,18 +285,6 @@ export const dataProvider: DataProvider = {
     );
     return {
       data: responses.map((response) => response.json.id),
-    };
-  },
-  create: async <T extends RaRecord>(
-    resource: string,
-    params: CreateParams,
-  ) => {
-    const response = await fetchUtils.fetchJson(`${API_URL}/${resource}`, {
-      method: "POST",
-      body: JSON.stringify(params.data),
-    });
-    return {
-      data: { ...params.data, id: response.json.id } as T,
     };
   },
 };

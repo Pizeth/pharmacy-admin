@@ -26,6 +26,7 @@ import { Dashboard } from "./dashboard";
 import { ThemeName, themes } from "./theme/themes";
 import { UserShow } from "./userDetail";
 import { UserEdit } from "./userEdit";
+import { UserCreate } from "./userCreate";
 
 const store = localStorageStore(undefined, "ECommerce");
 
@@ -55,6 +56,7 @@ export const App = () => {
         edit={UserEdit}
         // edit={PostEdit}
         show={UserShow}
+        create={UserCreate}
         icon={UserIcon}
       />
     </Admin>
