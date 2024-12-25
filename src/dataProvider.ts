@@ -233,9 +233,9 @@ export const dataProvider: DataProvider = {
       req.body = createPostFormData(params);
     } else {
       req.body = JSON.stringify(params.data);
-      req.headers = {
-        "Content-Type": "application/json",
-      };
+      // req.headers = {
+      //   "Content-Type": "application/json",
+      // };
     }
 
     const response = await fetchUtils.fetchJson(`${API_URL}/${resource}`, req);

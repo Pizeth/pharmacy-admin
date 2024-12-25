@@ -45,7 +45,7 @@ export const UserList = () => {
           <BooleanField source="isLocked" />
           {/* <TextField source="deletedAt" /> */}
           <NumberField source="createdBy" />
-          <DateField source="creationDate" />
+          <DateField source="createdDate" />
           <NumberField source="lastUpdatedBy" />
           <DateField source="lastUpdateDate" />
           {/* <NumberField source="objectVersionId" /> */}
