@@ -11,6 +11,7 @@ import {
   SimpleForm,
   TextInput,
 } from "react-admin";
+import UsernameInput from "./CustomFields/UsernameInput";
 const choices = [
   { id: "SUPER_ADMIN", name: "Super Admin" },
   { id: "ADMIN", name: "Admin" },
@@ -19,14 +20,26 @@ const choices = [
   { id: "USER", name: "User" },
 ];
 
+// const UserCreate: React.FC = (props) => (
+//   <Create {...props}>
+//     <SimpleForm>
+//       {" "}
+//       <TextInput source="password" label="Password" type="password" />{" "}
+//     </SimpleForm>{" "}
+//   </Create>
+// );
+
 export const UserCreate = () => (
   <Create>
     <SimpleForm>
       {/* <TextInput source="id" readOnly /> */}
-      <TextInput source="username" />
-      <TextInput source="email" />
-      <TextInput source="password" />
-      <TextInput source="rePassword" />
+      <UsernameInput source="username" label="Username" />
+      {/* <TextInput source="username" /> */}
+      <TextInput source="email" label="Email" />
+      <TextInput source="password" label="Password" type="password" />
+      <TextInput source="rePassword" label="Re Password" type="password" />
+      {/* <TextInput source="password" />
+      <TextInput source="rePassword" /> */}
       {/* <TextInput source="avatar" /> */}
       <ImageInput
         source="file"
