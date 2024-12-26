@@ -11,12 +11,12 @@ export const useUsernameValidator = (
   useEffect(() => {
     const validateUsername = async () => {
       if (!username) return;
-
+      console.log(`${API_URL}/user/username/${username}`);
       try {
         const response = await axios.get(
           `${API_URL}/user/username/${username}`,
         );
-        console.log(response);
+        // console.log(response);
         const data = response.data as { exists: boolean };
         if (data.exists) {
           setError("Username already exists");
