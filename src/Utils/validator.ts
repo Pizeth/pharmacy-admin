@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
+import { json } from "stream/consumers";
 
-const API_URL = import.meta.env.API_URL;
+const API_URL = import.meta.env.VITE_API_URL;
 
 export const useUsernameValidator = (
   username: string | undefined,
@@ -16,10 +17,10 @@ export const useUsernameValidator = (
         const response = await axios.get(
           `${API_URL}/user/username/${username}`,
         );
-        // console.log(response);
-        const data = response.data as { exists: boolean };
+        console.log(response);
+        const data = response.data as { exists: boolean; message?: string };
         if (data.exists) {
-          setError("Username already exists");
+          setError(data.message || null);
         } else {
           setError(null);
         }
