@@ -13,6 +13,7 @@ import {
   useStore,
   localStorageStore,
   StoreContextProvider,
+  defaultTheme,
 } from "react-admin";
 import { Layout } from "./Layout";
 import { dataProvider } from "./dataProvider";
@@ -30,8 +31,25 @@ import { UserCreate } from "./userCreate";
 
 const store = localStorageStore(undefined, "ECommerce");
 
+// const theme = {
+//   ...defaultTheme,
+//   components: {
+//     ...defaultTheme.components,
+//     MuiTextField: {
+//       defaultProps: {
+//         variant: "outlined",
+//       },
+//     },
+//     MuiFormControl: {
+//       defaultProps: {
+//         variant: "outlined",
+//       },
+//     },
+//   },
+// };
+
 export const App = () => {
-  const [themeName] = useStore<ThemeName>("themeName", "soft");
+  const [themeName] = useStore<ThemeName>("themename", "soft");
   const lightTheme = themes.find((theme) => theme.name === themeName)?.light;
   const darkTheme = themes.find((theme) => theme.name === themeName)?.dark;
   return (
@@ -40,6 +58,7 @@ export const App = () => {
       dataProvider={dataProvider}
       // authProvider={authProvider}
       disableTelemetry
+      // theme={theme}
       lightTheme={lightTheme}
       darkTheme={darkTheme}
       defaultTheme="light"
