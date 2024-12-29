@@ -10,8 +10,9 @@ import {
   SelectInput,
   SimpleForm,
   TextInput,
+  useResourceContext,
 } from "react-admin";
-import UsernameInput from "./CustomFields/UsernameInput";
+import ValidationInput from "./CustomFields/LiveValidationInput";
 import EmailInput from "./CustomFields/EmailInput";
 
 const API_URL = import.meta.env.VITE_API_URL;
@@ -65,9 +66,9 @@ export const UserCreate = () => (
   <Create>
     <SimpleForm>
       {/* <TextInput source="id" readOnly /> */}
-      <UsernameInput source="username" label="Username" />
+      <ValidationInput source="username" label="Username" resettable />
       {/* <TextInput source="username" validate={validateUsername} /> */}
-      <EmailInput source="email" label="Email" />
+      <ValidationInput source="email" label="Email" resettable type="email" />
       {/* <TextInput source="email" label="Email" /> */}
       <TextInput source="password" label="Password" type="password" />
       <TextInput source="rePassword" label="Re Password" type="password" />

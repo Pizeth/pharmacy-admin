@@ -133,7 +133,7 @@ import {
   sanitizeInputRestProps,
 } from "react-admin";
 
-const UsernameInput = (props: TextInputProps) => {
+const ValidationInput = (props: TextInputProps) => {
   const {
     className,
     defaultValue,
@@ -167,21 +167,21 @@ const UsernameInput = (props: TextInputProps) => {
     ...rest,
   });
 
-  const usernameError = validator(
+  const validateError = validator(
     field.value as string | undefined,
-    `user/${source}`,
+    `validate/${source}`,
   );
 
   const notify = useNotify();
 
   useEffect(() => {
-    if (usernameError?.error) {
-      notify(usernameError.message, { type: "warning" });
+    if (validateError?.error) {
+      notify(validateError.message, { type: "warning" });
     }
-  }, [usernameError, notify]);
+  }, [validateError, notify]);
 
   const renderHelperText = helperText !== false || invalid;
-  const isError = usernameError?.error || invalid;
+  const isError = validateError?.error || invalid;
   // console.log(usernameError?.error);
   return (
     <ResettableTextField
@@ -190,19 +190,15 @@ const UsernameInput = (props: TextInputProps) => {
       className={clsx("ra-input", `ra-input-${source}`, className)}
       label={
         label !== "" && label !== false ? (
-          <FieldTitle
-            label={label}
-            source={source}
-            resource={resource}
-            isRequired={isRequired}
-          />
+          <FieldTitle label={label} source={source} isRequired={isRequired} />
         ) : null
       }
+      resource={resource}
       error={isError}
       helperText={
         renderHelperText ? (
           <InputHelperText
-            error={usernameError?.message || error?.message}
+            error={validateError?.message || error?.message}
             helperText={helperText}
           />
         ) : null
@@ -212,4 +208,4 @@ const UsernameInput = (props: TextInputProps) => {
   );
 };
 
-export default UsernameInput;
+export default ValidationInput;

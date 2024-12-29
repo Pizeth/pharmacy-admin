@@ -26,17 +26,14 @@ export const ServerValidator = (
   resource: string,
 ): FieldError | null => {
   const [error, setMsg] = useState<FieldError | null>(null);
-
   useEffect(() => {
     const validateUsername = async () => {
       if (!value) return;
-      // console.log(`${API_URL}/user/username/${username}`);
       try {
         const response = await axios.get<any>(
           `${API_URL}/${resource}/${value}`,
         );
-        // console.log(response);
-        const data = response.data; //as { exists: boolean; message?: string };
+        const data = response.data;
         if (data) {
           const res: FieldError = {
             error:
@@ -53,7 +50,7 @@ export const ServerValidator = (
         console.error(error);
         setMsg({
           error: true,
-          message: "An error occurred while checking the username",
+          message: "An error occurred while validating the field!",
         });
       }
     };
