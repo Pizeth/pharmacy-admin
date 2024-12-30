@@ -6,6 +6,7 @@ import {
   ImageField,
   ImageInput,
   NumberInput,
+  PasswordInput,
   ReferenceInput,
   SelectInput,
   SimpleForm,
@@ -14,6 +15,7 @@ import {
 } from "react-admin";
 import ValidationInput from "./CustomFields/LiveValidationInput";
 import EmailInput from "./CustomFields/EmailInput";
+import PasswordInputMeter from "./CustomFields/PasswordInputMeter";
 
 const API_URL = import.meta.env.VITE_API_URL;
 const choices = [
@@ -61,17 +63,33 @@ const choices = [
 
 //   return undefined;
 // };
+const equalToPassword = (value: string, allValues: { password: string }) => {
+  if (value !== allValues.password) {
+    return "The two passwords must match!";
+  }
+};
 
 export const UserCreate = () => (
   <Create>
     <SimpleForm>
       {/* <TextInput source="id" readOnly /> */}
-      <ValidationInput source="username" label="Username" resettable />
+      <ValidationInput
+        source="username"
+        label="Username"
+        resettable
+        variant="outlined"
+      />
       {/* <TextInput source="username" validate={validateUsername} /> */}
       <ValidationInput source="email" label="Email" resettable type="email" />
       {/* <TextInput source="email" label="Email" /> */}
-      <TextInput source="password" label="Password" type="password" />
-      <TextInput source="rePassword" label="Re Password" type="password" />
+      <PasswordInputMeter source="password" label="Password" />
+      <PasswordInput
+        source="rePassword"
+        label="Re Password"
+        validate={equalToPassword}
+      />
+      {/* <TextInput source="password" label="Password" type="password" /> */}
+      {/* <TextInput source="rePassword" label="Re Password" type="password" /> */}
       {/* <TextInput source="password" />
       <TextInput source="rePassword" /> */}
       {/* <TextInput source="avatar" /> */}
