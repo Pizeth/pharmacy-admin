@@ -2,18 +2,6 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import statusCode from "http-status-codes";
 
-// interface FieldError {
-//   message: string | null;
-// }
-
-// type ControllerFieldState = {
-//     invalid: boolean;
-//     isTouched: boolean;
-//     isDirty: boolean;
-//     isValidating: boolean;
-//     error?: FieldError;
-// };
-
 type FieldError = {
   error?: boolean;
   message?: string;

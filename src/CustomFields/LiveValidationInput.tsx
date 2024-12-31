@@ -122,7 +122,7 @@
 
 // export default UsernameInput;
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { TextInputProps, useInput, useNotify } from "react-admin";
 import clsx from "clsx";
 import validator from "../Utils/validator";
@@ -173,27 +173,52 @@ const ValidationInput = (props: TextInputProps) => {
   );
 
   const notify = useNotify();
+  const [value, setValue] = useState(field.value || "");
+  const [typing, setTyping] = useState(false);
+  const typingInterval = 1000; // Time in milliseconds
+
+  // useEffect(() => {
+  //   if (validateError?.error) {
+  //     notify(validateError.message, { type: "warning" });
+  //   }
+  // }, [validateError, notify]);
 
   useEffect(() => {
-    if (validateError?.error) {
-      notify(validateError.message, { type: "warning" });
+    console.log(typing);
+    if (typing) {
+      const timer = setTimeout(() => {
+        setTyping(false);
+        const validateError = validator(value, `validate/${source}`);
+        console.log(validateError);
+        if (validateError?.error) {
+          notify(validateError.message, { type: "warning" });
+        }
+      }, typingInterval);
+      return () => clearTimeout(timer);
     }
-  }, [validateError, notify]);
+  }, [typing, value, notify, source]);
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setValue(e.target.value);
+    setTyping(true);
+  };
 
   const renderHelperText = helperText !== false || invalid;
-  const isError = validateError?.error || invalid;
+  // const isError = validateError?.error || invalid;
+  const isError = validator(value, `validate/${source}`)?.error || invalid;
   // console.log(usernameError?.error);
   return (
     <ResettableTextField
       id={id}
       {...field}
       className={clsx("ra-input", `ra-input-${source}`, className)}
+      value={value}
+      onChange={handleChange}
       label={
         label !== "" && label !== false ? (
           <FieldTitle label={label} source={source} isRequired={isRequired} />
         ) : null
       }
-      resource={resource}
+      // resource={resource}
       error={isError}
       helperText={
         renderHelperText ? (
