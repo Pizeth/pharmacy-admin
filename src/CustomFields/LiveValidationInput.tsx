@@ -122,10 +122,123 @@
 
 // export default UsernameInput;
 
+// import React, { useEffect, useState } from "react";
+// import { TextInputProps, useInput, useNotify } from "react-admin";
+// import clsx from "clsx";
+// import validator, { FieldError } from "../Utils/validator";
+// import {
+//   ResettableTextField,
+//   FieldTitle,
+//   InputHelperText,
+//   sanitizeInputRestProps,
+// } from "react-admin";
+
+// const ValidationInput = (props: TextInputProps) => {
+//   const {
+//     className,
+//     defaultValue,
+//     label,
+//     format,
+//     helperText,
+//     onBlur,
+//     onChange,
+//     parse,
+//     resource,
+//     source,
+//     validate,
+//     ...rest
+//   } = props;
+
+//   const {
+//     field,
+//     fieldState: { error, invalid },
+//     id,
+//     isRequired,
+//   } = useInput({
+//     defaultValue,
+//     format,
+//     parse,
+//     resource,
+//     source,
+//     type: "text",
+//     validate,
+//     onBlur,
+//     onChange,
+//     ...rest,
+//   });
+
+//   const validateError = validator(
+//     field.value as string | undefined,
+//     `validate/${source}`,
+//   );
+
+//   const notify = useNotify();
+//   const [value, setValue] = useState(field.value || "");
+//   const [typing, setTyping] = useState(false);
+//   const typingInterval = 1000; // Time in milliseconds
+
+//   // useEffect(() => {
+//   //   if (validateError?.error) {
+//   //     notify(validateError.message, { type: "warning" });
+//   //   }
+//   // }, [validateError, notify]);
+
+//   useEffect(() => {
+//     console.log(typing);
+//     if (typing) {
+//       const timer = setTimeout(() => {
+//         setTyping(false);
+//         const validateError = validator(value, `validate/${source}`);
+//         console.log(validateError);
+//         if (validateError?.error) {
+//           notify(validateError.message, { type: "warning" });
+//         }
+//       }, typingInterval);
+//       return () => clearTimeout(timer);
+//     }
+//   }, [typing, value, notify, source]);
+//   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+//     setValue(e.target.value);
+//     setTyping(true);
+//   };
+
+//   const renderHelperText = helperText !== false || invalid;
+//   // const isError = validateError?.error || invalid;
+//   const isError = validator(value, `validate/${source}`)?.error || invalid;
+//   // console.log(usernameError?.error);
+//   return (
+//     <ResettableTextField
+//       id={id}
+//       {...field}
+//       className={clsx("ra-input", `ra-input-${source}`, className)}
+//       value={value}
+//       onChange={handleChange}
+//       label={
+//         label !== "" && label !== false ? (
+//           <FieldTitle label={label} source={source} isRequired={isRequired} />
+//         ) : null
+//       }
+//       // resource={resource}
+//       error={isError}
+//       helperText={
+//         renderHelperText ? (
+//           <InputHelperText
+//             error={validateError?.message || error?.message}
+//             helperText={helperText}
+//           />
+//         ) : null
+//       }
+//       {...sanitizeInputRestProps(rest)}
+//     />
+//   );
+// };
+
+// export default ValidationInput;
+
 import React, { useEffect, useState } from "react";
 import { TextInputProps, useInput, useNotify } from "react-admin";
 import clsx from "clsx";
-import validator from "../Utils/validator";
+import { FieldError, serverValidator } from "../Utils/validator";
 import {
   ResettableTextField,
   FieldTitle,
@@ -167,124 +280,13 @@ const ValidationInput = (props: TextInputProps) => {
     ...rest,
   });
 
-  const validateError = validator(
-    field.value as string | undefined,
-    `validate/${source}`,
-  );
-
   const notify = useNotify();
   const [value, setValue] = useState(field.value || "");
   const [typing, setTyping] = useState(false);
-  const typingInterval = 1000; // Time in milliseconds
-
-  // useEffect(() => {
-  //   if (validateError?.error) {
-  //     notify(validateError.message, { type: "warning" });
-  //   }
-  // }, [validateError, notify]);
-
-  useEffect(() => {
-    console.log(typing);
-    if (typing) {
-      const timer = setTimeout(() => {
-        setTyping(false);
-        const validateError = validator(value, `validate/${source}`);
-        console.log(validateError);
-        if (validateError?.error) {
-          notify(validateError.message, { type: "warning" });
-        }
-      }, typingInterval);
-      return () => clearTimeout(timer);
-    }
-  }, [typing, value, notify, source]);
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setValue(e.target.value);
-    setTyping(true);
-  };
-
-  const renderHelperText = helperText !== false || invalid;
-  // const isError = validateError?.error || invalid;
-  const isError = validator(value, `validate/${source}`)?.error || invalid;
-  // console.log(usernameError?.error);
-  return (
-    <ResettableTextField
-      id={id}
-      {...field}
-      className={clsx("ra-input", `ra-input-${source}`, className)}
-      value={value}
-      onChange={handleChange}
-      label={
-        label !== "" && label !== false ? (
-          <FieldTitle label={label} source={source} isRequired={isRequired} />
-        ) : null
-      }
-      // resource={resource}
-      error={isError}
-      helperText={
-        renderHelperText ? (
-          <InputHelperText
-            error={validateError?.message || error?.message}
-            helperText={helperText}
-          />
-        ) : null
-      }
-      {...sanitizeInputRestProps(rest)}
-    />
-  );
-};
-
-export default ValidationInput;
-
-import React, { useEffect, useState } from "react";
-import { TextInputProps, useInput, useNotify } from "react-admin";
-import clsx from "clsx";
-import { serverValidator } from "../Utils/serverValidator";
-import {
-  ResettableTextField,
-  FieldTitle,
-  InputHelperText,
-  sanitizeInputRestProps,
-} from "react-admin";
-
-const ValidationInput = (props: TextInputProps) => {
-  const {
-    className,
-    defaultValue,
-    label,
-    format,
-    helperText,
-    onBlur,
-    onChange,
-    parse,
-    resource,
-    source,
-    validate,
-    ...rest
-  } = props;
-
-  const {
-    field,
-    fieldState: { error, invalid },
-    id,
-    isRequired,
-  } = useInput({
-    defaultValue,
-    format,
-    parse,
-    resource,
-    source,
-    type: "text",
-    validate,
-    onBlur,
-    onChange,
-    ...rest,
-  });
-
-  const notify = useNotify();
-  const [value, setValue] = useState(field.value || "");
-  const [typing, setTyping] = useState(false);
-  const [validateError, setValidateError] = useState(null);
-  const typingInterval = 2000; // Time in milliseconds
+  // const [validateError, setValidateError] = useState(null);
+  const [validateError, setValidateError] = useState<FieldError | null>(null);
+  const typingInterval = import.meta.env.VITE_DELAY_CALL || 2500; // Time in milliseconds
+  // const inputRef = useRef<HTMLInputElement>();
 
   useEffect(() => {
     const validateInput = async () => {
@@ -302,12 +304,57 @@ const ValidationInput = (props: TextInputProps) => {
       }, typingInterval);
       return () => clearTimeout(timer);
     }
-  }, [typing, value, source, notify]);
+  }, [typing, value, source, notify, typingInterval]);
 
-  const handleChange = (event) => {
-    setValue(event.target.value);
+  // useEffect(() => {
+  //   setValue(field.value || "");
+  //   setValidateError(null); // Reset validation error on reset
+  // }, [field.value]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setValue(e?.target?.value ?? e);
     setTyping(true);
+    // if (onChange) {
+    //   onChange(e); // Ensure parent component's onChange is called
+    // }
   };
+
+  // const handleChange = (eventOrValue: any) => {
+  //   const newValue = eventOrValue?.target?.value ?? eventOrValue;
+  //   setValue(newValue);
+  //   setTyping(true);
+  //   if (onChange) {
+  //     onChange({ target: { value: newValue } }); // Ensure parent component's onChange is called
+  //   }
+  // };
+
+  // const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  //   const newValue = event.target.value;
+  //   setValue(newValue);
+  //   setTyping(true);
+  //   if (onChange) {
+  //     onChange(event); // Ensure parent component's onChange is called
+  //   }
+  // };
+  // const handleReset = () => {
+  //   setValue("");
+  //   setValidateError(null);
+  //   setTyping(false);
+  //   if (onChange) {
+  //     onChange({
+  //       target: { value: "" },
+  //     } as unknown as React.ChangeEvent<HTMLInputElement>); // Reset the parent component's value
+  //   }
+  // };
+
+  // const handleReset = () => {
+  //   setValue("");
+  //   setValidateError(null);
+  //   setTyping(false);
+  //   if (onChange) {
+  //     onChange({ target: { value: "" } }); // Reset the parent component's value
+  //   }
+  // };
 
   const renderHelperText = helperText !== false || invalid;
   const isError = validateError?.error || invalid;
@@ -318,6 +365,7 @@ const ValidationInput = (props: TextInputProps) => {
       {...field}
       value={value}
       onChange={handleChange}
+      // onClickClearButton={handleReset}
       className={clsx("ra-input", `ra-input-${source}`, className)}
       label={
         label !== "" && label !== false ? (
@@ -335,6 +383,7 @@ const ValidationInput = (props: TextInputProps) => {
         ) : null
       }
       {...sanitizeInputRestProps(rest)}
+      // inputRef={inputRef}
     />
   );
 };

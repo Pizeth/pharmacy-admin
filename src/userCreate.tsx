@@ -8,18 +8,18 @@ import {
   NumberInput,
   PasswordInput,
   ReferenceInput,
+  required,
   SelectInput,
   SimpleForm,
   TextInput,
   useResourceContext,
 } from "react-admin";
 import ValidationInput from "./CustomFields/LiveValidationInput";
-import EmailInput from "./CustomFields/EmailInput";
 import PasswordInputMeter from "./CustomFields/PasswordInputMeter";
 
 const API_URL = import.meta.env.VITE_API_URL;
 const choices = [
-  { id: "SUPER_ADMIN", name: "Super Admin" },
+  { id: "SUPER_ADMIN", name: "Super Admin", disabled: true },
   { id: "ADMIN", name: "Admin" },
   { id: "MANAGER", name: "Manager" },
   { id: "CASHIER", name: "Cashier" },
@@ -73,22 +73,24 @@ export const UserCreate = () => (
   <Create>
     <SimpleForm>
       {/* <TextInput source="id" readOnly /> */}
-      <ValidationInput
-        source="username"
-        label="Username"
-        resettable
-        variant="outlined"
-      />
+      <ValidationInput source="username" label="Username" resettable required />
       {/* <TextInput source="username" validate={validateUsername} /> */}
-      <ValidationInput source="email" label="Email" resettable type="email" />
+      <ValidationInput
+        source="email"
+        label="Email"
+        resettable
+        required
+        type="email"
+      />
       {/* <TextInput source="email" label="Email" /> */}
-      <PasswordInputMeter source="password" label="Password" />
+      <PasswordInputMeter source="password" label="Password" required />
       <PasswordInput
         source="rePassword"
         label="Re Password"
         validate={equalToPassword}
+        required
       />
-      {/* <TextInput source="password" label="Password" type="password" /> */}
+      {/* <TextInput source="password" label="Password" resettable /> */}
       {/* <TextInput source="rePassword" label="Re Password" type="password" /> */}
       {/* <TextInput source="password" />
       <TextInput source="rePassword" /> */}
@@ -100,7 +102,11 @@ export const UserCreate = () => (
       >
         <ImageField source="src" title="title" />
       </ImageInput>
-      <SelectInput source="role" choices={choices} />
+      <SelectInput
+        source="role"
+        choices={choices}
+        emptyText="No role selected"
+      />
       {/* <TextInput source="authMethod" /> */}
       {/* <TextInput source="mfaSecret" /> */}
       {/* <BooleanInput source="mfaEnabled" /> */}
