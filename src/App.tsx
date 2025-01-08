@@ -15,7 +15,8 @@ import {
   StoreContextProvider,
   defaultTheme,
 } from "react-admin";
-import { Layout } from "./Layout";
+import { Layout } from "./Layout/Layout";
+// import { Layout } from "./Layout";
 import { dataProvider } from "./dataProvider";
 // import { authProvider } from "./authProvider";
 import { UserList } from "./users";
@@ -28,6 +29,7 @@ import { ThemeName, themes } from "./theme/themes";
 import { UserShow } from "./userDetail";
 import { UserEdit } from "./userEdit";
 import { UserCreate } from "./userCreate";
+import { lightTheme, darkTheme } from "./theme/razeth";
 
 const store = localStorageStore(undefined, "ECommerce");
 
@@ -49,9 +51,9 @@ const store = localStorageStore(undefined, "ECommerce");
 // };
 
 export const App = () => {
-  const [themeName] = useStore<ThemeName>("themename", "soft");
-  const lightTheme = themes.find((theme) => theme.name === themeName)?.light;
-  const darkTheme = themes.find((theme) => theme.name === themeName)?.dark;
+  // const [themeName] = useStore<ThemeName>("themename", "soft");
+  // const lightTheme = themes.find((theme) => theme.name === themeName)?.light;
+  // const darkTheme = themes.find((theme) => theme.name === themeName)?.dark;
   return (
     <Admin
       layout={Layout}
@@ -61,7 +63,7 @@ export const App = () => {
       // theme={theme}
       lightTheme={lightTheme}
       darkTheme={darkTheme}
-      defaultTheme="light"
+      defaultTheme="dark"
       dashboard={Dashboard}
       store={store}
     >

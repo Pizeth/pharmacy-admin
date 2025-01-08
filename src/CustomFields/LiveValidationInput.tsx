@@ -238,6 +238,7 @@
 import React, { useEffect, useState } from "react";
 import { TextInputProps, useInput, useNotify } from "react-admin";
 import clsx from "clsx";
+import { styled } from "@mui/material/styles";
 import { FieldError, serverValidator } from "../Utils/validator";
 import {
   ResettableTextField,
@@ -245,6 +246,21 @@ import {
   InputHelperText,
   sanitizeInputRestProps,
 } from "react-admin";
+import "../Styles/style.css";
+
+const StyledTextField = styled(ResettableTextField)(({ theme, error }) => ({
+  "& .MuiInputBase-root": {
+    borderColor: error ? theme.palette.error.main : "inherit",
+  },
+  "& .MuiInputBase-input::placeholder": {
+    color: error ? theme.palette.error.main : "inherit",
+    transition: "color 0.5s",
+  },
+  // "& .MuiInputLabel-root": {
+  //   verticalAlign: "middle", // Ensure the label doesn't shift down
+  //   transformOrigin: "left center", // Ensure the label doesn't resize
+  // },
+}));
 
 const ValidationInput = (props: TextInputProps) => {
   const {
@@ -283,6 +299,7 @@ const ValidationInput = (props: TextInputProps) => {
   const notify = useNotify();
   const [value, setValue] = useState(field.value || "");
   const [typing, setTyping] = useState(false);
+  const [shake, setShake] = useState(false);
   // const [validateError, setValidateError] = useState(null);
   const [validateError, setValidateError] = useState<FieldError | null>(null);
   const typingInterval = import.meta.env.VITE_DELAY_CALL || 2500; // Time in milliseconds
@@ -294,6 +311,8 @@ const ValidationInput = (props: TextInputProps) => {
       setValidateError(result);
       if (result?.error) {
         notify(result.message, { type: "warning" });
+        setShake(true);
+        setTimeout(() => setShake(false), 500);
       }
     };
 
@@ -360,17 +379,27 @@ const ValidationInput = (props: TextInputProps) => {
   const isError = validateError?.error || invalid;
 
   return (
-    <ResettableTextField
+    <StyledTextField
       id={id}
       {...field}
       value={value}
       onChange={handleChange}
       // onClickClearButton={handleReset}
       className={clsx("ra-input", `ra-input-${source}`, className)}
+      variant="outlined"
+      // InputLabelProps={{
+      //   className: clsx({ shake: shake }),
+      // }}
+      InputLabelProps={{
+        shrink: true, // Ensure the label stays at the top of the outline
+        classes: { root: shake ? "shake" : "" },
+      }}
       label={
         label !== "" && label !== false ? (
+          // <span className={clsx({ shake: shake })}>
           <FieldTitle label={label} source={source} isRequired={isRequired} />
-        ) : null
+        ) : /* </span> */
+        null // <FieldTitle label={label} source={source} isRequired={isRequired} />
       }
       resource={resource}
       error={isError}
