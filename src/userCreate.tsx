@@ -1,23 +1,21 @@
 import {
-  BooleanInput,
   Create,
-  DateInput,
-  Edit,
   ImageField,
   ImageInput,
+  maxLength,
+  minLength,
   NumberInput,
   PasswordInput,
-  ReferenceInput,
+  regex,
   required,
   SelectInput,
   SimpleForm,
-  TextInput,
-  useResourceContext,
 } from "react-admin";
 import ValidationInput from "./CustomFields/LiveValidationInput";
 import PasswordInputMeter from "./CustomFields/PasswordInputMeter";
+import { useFormState } from "react-final-form";
+import { useMemo } from "react";
 
-const API_URL = import.meta.env.VITE_API_URL;
 const choices = [
   { id: "SUPER_ADMIN", name: "Super Admin", disabled: true },
   { id: "ADMIN", name: "Admin" },
@@ -26,75 +24,82 @@ const choices = [
   { id: "USER", name: "User" },
 ];
 
-// const validateUsername = async (value: string) => {
-//   if (!value) return;
-//   // console.log(`${API_URL}/user/username/${username}`);
-//   try {
-//     const response = await axios.get<any>(`${API_URL}/user/username/${value}`);
-//     console.log(response);
-//     const data = response.data; //as { exists: boolean; message?: string };
-//     // console.log(data);
-//     if (data) {
-//       // setMsg(data.message || null);
-//       return data.message;
-//     }
-//     return null;
-//   } catch (error) {
-//     console.error(error);
-//     return "An error occurred while checking the username";
-//   }
-//   return undefined;
+const validateUsername = [
+  required("Username can't be empty!"),
+  minLength(5, "Username must be at least 5 characters long!"),
+  maxLength(20, "Username can't be exceed 20 characters!"),
+  regex(
+    "^(?=.{8,20}$)(?![_.])(?!.*[_.]{2})[a-zA-Z0-9._]+(?<![_.])$",
+    "Username must contain only alpha numeric, . and _",
+  ),
+];
+
+// const RePasswordInput = ({ validate, ...props }) => {
+//   const { values } = useFormState();
+//   const enhancedValidate = (value: any) => {
+//     return validate ? validate(value, values) : undefined;
+//   };
+//   return <ValidationInput source={""} {...props} validate={enhancedValidate} />;
 // };
 
-// const validateEmailUnicity = async (value) => {
-//   const isEmailUnique = await checkEmailIsUnique(value);
-//   if (!isEmailUnique) {
-//     return "Email already used";
-
-//     // You can return a translation key as well
-//     return "myroot.validation.email_already_used";
-
-//     // Or even an object just like the other validators
-//     return {
-//       message: "myroot.validation.email_already_used",
-//       args: { email: value },
-//     };
-//   }
-
-//   return undefined;
+// const RePasswordInput = (props: any) => {
+//   const { values } = useFormState();
+//   return (
+//     <ValidationInput
+//       {...props}
+//       validate={(value) => equalToPassword(value, values)}
+//     />
+//   );
 // };
-const equalToPassword = (value: string, allValues: { password: string }) => {
-  if (value !== allValues.password) {
-    return "The two passwords must match!";
-  }
+
+// interface RePasswordInputProps {
+//   source: string;
+//   validate?: (value: string) => string | undefined;
+//   required?: boolean;
+// }
+
+// const RePasswordInput: React.FC<RePasswordInputProps> = (props) => {
+//   const { values } = useFormState();
+//   const validate = (value: string) => {
+//     return value === values.password
+//       ? undefined
+//       : "The passwords do not match.";
+//   };
+//   return <ValidationInput {...props} validate={validate} />;
+// };
+
+const RePasswordInput = (props: { source: string; required: boolean }) => {
+  const { values } = useFormState();
+  const validateRePassword = useMemo(
+    () => (value: string) => {
+      return value === values.password
+        ? undefined
+        : "The passwords do not match.";
+    },
+    [values.password],
+  );
+  return <ValidationInput {...props} validate={validateRePassword} />;
 };
+// const equalToPassword = (value: string, allValues: Record<string, any>) => {
+//   return value === allValues.password
+//     ? undefined
+//     : "The passwords do not match.";
+// };
+
+// const equalToPassword = (value: string, allValues: { password: string }) => {
+//   if (value !== allValues.password) {
+//     return "The two passwords must match!";
+//   }
+// };
 
 export const UserCreate = () => (
   <Create>
     <SimpleForm>
-      {/* <TextInput source="id" readOnly /> */}
-      <ValidationInput source="username" label="Username" resettable required />
-      {/* <TextInput source="username" validate={validateUsername} /> */}
-      <ValidationInput
-        source="email"
-        label="Email"
-        resettable
-        required
-        type="email"
-      />
-      {/* <TextInput source="email" label="Email" /> */}
-      <PasswordInputMeter source="password" label="Password" required />
-      <PasswordInput
-        source="rePassword"
-        label="Re Password"
-        validate={equalToPassword}
-        required
-      />
-      {/* <TextInput source="password" label="Password" resettable /> */}
-      {/* <TextInput source="rePassword" label="Re Password" type="password" /> */}
-      {/* <TextInput source="password" />
-      <TextInput source="rePassword" /> */}
-      {/* <TextInput source="avatar" /> */}
+      <ValidationInput source="username" resettable required />
+
+      <ValidationInput source="email" resettable required type="email" />
+      <PasswordInputMeter source="password" required />
+      <RePasswordInput source="rePassword" required />
       <ImageInput
         source="file"
         label="Avatar"
@@ -107,20 +112,7 @@ export const UserCreate = () => (
         choices={choices}
         emptyText="No role selected"
       />
-      {/* <TextInput source="authMethod" /> */}
-      {/* <TextInput source="mfaSecret" /> */}
-      {/* <BooleanInput source="mfaEnabled" /> */}
-      {/* <DateInput source="loginAttempts" /> */}
-      {/* <DateInput source="lastLogin" /> */}
-      {/* <BooleanInput source="isBan" /> */}
-      {/* <BooleanInput source="enabledFlag" /> */}
-      {/* <BooleanInput source="isLocked" /> */}
-      {/* <TextInput source="deletedAt" /> */}
       <NumberInput source="createdBy" />
-      {/* <DateInput source="createdDate" /> */}
-      {/* <NumberInput source="lastUpdatedBy" /> */}
-      {/* <DateInput source="lastUpdatedDate" /> */}
-      {/* <ReferenceInput source="profile" reference="profile.id" /> */}
     </SimpleForm>
   </Create>
 );

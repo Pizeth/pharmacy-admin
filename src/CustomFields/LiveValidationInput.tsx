@@ -256,10 +256,6 @@ const StyledTextField = styled(ResettableTextField)(({ theme, error }) => ({
     color: error ? theme.palette.error.main : "inherit",
     transition: "color 0.5s",
   },
-  // "& .MuiInputLabel-root": {
-  //   verticalAlign: "middle", // Ensure the label doesn't shift down
-  //   transformOrigin: "left center", // Ensure the label doesn't resize
-  // },
 }));
 
 const ValidationInput = (props: TextInputProps) => {
@@ -300,10 +296,8 @@ const ValidationInput = (props: TextInputProps) => {
   const [value, setValue] = useState(field.value || "");
   const [typing, setTyping] = useState(false);
   const [shake, setShake] = useState(false);
-  // const [validateError, setValidateError] = useState(null);
   const [validateError, setValidateError] = useState<FieldError | null>(null);
   const typingInterval = import.meta.env.VITE_DELAY_CALL || 2500; // Time in milliseconds
-  // const inputRef = useRef<HTMLInputElement>();
 
   useEffect(() => {
     const validateInput = async () => {
@@ -325,55 +319,10 @@ const ValidationInput = (props: TextInputProps) => {
     }
   }, [typing, value, source, notify, typingInterval]);
 
-  // useEffect(() => {
-  //   setValue(field.value || "");
-  //   setValidateError(null); // Reset validation error on reset
-  // }, [field.value]);
-
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setValue(e?.target?.value ?? e);
     setTyping(true);
-    // if (onChange) {
-    //   onChange(e); // Ensure parent component's onChange is called
-    // }
   };
-
-  // const handleChange = (eventOrValue: any) => {
-  //   const newValue = eventOrValue?.target?.value ?? eventOrValue;
-  //   setValue(newValue);
-  //   setTyping(true);
-  //   if (onChange) {
-  //     onChange({ target: { value: newValue } }); // Ensure parent component's onChange is called
-  //   }
-  // };
-
-  // const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-  //   const newValue = event.target.value;
-  //   setValue(newValue);
-  //   setTyping(true);
-  //   if (onChange) {
-  //     onChange(event); // Ensure parent component's onChange is called
-  //   }
-  // };
-  // const handleReset = () => {
-  //   setValue("");
-  //   setValidateError(null);
-  //   setTyping(false);
-  //   if (onChange) {
-  //     onChange({
-  //       target: { value: "" },
-  //     } as unknown as React.ChangeEvent<HTMLInputElement>); // Reset the parent component's value
-  //   }
-  // };
-
-  // const handleReset = () => {
-  //   setValue("");
-  //   setValidateError(null);
-  //   setTyping(false);
-  //   if (onChange) {
-  //     onChange({ target: { value: "" } }); // Reset the parent component's value
-  //   }
-  // };
 
   const renderHelperText = helperText !== false || invalid;
   const isError = validateError?.error || invalid;
@@ -384,22 +333,16 @@ const ValidationInput = (props: TextInputProps) => {
       {...field}
       value={value}
       onChange={handleChange}
-      // onClickClearButton={handleReset}
+      placeholder={error?.message}
       className={clsx("ra-input", `ra-input-${source}`, className)}
       variant="outlined"
-      // InputLabelProps={{
-      //   className: clsx({ shake: shake }),
-      // }}
       InputLabelProps={{
-        shrink: true, // Ensure the label stays at the top of the outline
-        classes: { root: shake ? "shake" : "" },
+        className: clsx({ shake: shake }),
       }}
       label={
         label !== "" && label !== false ? (
-          // <span className={clsx({ shake: shake })}>
           <FieldTitle label={label} source={source} isRequired={isRequired} />
-        ) : /* </span> */
-        null // <FieldTitle label={label} source={source} isRequired={isRequired} />
+        ) : null
       }
       resource={resource}
       error={isError}
@@ -412,7 +355,6 @@ const ValidationInput = (props: TextInputProps) => {
         ) : null
       }
       {...sanitizeInputRestProps(rest)}
-      // inputRef={inputRef}
     />
   );
 };
