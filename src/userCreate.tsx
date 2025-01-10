@@ -1,5 +1,7 @@
 import {
+  Button,
   Create,
+  Form,
   ImageField,
   ImageInput,
   maxLength,
@@ -8,12 +10,15 @@ import {
   PasswordInput,
   regex,
   required,
+  SaveButton,
   SelectInput,
   SimpleForm,
+  Toolbar,
 } from "react-admin";
+import { Box, Grid } from "@mui/material";
 import ValidationInput from "./CustomFields/LiveValidationInput";
 import PasswordInputMeter from "./CustomFields/PasswordInputMeter";
-import { useFormState } from "react-final-form";
+import { FormSpy } from "react-final-form";
 import { useMemo } from "react";
 
 const choices = [
@@ -33,6 +38,34 @@ const validateUsername = [
     "Username must contain only alpha numeric, . and _",
   ),
 ];
+
+// const RePasswordInput = (props: { source: string; required: boolean }) => {
+//   const { values } = useFormState();
+//   const validateRePassword = useMemo(
+//     () => (value: string) => {
+//       return value === values.password
+//         ? undefined
+//         : "The passwords do not match.";
+//     },
+//     [values.password],
+//   );
+//   return <ValidationInput {...props} validate={validateRePassword} />;
+// };
+
+const RePasswordInput = (props: { source: string; required: boolean }) => {
+  return (
+    <FormSpy subscription={{ values: true }}>
+      {({ values }: { values: { password: string } }) => {
+        const validate = (value: string) => {
+          return value === values.password
+            ? undefined
+            : "The passwords do not match.";
+        };
+        return <ValidationInput {...props} validate={validate} />;
+      }}
+    </FormSpy>
+  );
+};
 
 // const RePasswordInput = ({ validate, ...props }) => {
 //   const { values } = useFormState();
@@ -68,18 +101,6 @@ const validateUsername = [
 //   return <ValidationInput {...props} validate={validate} />;
 // };
 
-const RePasswordInput = (props: { source: string; required: boolean }) => {
-  const { values } = useFormState();
-  const validateRePassword = useMemo(
-    () => (value: string) => {
-      return value === values.password
-        ? undefined
-        : "The passwords do not match.";
-    },
-    [values.password],
-  );
-  return <ValidationInput {...props} validate={validateRePassword} />;
-};
 // const equalToPassword = (value: string, allValues: Record<string, any>) => {
 //   return value === allValues.password
 //     ? undefined
@@ -99,7 +120,8 @@ export const UserCreate = () => (
 
       <ValidationInput source="email" resettable required type="email" />
       <PasswordInputMeter source="password" required />
-      <RePasswordInput source="rePassword" required />
+      <PasswordInput source="rePassword" required />
+      {/* <RePasswordInput source="rePassword" required /> */}
       <ImageInput
         source="file"
         label="Avatar"
@@ -116,6 +138,96 @@ export const UserCreate = () => (
     </SimpleForm>
   </Create>
 );
+
+// export const UserCreate = () => (
+//   <Create>
+//     <Form>
+//       <Grid container>
+//         <Grid item xs={6}>
+//           <ValidationInput source="username" resettable required />
+//         </Grid>
+//         <Grid item xs={6}>
+//           <ValidationInput source="email" resettable required type="email" />
+//         </Grid>
+//         <Grid item xs={6}>
+//           <PasswordInputMeter source="password" required />
+//         </Grid>
+//         <Grid item xs={6}>
+//           <PasswordInput source="rePassword" required />
+//         </Grid>
+//         <Grid item xs={12}>
+//           <ImageInput
+//             source="file"
+//             label="Avatar"
+//             accept={{ "image/*": [".png", ".jpg"] }}
+//           >
+//             <ImageField source="src" title="title" />
+//           </ImageInput>
+//         </Grid>
+//         <Grid item xs={12}>
+//           <SaveButton />
+//         </Grid>
+//       </Grid>
+//     </Form>
+//   </Create>
+// );
+
+// export const UserCreate = () => (
+//   <Create>
+//     <Form>
+//       <Box
+//         sx={{
+//           display: "flex",
+//           flexDirection: "column",
+//           alignItems: "center",
+//           backgroundColor: "#333",
+//           padding: "15px",
+//         }}
+//       >
+//         <Grid container spacing={1}>
+//           <Grid item xs={12}>
+//             <Grid container spacing={2}>
+//               <Grid item xs={12} sm={3}>
+//                 <ValidationInput source="username" resettable required />
+//               </Grid>
+//               <Grid item xs={12} sm={3}>
+//                 <ValidationInput
+//                   source="email"
+//                   resettable
+//                   required
+//                   type="email"
+//                 />
+//               </Grid>
+//             </Grid>
+//           </Grid>
+//           <Grid item xs={12}>
+//             <Grid container spacing={2}>
+//               <Grid item xs={12} sm={3}>
+//                 <PasswordInputMeter source="password" required />
+//               </Grid>
+//               <Grid item xs={12} sm={3}>
+//                 <PasswordInput source="rePassword" required />
+//               </Grid>
+//             </Grid>
+//           </Grid>
+//           <Grid item xs={12} sm={6}>
+//             <ImageInput
+//               source="file"
+//               label="Avatar"
+//               accept={{ "image/*": [".png", ".jpg"] }}
+//             >
+//               <ImageField source="src" title="title" />
+//             </ImageInput>
+//           </Grid>
+//         </Grid>
+//         <Toolbar>
+//           <Button variant="contained" color="secondary" label="Cancel"></Button>
+//           <SaveButton />
+//         </Toolbar>
+//       </Box>
+//     </Form>
+//   </Create>
+// );
 
 // src/components/RentalCreate.js
 // import React, { useState, useEffect } from 'react';
