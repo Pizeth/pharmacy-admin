@@ -247,6 +247,7 @@ import {
   sanitizeInputRestProps,
 } from "react-admin";
 import "../Styles/style.css";
+import InputAdornment from "@mui/material/InputAdornment";
 
 const StyledTextField = styled(ResettableTextField)(({ theme, error }) => ({
   "& .MuiInputBase-root": {
@@ -258,7 +259,12 @@ const StyledTextField = styled(ResettableTextField)(({ theme, error }) => ({
   },
 }));
 
-const ValidationInput = (props: TextInputProps) => {
+export type IconTextInputProps = TextInputProps & {
+  iconStart?: React.ReactNode;
+  iconEnd?: React.ReactNode;
+};
+
+const ValidationInput = (props: IconTextInputProps) => {
   const {
     className,
     defaultValue,
@@ -271,6 +277,8 @@ const ValidationInput = (props: TextInputProps) => {
     resource,
     source,
     validate,
+    iconStart,
+    iconEnd,
     ...rest
   } = props;
 
@@ -327,6 +335,23 @@ const ValidationInput = (props: TextInputProps) => {
   const renderHelperText = helperText !== false || invalid;
   const isError = validateError?.error || invalid;
 
+  // const IconTextInput = ({ label, iconStart, iconEnd, ...props }) => {
+  //   return (
+  //     <TextField
+  //       label={label}
+  //       InputProps={{
+  //         startAdornment: iconStart ? (
+  //           <InputAdornment position="start">{iconStart}</InputAdornment>
+  //         ) : null,
+  //         endAdornment: iconEnd ? (
+  //           <InputAdornment position="end">{iconEnd}</InputAdornment>
+  //         ) : null,
+  //       }}
+  //       {...props}
+  //     />
+  //   );
+  // };
+
   return (
     <StyledTextField
       id={id}
@@ -336,6 +361,14 @@ const ValidationInput = (props: TextInputProps) => {
       placeholder={error?.message}
       className={clsx("ra-input", `ra-input-${source}`, className)}
       variant="outlined"
+      InputProps={{
+        startAdornment: iconStart ? (
+          <InputAdornment position="start">{iconStart}</InputAdornment>
+        ) : null,
+        endAdornment: iconEnd ? (
+          <InputAdornment position="end">{iconEnd}</InputAdornment>
+        ) : null,
+      }}
       InputLabelProps={{
         className: clsx({ shake: shake }),
       }}
