@@ -236,7 +236,12 @@
 // export default ValidationInput;
 
 import React, { useEffect, useState } from "react";
-import { TextInputProps, useInput, useNotify } from "react-admin";
+import {
+  PasswordInputProps,
+  TextInputProps,
+  useInput,
+  useNotify,
+} from "react-admin";
 import clsx from "clsx";
 import { styled } from "@mui/material/styles";
 import { FieldError, serverValidator } from "../Utils/validator";
@@ -257,9 +262,14 @@ const StyledTextField = styled(ResettableTextField)(({ theme, error }) => ({
     color: error ? theme.palette.error.main : "inherit",
     transition: "color 0.5s",
   },
+  "& .MuiOutlinedInput-root": {
+    "&.Mui-focused .MuiSvgIcon-root": {
+      color: theme.palette.primary.main,
+    },
+  },
 }));
 
-export type IconTextInputProps = TextInputProps & {
+export type IconTextInputProps = PasswordInputProps & {
   iconStart?: React.ReactNode;
   iconEnd?: React.ReactNode;
 };
@@ -335,23 +345,6 @@ const ValidationInput = (props: IconTextInputProps) => {
   const renderHelperText = helperText !== false || invalid;
   const isError = validateError?.error || invalid;
 
-  // const IconTextInput = ({ label, iconStart, iconEnd, ...props }) => {
-  //   return (
-  //     <TextField
-  //       label={label}
-  //       InputProps={{
-  //         startAdornment: iconStart ? (
-  //           <InputAdornment position="start">{iconStart}</InputAdornment>
-  //         ) : null,
-  //         endAdornment: iconEnd ? (
-  //           <InputAdornment position="end">{iconEnd}</InputAdornment>
-  //         ) : null,
-  //       }}
-  //       {...props}
-  //     />
-  //   );
-  // };
-
   return (
     <StyledTextField
       id={id}
@@ -370,6 +363,7 @@ const ValidationInput = (props: IconTextInputProps) => {
         ) : null,
       }}
       InputLabelProps={{
+        shrink: true,
         className: clsx({ shake: shake }),
       }}
       label={

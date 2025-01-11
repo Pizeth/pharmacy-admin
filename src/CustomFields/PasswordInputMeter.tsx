@@ -7,18 +7,39 @@ import {
   LinearProgress,
   Typography,
   Box,
+  styled,
 } from "@mui/material";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
 // import { useInput, TextInputProps } from "react-admin";
 // import { TextInput, TextInputProps } from "./TextInput";
 import zxcvbn from "zxcvbn";
-import { PasswordInputProps, TextInput } from "react-admin";
+import {
+  PasswordInputProps,
+  ResettableTextField,
+  TextInput,
+} from "react-admin";
+import { IconTextInputProps } from "./LiveValidationInput";
 
 const MESSAGE = import.meta.env.VITE_PASSWORD_HINT;
 
-const PasswordInputMeter = (props: PasswordInputProps) => {
-  const { initiallyVisible = false, onChange, ...rest } = props;
+const StyledTextField = styled(ResettableTextField)(({ theme, error }) => ({
+  "& .MuiInputBase-root": {
+    borderColor: error ? theme.palette.error.main : "inherit",
+  },
+  "& .MuiInputBase-input::placeholder": {
+    color: error ? theme.palette.error.main : "inherit",
+    transition: "color 0.5s",
+  },
+  "& .MuiOutlinedInput-root": {
+    "&.Mui-focused .MuiSvgIcon-root": {
+      color: theme.palette.primary.main,
+    },
+  },
+}));
+
+const PasswordInputMeter = (props: IconTextInputProps) => {
+  const { initiallyVisible = false, iconStart, onChange, ...rest } = props;
   const {
     field,
     fieldState: { invalid, error },
@@ -67,7 +88,18 @@ const PasswordInputMeter = (props: PasswordInputProps) => {
         error={!!invalid}
         helperText={invalid ? error?.message : ""}
         fullWidth={true}
+        // InputProps={{
+        //   startAdornment: iconStart ? (
+        //     <InputAdornment position="start">{iconStart}</InputAdornment>
+        //   ) : null,
+        //   endAdornment: iconEnd ? (
+        //     <InputAdornment position="end">{iconEnd}</InputAdornment>
+        //   ) : null,
+        // }}
         InputProps={{
+          startAdornment: iconStart ? (
+            <InputAdornment position="start">{iconStart}</InputAdornment>
+          ) : null,
           endAdornment: (
             <InputAdornment position="end">
               <IconButton

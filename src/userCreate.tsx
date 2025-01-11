@@ -19,7 +19,7 @@ import { Box, Grid } from "@mui/material";
 import ValidationInput from "./CustomFields/LiveValidationInput";
 import PasswordInputMeter from "./CustomFields/PasswordInputMeter";
 import { FormSpy } from "react-final-form";
-import { PermIdentity, MailOutline } from "@mui/icons-material";
+import { PermIdentity, MailOutline, Password } from "@mui/icons-material";
 import { useMemo } from "react";
 
 const choices = [
@@ -131,7 +131,7 @@ export const UserCreate = () => (
         iconStart={<MailOutline />}
         type="email"
       />
-      <PasswordInputMeter source="password" required />
+      <PasswordInputMeter source="password" iconStart={<Password />} required />
       <PasswordInput source="rePassword" required />
       {/* <RePasswordInput source="rePassword" required /> */}
       <ImageInput
