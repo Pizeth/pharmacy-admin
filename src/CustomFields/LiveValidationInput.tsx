@@ -266,6 +266,26 @@ const StyledTextField = styled(ResettableTextField)(({ theme, error }) => ({
     "&.Mui-focused .MuiSvgIcon-root": {
       color: theme.palette.primary.main,
     },
+    "& legend": { marginLeft: "1.5em" },
+  },
+  "& .MuiInputLabel-outlined": {
+    // transform: "translate(1.5em, 16px) scale(1)",
+    marginLeft: "2em", // Adjust label position when start icon is present
+  },
+}));
+
+const StyledTextField1 = styled(ResettableTextField)(({ theme, error }) => ({
+  "& .MuiInputBase-root": {
+    borderColor: error ? theme.palette.error.main : "inherit",
+  },
+  "& .MuiOutlinedInput-root": {
+    "&.Mui-focused .MuiSvgIcon-root": { color: theme.palette.primary.main },
+    "& legend": {
+      marginLeft: "1.5em", // Add margin to the legend for start icon
+    },
+  },
+  "& .MuiInputLabel-outlined": {
+    transform: "translate(1.5em, 16px) scale(1)", // Adjust label position when start icon is present
   },
 }));
 
@@ -318,10 +338,9 @@ const ValidationInput = (props: IconTextInputProps) => {
   const typingInterval = import.meta.env.VITE_DELAY_CALL || 2500; // Time in milliseconds
 
   const [focused, setFocused] = useState(false);
-  // const [value, setValue] = useState('');
+
   const handleFocus = () => setFocused(true);
   const handleBlur = () => setFocused(false);
-  // const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => setValue(event.target.value);
 
   useEffect(() => {
     const validateInput = async () => {
@@ -359,7 +378,7 @@ const ValidationInput = (props: IconTextInputProps) => {
       onChange={handleChange}
       onFocus={handleFocus}
       onBlur={handleBlur}
-      placeholder={error?.message}
+      // placeholder={error?.message}
       className={clsx("ra-input", `ra-input-${source}`, className)}
       variant="outlined"
       InputProps={{
