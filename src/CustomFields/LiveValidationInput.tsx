@@ -317,6 +317,12 @@ const ValidationInput = (props: IconTextInputProps) => {
   const [validateError, setValidateError] = useState<FieldError | null>(null);
   const typingInterval = import.meta.env.VITE_DELAY_CALL || 2500; // Time in milliseconds
 
+  const [focused, setFocused] = useState(false);
+  // const [value, setValue] = useState('');
+  const handleFocus = () => setFocused(true);
+  const handleBlur = () => setFocused(false);
+  // const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => setValue(event.target.value);
+
   useEffect(() => {
     const validateInput = async () => {
       const result = await serverValidator(value, `validate/${source}`);
@@ -351,6 +357,8 @@ const ValidationInput = (props: IconTextInputProps) => {
       {...field}
       value={value}
       onChange={handleChange}
+      onFocus={handleFocus}
+      onBlur={handleBlur}
       placeholder={error?.message}
       className={clsx("ra-input", `ra-input-${source}`, className)}
       variant="outlined"
@@ -363,7 +371,7 @@ const ValidationInput = (props: IconTextInputProps) => {
         ) : null,
       }}
       InputLabelProps={{
-        shrink: true,
+        shrink: focused || value !== "",
         className: clsx({ shake: shake }),
       }}
       label={
