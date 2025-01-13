@@ -254,40 +254,27 @@ import {
 import "../Styles/style.css";
 import InputAdornment from "@mui/material/InputAdornment";
 
-const StyledTextField = styled(ResettableTextField)(({ theme, error }) => ({
-  "& .MuiInputBase-root": {
-    borderColor: error ? theme.palette.error.main : "inherit",
-  },
-  "& .MuiInputBase-input::placeholder": {
-    color: error ? theme.palette.error.main : "inherit",
-    transition: "color 0.5s",
-  },
-  "& .MuiOutlinedInput-root": {
-    "&.Mui-focused .MuiSvgIcon-root": {
-      color: theme.palette.primary.main,
+export const StyledTextField = styled(ResettableTextField)(
+  ({ theme, error }) => ({
+    "& .MuiInputBase-root": {
+      borderColor: error ? theme.palette.error.main : "inherit",
     },
-    "& legend": { marginLeft: "1.5em" },
-  },
-  "& .MuiInputLabel-outlined": {
-    // transform: "translate(1.5em, 16px) scale(1)",
-    marginLeft: "2em", // Adjust label position when start icon is present
-  },
-}));
-
-const StyledTextField1 = styled(ResettableTextField)(({ theme, error }) => ({
-  "& .MuiInputBase-root": {
-    borderColor: error ? theme.palette.error.main : "inherit",
-  },
-  "& .MuiOutlinedInput-root": {
-    "&.Mui-focused .MuiSvgIcon-root": { color: theme.palette.primary.main },
-    "& legend": {
-      marginLeft: "1.5em", // Add margin to the legend for start icon
+    "& .MuiInputBase-input::placeholder": {
+      color: error ? theme.palette.error.main : "inherit",
+      transition: "color 0.5s",
     },
-  },
-  "& .MuiInputLabel-outlined": {
-    transform: "translate(1.5em, 16px) scale(1)", // Adjust label position when start icon is present
-  },
-}));
+    "& .MuiOutlinedInput-root": {
+      "&.Mui-focused .MuiSvgIcon-root": {
+        color: error ? theme.palette.error.main : "inherit", //theme.palette.primary.main,
+      },
+      // "& legend": { marginLeft: "0.5em" },
+    },
+    "& .MuiInputLabel-outlined": {
+      marginLeft: "2em", // Adjust label position when start icon is present
+      "&.MuiInputLabel-shrink": { marginLeft: "0" },
+    },
+  }),
+);
 
 export type IconTextInputProps = PasswordInputProps & {
   iconStart?: React.ReactNode;
@@ -342,6 +329,15 @@ const ValidationInput = (props: IconTextInputProps) => {
   const handleFocus = () => setFocused(true);
   const handleBlur = () => setFocused(false);
 
+  // const validateInput = async () => {
+  //   const result = await serverValidator(value, `validate/${source}`);
+  //   setValidateError(result);
+  //   if (result?.error) {
+  //     notify(result.message, { type: "warning" });
+  //     setShake(true);
+  //     setTimeout(() => setShake(false), 500);
+  //   }
+  // };
   useEffect(() => {
     const validateInput = async () => {
       const result = await serverValidator(value, `validate/${source}`);
@@ -380,7 +376,7 @@ const ValidationInput = (props: IconTextInputProps) => {
       onBlur={handleBlur}
       // placeholder={error?.message}
       className={clsx("ra-input", `ra-input-${source}`, className)}
-      variant="outlined"
+      // variant="outlined"
       InputProps={{
         startAdornment: iconStart ? (
           <InputAdornment position="start">{iconStart}</InputAdornment>

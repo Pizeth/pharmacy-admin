@@ -19,7 +19,7 @@
   animation: shake 0.25s ease-in-out;
   display: inline-block;
   /* vertical-align: middle; */
-  /* position: relative; */
+  position: relative;
   /* font-size: 1rem; */
   /* transform: translateY(0); */
   /* transform: none !important; */

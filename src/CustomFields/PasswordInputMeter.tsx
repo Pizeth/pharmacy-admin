@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useState } from "react";
-import { useInput, useTranslate } from "ra-core";
+import { FieldTitle, useInput, useTranslate } from "ra-core";
 import {
   InputAdornment,
   IconButton,
@@ -19,30 +19,24 @@ import {
   ResettableTextField,
   TextInput,
 } from "react-admin";
-import { IconTextInputProps } from "./LiveValidationInput";
+import { IconTextInputProps, StyledTextField } from "./LiveValidationInput";
+import { clsx } from "clsx";
 
 const MESSAGE = import.meta.env.VITE_PASSWORD_HINT;
 
-const StyledTextField = styled(ResettableTextField)(({ theme, error }) => ({
-  "& .MuiInputBase-root": {
-    borderColor: error ? theme.palette.error.main : "inherit",
-  },
-  "& .MuiInputBase-input::placeholder": {
-    color: error ? theme.palette.error.main : "inherit",
-    transition: "color 0.5s",
-  },
-  "& .MuiOutlinedInput-root": {
-    "&.Mui-focused .MuiSvgIcon-root": {
-      color: theme.palette.primary.main,
-    },
-  },
-}));
-
 const PasswordInputMeter = (props: IconTextInputProps) => {
-  const { initiallyVisible = false, iconStart, onChange, ...rest } = props;
+  const {
+    initiallyVisible = false,
+    iconStart,
+    onChange,
+    label,
+    source,
+    ...rest
+  } = props;
   const {
     field,
     fieldState: { invalid, error },
+    isRequired,
   } = useInput(props);
   const [visible, setVisible] = useState(initiallyVisible);
   const translate = useTranslate();
@@ -53,6 +47,11 @@ const PasswordInputMeter = (props: IconTextInputProps) => {
 
   const [passwordStrength, setPasswordStrength] = useState(0);
   const [passwordFeedback, setPasswordFeedback] = useState("");
+  const [value, setValue] = useState(field.value || "");
+  const [typing, setTyping] = useState(false);
+  const [focused, setFocused] = useState(false);
+  const [shake, setShake] = useState(false);
+  const typingInterval = import.meta.env.VITE_DELAY_CALL || 2500; // Time in milliseconds
 
   const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
@@ -60,7 +59,55 @@ const PasswordInputMeter = (props: IconTextInputProps) => {
     const result = zxcvbn(newValue);
     setPasswordStrength(result.score);
     setPasswordFeedback(result.feedback.suggestions.join(" "));
+    setValue(e?.target?.value ?? e);
+    setTyping(true);
+    if (typing) {
+      const timer = setTimeout(() => {
+        setTyping(false);
+
+        if (result.score <= 0) {
+          setShake(true);
+          setTimeout(() => setShake(false), 500);
+        }
+      }, 500);
+      return () => clearTimeout(timer);
+    }
   };
+
+  // const notify = useNotify();
+
+  // const [validateError, setValidateError] = useState<FieldError | null>(null);
+
+  const handleFocus = () => setFocused(true);
+  const handleBlur = () => setFocused(false);
+
+  // useEffect(() => {
+  //   const validateInput = async () => {
+  //     const result = await serverValidator(value, `validate/${source}`);
+  //     setValidateError(result);
+  //     if (result?.error) {
+  //       notify(result.message, { type: "warning" });
+  //       setShake(true);
+  //       setTimeout(() => setShake(false), 500);
+  //     }
+  //   };
+
+  //   if (typing) {
+  //     const timer = setTimeout(() => {
+  //       setTyping(false);
+  //       validateInput();
+  //     }, typingInterval);
+  //     return () => clearTimeout(timer);
+  //   }
+  // }, [typing, value, source, notify, typingInterval]);
+
+  // const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  //   setValue(e?.target?.value ?? e);
+  //   setTyping(true);
+  // };
+
+  // const renderHelperText = helperText !== false || invalid;
+  // const isError = validateError?.error || invalid;
 
   const getColor = (score: number) => {
     switch (score) {
@@ -75,27 +122,21 @@ const PasswordInputMeter = (props: IconTextInputProps) => {
       case 4:
         return "green";
       default:
-        return "red";
+        return "#dc3545";
     }
   };
 
   return (
     <Box width="100%">
-      <TextInput
+      <StyledTextField
         type={visible ? "text" : "password"}
         size="small"
         onChange={handlePasswordChange}
+        onFocus={handleFocus}
+        onBlur={handleBlur}
         error={!!invalid}
         helperText={invalid ? error?.message : ""}
         fullWidth={true}
-        // InputProps={{
-        //   startAdornment: iconStart ? (
-        //     <InputAdornment position="start">{iconStart}</InputAdornment>
-        //   ) : null,
-        //   endAdornment: iconEnd ? (
-        //     <InputAdornment position="end">{iconEnd}</InputAdornment>
-        //   ) : null,
-        // }}
         InputProps={{
           startAdornment: iconStart ? (
             <InputAdornment position="start">{iconStart}</InputAdornment>
@@ -116,6 +157,15 @@ const PasswordInputMeter = (props: IconTextInputProps) => {
             </InputAdornment>
           ),
         }}
+        InputLabelProps={{
+          shrink: focused || value !== "",
+          className: clsx({ shake: shake }),
+        }}
+        label={
+          label !== "" && label !== false ? (
+            <FieldTitle label={label} source={source} isRequired={isRequired} />
+          ) : null
+        }
         {...rest}
       />
       <Box>
