@@ -267,7 +267,6 @@ export const StyledTextField = styled(ResettableTextField)(
       "&.Mui-focused .MuiSvgIcon-root": {
         color: error ? theme.palette.error.main : "inherit", //theme.palette.primary.main,
       },
-      // "& legend": { marginLeft: "0.5em" },
     },
     "& .MuiInputLabel-outlined": {
       marginLeft: "2em", // Adjust label position when start icon is present
@@ -367,7 +366,7 @@ const ValidationInput = (props: IconTextInputProps) => {
   const isError = validateError?.error || invalid;
 
   return (
-    <StyledTextField
+    <ResettableTextField
       id={id}
       {...field}
       value={value}

@@ -1,17 +1,21 @@
 import { deepmerge } from "@mui/utils";
 import { defaultDarkTheme, defaultTheme } from "react-admin";
 import { red, green, blue } from "@mui/material/colors";
-import { PaletteColor } from "@mui/material/styles/createPalette";
+import {
+  PaletteColor,
+  PaletteColorOptions,
+} from "@mui/material/styles/createPalette";
 import { light } from "@mui/material/styles/createPalette";
+import { Theme } from "@mui/material/styles";
 
-declare module "@mui/material/styles" {
-  interface Palette {
-    error: PaletteColor;
-  }
-  interface PaletteOptions {
-    error?: PaletteColor;
-  }
-}
+// declare module "@mui/material/styles" {
+//   interface Palette {
+//     error: PaletteColor;
+//   }
+//   interface PaletteOptions {
+//     error?: PaletteColorOptions;
+//   }
+// }
 
 export const lightTheme = deepmerge(defaultTheme, {
   palette: {
@@ -115,15 +119,13 @@ export const darkTheme = deepmerge(defaultDarkTheme, {
     MuiOutlinedInput: {
       styleOverrides: {
         root: {
-          "&.Mui-error .MuiOutlinedInput-notchedOutline": {
-            borderColor: (theme) => theme.palette.error.main,
-          },
-          "&.Mui-focused .MuiSvgIcon-root": {
-            color: (theme) => theme.palette.primary.main,
-          },
-          "&.Mui-error .MuiSvgIcon-root": {
-            color: (theme) => theme.palette.error.main,
-          },
+          borderColor: (theme: Theme) => theme.palette.error.main,
+        },
+        "&.Mui-focused .MuiSvgIcon-root": {
+          color: (theme: Theme) => theme.palette.primary.main,
+        },
+        "&.Mui-error .MuiSvgIcon-root": {
+          color: (theme: Theme) => theme.palette.error.main,
         },
       },
     },
@@ -132,51 +134,51 @@ export const darkTheme = deepmerge(defaultDarkTheme, {
         root: {
           marginLeft: "2em", // Adjust label position when start icon is present
           "&.MuiInputLabel-shrink": { marginLeft: "0" },
-          "&.Mui-error": { color: (theme) => theme.palette.error.main },
+          "&.Mui-error": { color: (theme: Theme) => theme.palette.error.main },
         },
       },
     },
     MuiInputBase: {
       styleOverrides: {
-        root: { borderColor: (theme) => theme.palette.error.main },
+        root: { borderColor: (theme: Theme) => theme.palette.error.main },
         input: {
           "&::placeholder": {
-            color: (theme) => theme.palette.error.main,
+            color: (theme: Theme) => theme.palette.error.main,
             transition: "color 0.5s",
           },
         },
       },
     },
-
-    MuiFormHelperText: {
-      styleOverrides: {
-        root: {
-          "&.Mui-error": {
-            color: "#ffa000", // Ensure custom error color for FormHelperText
-          },
-        },
-      },
-    },
-    MuiInputLabel: {
-      styleOverrides: {
-        root: {
-          "&.Mui-error": {
-            color: "#ffa000", // Custom error color for labels
-          },
-        },
-      },
-    },
-    MuiOutlinedInput: {
-      styleOverrides: {
-        root: {
-          "&.Mui-error .MuiOutlinedInput-notchedOutline": {
-            borderColor: "#ffa000", // Custom error color for the outline
-          },
-          "&.Mui-error .MuiInputAdornment-root .MuiSvgIcon-root": {
-            color: "#ffa000", // Custom error color for icons
-          },
-        },
-      },
-    },
   },
+
+  // MuiFormHelperText: {
+  //   styleOverrides: {
+  //     root: {
+  //       "&.Mui-error": {
+  //         color: "#ffa000", // Ensure custom error color for FormHelperText
+  //       },
+  //     },
+  //   },
+  // },
+  // MuiInputLabel: {
+  //   styleOverrides: {
+  //     root: {
+  //       "&.Mui-error": {
+  //         color: "#ffa000", // Custom error color for labels
+  //       },
+  //     },
+  //   },
+  // },
+  // MuiOutlinedInput: {
+  //   styleOverrides: {
+  //     root: {
+  //       "&.Mui-error .MuiOutlinedInput-notchedOutline": {
+  //         borderColor: "#ffa000", // Custom error color for the outline
+  //       },
+  //       "&.Mui-error .MuiInputAdornment-root .MuiSvgIcon-root": {
+  //         color: "#ffa000", // Custom error color for icons
+  //       },
+  //     },
+  //   },
+  // },
 });
