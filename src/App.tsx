@@ -29,7 +29,7 @@ import { ThemeName, themes } from "./theme/themes";
 import { UserShow } from "./userDetail";
 import { UserEdit } from "./userEdit";
 import { UserCreate } from "./userCreate";
-import { lightTheme, darkTheme } from "./theme/razeth";
+import { lightTheme, darkTheme, darkTheme1 } from "./theme/razeth";
 
 const store = localStorageStore(undefined, "ECommerce");
 
@@ -62,7 +62,7 @@ export const App = () => {
       disableTelemetry
       // theme={theme}
       lightTheme={lightTheme}
-      darkTheme={darkTheme}
+      darkTheme={darkTheme1}
       defaultTheme="dark"
       dashboard={Dashboard}
       store={store}

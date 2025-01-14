@@ -265,7 +265,7 @@ export const StyledTextField = styled(ResettableTextField)(
     },
     "& .MuiOutlinedInput-root": {
       "&.Mui-focused .MuiSvgIcon-root": {
-        color: error ? theme.palette.error.main : "inherit", //theme.palette.primary.main,
+        color: theme.palette.primary.main, //theme.palette.primary.main,
       },
     },
     "& .MuiInputLabel-outlined": {
