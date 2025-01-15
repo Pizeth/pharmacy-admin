@@ -125,8 +125,8 @@ const customBaseTheme = createTheme({
     MuiInputLabel: {
       styleOverrides: {
         root: {
-          marginLeft: "2em",
-          "&.MuiInputLabel-shrink": { marginLeft: "0" },
+          // marginLeft: "2em",
+          // "&.MuiInputLabel-shrink": { marginLeft: "0" },
           // "&.Mui-error": { color: (theme: Theme) => theme.palette.error.main },
         },
       },
