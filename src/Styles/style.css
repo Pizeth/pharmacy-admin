@@ -24,11 +24,11 @@
   /* transform: translateY(0); */
   /* transform: none !important; */
 }
-.icon-input {
-  marginleft: 2em;
+.icon-input .MuiInputLabel-root {
+  margin-left: 2em;
 }
-.MuiInputLabel-shrink {
-  marginleft: "0";
+.icon-input .MuiInputLabel-shrink {
+  margin-left: "0";
 }
 
 /* .label-shake {
