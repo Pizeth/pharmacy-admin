@@ -24,6 +24,12 @@
   /* transform: translateY(0); */
   /* transform: none !important; */
 }
+.icon-input {
+  marginleft: 2em;
+}
+.MuiInputLabel-shrink {
+  marginleft: "0";
+}
 
 /* .label-shake {
   animation: shake 0.5s ease-in-out;

@@ -120,6 +120,7 @@ export const UserCreate = () => (
       <ValidationInput
         source="username"
         resettable
+        className="icon-input"
         iconStart={<PermIdentity />}
         required
       />
