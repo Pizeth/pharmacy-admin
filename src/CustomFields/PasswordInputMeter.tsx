@@ -30,6 +30,7 @@ const PasswordInputMeter = (props: IconTextInputProps) => {
     iconStart,
     onChange,
     label,
+    className,
     source,
     ...rest
   } = props;
@@ -128,7 +129,8 @@ const PasswordInputMeter = (props: IconTextInputProps) => {
 
   return (
     <Box width="100%">
-      <StyledTextField
+      <TextInput
+        source={source}
         type={visible ? "text" : "password"}
         size="small"
         onChange={handlePasswordChange}
@@ -137,6 +139,7 @@ const PasswordInputMeter = (props: IconTextInputProps) => {
         error={!!invalid}
         helperText={invalid ? error?.message : ""}
         fullWidth={true}
+        className={clsx("ra-input", `ra-input-${source}`, className)}
         InputProps={{
           startAdornment: iconStart ? (
             <InputAdornment position="start">{iconStart}</InputAdornment>
@@ -161,12 +164,12 @@ const PasswordInputMeter = (props: IconTextInputProps) => {
           shrink: focused || value !== "",
           className: clsx({ shake: shake }),
         }}
-        label={
-          label !== "" && label !== false ? (
-            <FieldTitle label={label} source={source} isRequired={isRequired} />
-          ) : null
-        }
-        {...rest}
+        // label={
+        //   label !== "" && label !== false ? (
+        //     <FieldTitle label={label} source={source} isRequired={isRequired} />
+        //   ) : null
+        // }
+        // {...rest}
       />
       <Box>
         <LinearProgress

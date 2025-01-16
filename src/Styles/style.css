@@ -27,8 +27,12 @@
 .icon-input .MuiInputLabel-root {
   margin-left: 2em;
 }
-.icon-input .MuiInputLabel-shrink {
+/* .icon-input .MuiInputLabel-shrink {
   margin-left: "0";
+} */
+
+.icon-input .MuiInputLabel-root.MuiInputLabel-shrink {
+  margin-left: 0;
 }
 
 /* .label-shake {

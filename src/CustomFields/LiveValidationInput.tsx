@@ -275,10 +275,15 @@ export const StyledTextField = styled(ResettableTextField)(
   }),
 );
 
-export type IconTextInputProps = PasswordInputProps & {
+// export type IconTextInputProps = PasswordInputProps & {
+//   iconStart?: React.ReactNode;
+//   iconEnd?: React.ReactNode;
+// };
+
+export interface IconTextInputProps extends PasswordInputProps {
   iconStart?: React.ReactNode;
   iconEnd?: React.ReactNode;
-};
+}
 
 const ValidationInput = (props: IconTextInputProps) => {
   const {
