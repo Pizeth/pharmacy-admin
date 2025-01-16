@@ -15,12 +15,18 @@ import {
   SimpleForm,
   Toolbar,
 } from "react-admin";
-import { Box, Grid } from "@mui/material";
+import { Box, Grid, IconButton, InputAdornment } from "@mui/material";
 import ValidationInput from "./CustomFields/LiveValidationInput";
 import PasswordInputMeter from "./CustomFields/PasswordInputMeter";
 import { FormSpy } from "react-final-form";
-import { PermIdentity, MailOutline, Password } from "@mui/icons-material";
-import { useMemo } from "react";
+import {
+  PermIdentity,
+  MailOutline,
+  Password,
+  PeopleAltRounded,
+} from "@mui/icons-material";
+import { useMemo, useState } from "react";
+import React from "react";
 
 const choices = [
   { id: "SUPER_ADMIN", name: "Super Admin", disabled: true },
@@ -114,43 +120,93 @@ const RePasswordInput = (props: { source: string; required: boolean }) => {
 //   }
 // };
 
-export const UserCreate = () => (
-  <Create>
-    <SimpleForm>
-      <ValidationInput
-        source="username"
-        resettable
-        className="icon-input"
-        iconStart={<PermIdentity />}
-        required
-      />
+export const UserCreate = () => {
+  const [rePassword, setRePassword] = useState("");
+  const [role, setRole] = useState("");
+  const [focused, setFocused] = useState(false);
 
-      <ValidationInput
-        source="email"
-        resettable
-        required
-        iconStart={<MailOutline />}
-        type="email"
-      />
-      <PasswordInputMeter source="password" iconStart={<Password />} required />
-      <PasswordInput source="rePassword" required />
-      {/* <RePasswordInput source="rePassword" required /> */}
-      <ImageInput
-        source="file"
-        label="Avatar"
-        accept={{ "image/*": [".png", ".jpg"] }}
-      >
-        <ImageField source="src" title="title" />
-      </ImageInput>
-      <SelectInput
-        source="role"
-        choices={choices}
-        emptyText="No role selected"
-      />
-      <NumberInput source="createdBy" />
-    </SimpleForm>
-  </Create>
-);
+  const handleFocus = () => setFocused(true);
+  const handleBlur = () => setFocused(false);
+  return (
+    <Create>
+      <SimpleForm>
+        <ValidationInput
+          source="username"
+          resettable
+          className="icon-input"
+          iconStart={<PermIdentity />}
+          required
+        />
+
+        <ValidationInput
+          source="email"
+          resettable
+          required
+          className="icon-input"
+          iconStart={<MailOutline />}
+          type="email"
+        />
+        <PasswordInputMeter
+          source="password"
+          iconStart={<Password />}
+          className="icon-input"
+          required
+        />
+        <PasswordInput
+          source="rePassword"
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <Password />
+              </InputAdornment>
+            ),
+          }}
+          className="icon-input"
+          value={rePassword}
+          onChange={(e) => setRePassword(e.target.value)}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
+          required
+          InputLabelProps={{
+            shrink: rePassword !== "" || focused,
+          }}
+        />
+        {/* <RePasswordInput source="rePassword" required /> */}
+        <ImageInput
+          source="file"
+          label="Avatar"
+          accept={{ "image/*": [".png", ".jpg"] }}
+        >
+          <ImageField source="src" title="title" />
+        </ImageInput>
+        <SelectInput
+          source="role"
+          choices={choices}
+          emptyText="No role selected"
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <PeopleAltRounded />
+              </InputAdornment>
+            ),
+          }}
+          className="icon-input"
+          value={role}
+          onChange={(e) => setRole(e.target.value)}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
+          required
+          InputLabelProps={{
+            shrink: role !== "" || focused,
+          }}
+        />
+        <NumberInput source="createdBy" />
+      </SimpleForm>
+    </Create>
+  );
+};
+
+export default UserCreate;
 
 // export const UserCreate = () => (
 //   <Create>
