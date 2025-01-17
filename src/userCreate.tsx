@@ -121,12 +121,17 @@ const RePasswordInput = (props: { source: string; required: boolean }) => {
 // };
 
 export const UserCreate = () => {
+  type FocusedField = "rePassword" | "role" | null;
   const [rePassword, setRePassword] = useState("");
   const [role, setRole] = useState("");
-  const [focused, setFocused] = useState(false);
+  // const [focused, setFocused] = useState(false);
+  const [focused, setFocused] = useState<FocusedField>(null);
 
-  const handleFocus = () => setFocused(true);
-  const handleBlur = () => setFocused(false);
+  // const handleFocus = () => setFocused(true);
+  const handleFocus = (field: FocusedField) => setFocused(field);
+  // const handleBlur = () => setFocused(false);
+  const handleBlur = () => setFocused(null);
+
   return (
     <Create>
       <SimpleForm>
@@ -164,11 +169,12 @@ export const UserCreate = () => {
           className="icon-input"
           value={rePassword}
           onChange={(e) => setRePassword(e.target.value)}
-          onFocus={handleFocus}
+          // onFocus={handleFocus}
+          onFocus={() => handleFocus("rePassword")}
           onBlur={handleBlur}
           required
           InputLabelProps={{
-            shrink: rePassword !== "" || focused,
+            shrink: rePassword !== "" || focused === "rePassword",
           }}
         />
         {/* <RePasswordInput source="rePassword" required /> */}
@@ -193,11 +199,12 @@ export const UserCreate = () => {
           className="icon-input"
           value={role}
           onChange={(e) => setRole(e.target.value)}
-          onFocus={handleFocus}
+          // onFocus={handleFocus}
+          onFocus={() => handleFocus("role")}
           onBlur={handleBlur}
           required
           InputLabelProps={{
-            shrink: role !== "" || focused,
+            shrink: role !== "" || focused === "role",
           }}
         />
         <NumberInput source="createdBy" />
