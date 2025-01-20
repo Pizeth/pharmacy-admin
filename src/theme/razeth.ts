@@ -70,8 +70,8 @@ const customBaseTheme = createTheme({
     secondary: { main: "#007bff" },
     error: { main: "#f58700" },
     warning: { main: "#FFD22B" },
-    info: { main: "#ff886b" },
-    success: { main: "#00E676" },
+    info: { main: "#f89696" },
+    success: { main: "#2ece71" },
     mode: "dark",
     background: { default: "#121212", paper: "#1d1d1d" },
     text: { primary: "#ffffff", secondary: "#aaaaaa" },
@@ -81,7 +81,7 @@ const customBaseTheme = createTheme({
       styleOverrides: {
         root: (props: { theme: Theme }) => ({
           // backgroundColor: props.theme.palette.primary.main, // Customize the AppBar background color
-          backgroundColor: "rgb(173, 15, 31)", // Customize the AppBar background color
+          backgroundColor: "#c40316", // Customize the AppBar background color
           color: props.theme.palette.text.primary, // Customize font color
         }),
       },
@@ -168,7 +168,7 @@ const customBaseTheme = createTheme({
 });
 
 // Merge custom base theme with defaults const
-export const darkTheme1: RaThemeOptions = deepmerge(
+export const darkTheme: RaThemeOptions = deepmerge(
   defaultThemeInvariants,
   customBaseTheme,
 );
@@ -201,7 +201,7 @@ export const lightTheme = deepmerge(defaultTheme, {
       main: "#ffa000", // Custom color for warning
     },
     success: {
-      main: "#388e3c", // Custom color for success
+      main: "#079e0f", // Custom color for success
     },
   },
 
@@ -229,7 +229,7 @@ export const lightTheme = deepmerge(defaultTheme, {
   },
 });
 
-export const darkTheme = deepmerge(defaultDarkTheme, {
+export const darkTheme1 = deepmerge(defaultDarkTheme, {
   palette: {
     primary: {
       mode: "dark",

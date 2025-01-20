@@ -62,7 +62,7 @@ export const App = () => {
       disableTelemetry
       // theme={theme}
       lightTheme={lightTheme}
-      darkTheme={darkTheme1}
+      darkTheme={darkTheme}
       defaultTheme="dark"
       dashboard={Dashboard}
       store={store}

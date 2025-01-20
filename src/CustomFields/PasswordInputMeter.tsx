@@ -1,26 +1,26 @@
 import * as React from "react";
-import { useState } from "react";
-import { FieldTitle, useInput, useTranslate } from "ra-core";
-import {
-  InputAdornment,
-  IconButton,
-  LinearProgress,
-  Typography,
-  Box,
-  styled,
-} from "@mui/material";
+import { useEffect, useState } from "react";
+import { useInput, useTranslate } from "ra-core";
+import { InputAdornment, IconButton, Typography, Box } from "@mui/material";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
-// import { useInput, TextInputProps } from "react-admin";
-// import { TextInput, TextInputProps } from "./TextInput";
-import zxcvbn from "zxcvbn";
-import {
-  PasswordInputProps,
-  ResettableTextField,
-  TextInput,
-} from "react-admin";
-import { IconTextInputProps, StyledTextField } from "./LiveValidationInput";
+import { TextInput } from "react-admin";
+import { IconTextInputProps } from "./LiveValidationInput";
 import { clsx } from "clsx";
+import LinearProgressWithLabel from "../CustomComponents/LinearProgessWithLabel";
+import {
+  zxcvbn,
+  zxcvbnOptions,
+  zxcvbnAsync,
+  debounce,
+  Match,
+  Matcher,
+  MatchEstimated,
+  MatchExtended,
+} from "@zxcvbn-ts/core";
+import { matcherPwnedFactory as PwnedMatcher } from "@zxcvbn-ts/matcher-pwned";
+import * as zxcvbnEnPackage from "@zxcvbn-ts/language-en";
+import * as zxcvbnCommonPackage from "@zxcvbn-ts/language-common";
 
 const MESSAGE = import.meta.env.VITE_PASSWORD_HINT;
 
@@ -54,58 +54,93 @@ const PasswordInputMeter = (props: IconTextInputProps) => {
   const [shake, setShake] = useState(false);
   const typingInterval = import.meta.env.VITE_DELAY_CALL || 2500; // Time in milliseconds
 
-  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = e.target.value;
-    onChange?.(newValue);
-    const result = zxcvbn(newValue);
-    setPasswordStrength(result.score);
-    setPasswordFeedback(result.feedback.suggestions.join(" "));
-    setValue(e?.target?.value ?? e);
-    setTyping(true);
+  const options = {
+    translations: zxcvbnEnPackage.translations,
+    graphs: zxcvbnCommonPackage.adjacencyGraphs,
+    dictionary: {
+      ...zxcvbnCommonPackage.dictionary,
+      ...zxcvbnEnPackage.dictionary,
+    },
+  };
+
+  const regexMatcher: Matcher = {
+    Matching: class MatchRegex {
+      regex =
+        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+
+      match({ password }: { password: string }) {
+        const matches: Match[] = [];
+        const result = this.regex.exec(password);
+
+        if (result) {
+          matches.push({
+            pattern: "regex",
+            token: result[0],
+            i: result.index,
+            j: result.index + result[0].length - 1,
+          });
+        }
+        return matches;
+      }
+    },
+    feedback(match: MatchEstimated, isSoleMatch?: boolean) {
+      return {
+        warning: "Your password does not meet the required criteria.",
+        suggestions: [
+          "Include at least one uppercase letter.",
+          "Include at least one lowercase letter.",
+          "Include at least one digit.",
+          "Include at least one special character.",
+          "Ensure the password is at least eight characters long.",
+        ],
+      };
+    },
+    scoring(match: MatchExtended) {
+      // Customize the scoring as per the match strength
+      return match.token.length * 5; // Example scoring
+    },
+  };
+
+  zxcvbnOptions.setOptions(options);
+  // const matcherPwned = PwnedMatcher(fetch, zxcvbnOptions);
+  // zxcvbnOptions.addMatcher("pwned", matcherPwned);
+  zxcvbnOptions.addMatcher("regex", regexMatcher);
+
+  useEffect(() => {
+    const validatePassword = async () => {
+      const result = await zxcvbnAsync(value);
+      // console.log(result);
+      const warningMsg = result.feedback.warning;
+      const suggestMsg = result.feedback.suggestions.join(" ");
+      setPasswordStrength(result.score);
+      setPasswordFeedback(
+        warningMsg ? warningMsg.concat(` ${suggestMsg}`) : suggestMsg,
+      );
+      if (result.score <= 0) {
+        setShake(true);
+        setTimeout(() => setShake(false), 500);
+      }
+    };
+
     if (typing) {
       const timer = setTimeout(() => {
         setTyping(false);
-
-        if (result.score <= 0) {
-          setShake(true);
-          setTimeout(() => setShake(false), 500);
-        }
+        const debouncedValidation = debounce(validatePassword, 2500, true);
+        debouncedValidation();
       }, 500);
       return () => clearTimeout(timer);
     }
+  }, [typing, value, typingInterval]);
+
+  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = e.target.value;
+    onChange?.(newValue);
+    setValue(e?.target?.value ?? e);
+    setTyping(true);
   };
-
-  // const notify = useNotify();
-
-  // const [validateError, setValidateError] = useState<FieldError | null>(null);
 
   const handleFocus = () => setFocused(true);
   const handleBlur = () => setFocused(false);
-
-  // useEffect(() => {
-  //   const validateInput = async () => {
-  //     const result = await serverValidator(value, `validate/${source}`);
-  //     setValidateError(result);
-  //     if (result?.error) {
-  //       notify(result.message, { type: "warning" });
-  //       setShake(true);
-  //       setTimeout(() => setShake(false), 500);
-  //     }
-  //   };
-
-  //   if (typing) {
-  //     const timer = setTimeout(() => {
-  //       setTyping(false);
-  //       validateInput();
-  //     }, typingInterval);
-  //     return () => clearTimeout(timer);
-  //   }
-  // }, [typing, value, source, notify, typingInterval]);
-
-  // const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-  //   setValue(e?.target?.value ?? e);
-  //   setTyping(true);
-  // };
 
   // const renderHelperText = helperText !== false || invalid;
   // const isError = validateError?.error || invalid;
@@ -123,7 +158,7 @@ const PasswordInputMeter = (props: IconTextInputProps) => {
       case 4:
         return "green";
       default:
-        return "#dc3545";
+        return "#dd741d";
     }
   };
 
@@ -172,8 +207,9 @@ const PasswordInputMeter = (props: IconTextInputProps) => {
         // {...rest}
       />
       <Box>
-        <LinearProgress
+        <LinearProgressWithLabel
           variant="determinate"
+          // color="success"
           value={(passwordStrength / 4) * 100}
           style={{ backgroundColor: getColor(passwordStrength) }}
         />
