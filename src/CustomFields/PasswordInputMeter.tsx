@@ -1,10 +1,14 @@
 import * as React from "react";
 import { useEffect, useState } from "react";
-import { useInput, useTranslate } from "ra-core";
+import { FieldTitle, useInput, useTranslate } from "ra-core";
 import { InputAdornment, IconButton, Typography, Box } from "@mui/material";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
-import { InputHelperText, TextInput } from "react-admin";
+import {
+  InputHelperText,
+  sanitizeInputRestProps,
+  TextInput,
+} from "react-admin";
 import { IconTextInputProps } from "./LiveValidationInput";
 import { clsx } from "clsx";
 import LinearProgressWithLabel from "../CustomComponents/LinearProgessWithLabel";
@@ -30,7 +34,7 @@ const PasswordInputMeter = (props: IconTextInputProps) => {
     iconStart,
     onChange,
     label,
-    helperText,
+    // helperText,
     className,
     source,
     ...rest
@@ -116,13 +120,21 @@ const PasswordInputMeter = (props: IconTextInputProps) => {
       zxcvbnAsync(value).then((res) => {
         const warningMsg = res.feedback.warning;
         const suggestMsg = res.feedback.suggestions.join(" ");
-        setPasswordStrength(res.score);
-        setPasswordFeedback(
-          warningMsg ? warningMsg.concat(` ${suggestMsg}`) : suggestMsg,
-        );
-        setErrMessage(warningMsg || "");
+
+        //   warningMsg ? warningMsg.concat(` ${suggestMsg}`) : suggestMsg,
+        // );
+
         const result = res.score <= 0;
         setValidateError(result);
+        setErrMessage(warningMsg || "");
+        setPasswordStrength(res.score);
+        setPasswordFeedback(
+          result
+            ? suggestMsg
+            : warningMsg
+              ? warningMsg.concat(` ${suggestMsg}`)
+              : suggestMsg,
+        );
         if (result) {
           setShake(true);
           setTimeout(() => setShake(false), 500);
@@ -149,13 +161,12 @@ const PasswordInputMeter = (props: IconTextInputProps) => {
 
   const handleFocus = () => setFocused(true);
   const handleBlur = () => setFocused(false);
+
   // const renderHelperText = helperText !== false || invalid;
   const isError = validateError || invalid;
+  const errMsg = errMessage || error?.message;
   console.log("isError", isError);
-
-  // const renderHelperText = helperText !== false || invalid;
-  // const isError = validateError?.error || invalid;
-
+  console.log(errMessage);
   const getColor = (score: number) => {
     switch (score) {
       case 0:
@@ -176,21 +187,22 @@ const PasswordInputMeter = (props: IconTextInputProps) => {
   return (
     <Box width="100%">
       <TextInput
+        {...field}
         source={source}
         type={visible ? "text" : "password"}
         size="small"
         onChange={handlePasswordChange}
         onFocus={handleFocus}
         onBlur={handleBlur}
-        error={isError}
-        // helperText={isError ? error?.message : ""}
         // helperText={
         //   renderHelperText ? (
         //     <InputHelperText
         //       error={errMessage || error?.message}
         //       helperText={helperText}
         //     />
-        //   ) : undefined
+        //   ) : (
+        //     ""
+        //   )
         // }
         fullWidth={true}
         className={clsx("ra-input", `ra-input-${source}`, className)}
@@ -218,12 +230,14 @@ const PasswordInputMeter = (props: IconTextInputProps) => {
           shrink: focused || value !== "",
           className: clsx({ shake: shake }),
         }}
-        // label={
-        //   label !== "" && label !== false ? (
-        //     <FieldTitle label={label} source={source} isRequired={isRequired} />
-        //   ) : null
-        // }
-        // {...rest}
+        error={isError}
+        helperText={isError ? errMsg : ""}
+        label={
+          label !== "" && label !== false ? (
+            <FieldTitle label={label} source={source} isRequired={isRequired} />
+          ) : null
+        }
+        {...sanitizeInputRestProps(rest)}
       />
       <Box>
         <LinearProgressWithLabel
