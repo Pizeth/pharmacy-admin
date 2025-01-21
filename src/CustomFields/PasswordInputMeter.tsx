@@ -4,7 +4,7 @@ import { useInput, useTranslate } from "ra-core";
 import { InputAdornment, IconButton, Typography, Box } from "@mui/material";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
-import { TextInput } from "react-admin";
+import { InputHelperText, TextInput } from "react-admin";
 import { IconTextInputProps } from "./LiveValidationInput";
 import { clsx } from "clsx";
 import LinearProgressWithLabel from "../CustomComponents/LinearProgessWithLabel";
@@ -30,6 +30,7 @@ const PasswordInputMeter = (props: IconTextInputProps) => {
     iconStart,
     onChange,
     label,
+    helperText,
     className,
     source,
     ...rest
@@ -49,40 +50,12 @@ const PasswordInputMeter = (props: IconTextInputProps) => {
   const [passwordStrength, setPasswordStrength] = useState(0);
   const [passwordFeedback, setPasswordFeedback] = useState("");
   const [value, setValue] = useState(field.value || "");
+  const [errMessage, setErrMessage] = useState(error?.message || "");
   const [typing, setTyping] = useState(false);
   const [focused, setFocused] = useState(false);
   const [shake, setShake] = useState(false);
+  const [validateError, setValidateError] = useState(false);
   const typingInterval = import.meta.env.VITE_DELAY_CALL || 2500; // Time in milliseconds
-
-  const minLengthMatcher: Matcher = {
-    Matching: class MatchMinLength {
-      minLength = 30;
-
-      match({ password }: { password: string }) {
-        const matches: Match[] = [];
-        console.log(password.length);
-        if (password.length <= this.minLength) {
-          matches.push({
-            pattern: "minLength",
-            token: password,
-            i: 0,
-            j: password.length - 1,
-          });
-        }
-        return matches;
-      }
-    },
-    feedback(match: MatchEstimated, isSoleMatch?: boolean) {
-      return {
-        warning: "Your password is not long enough",
-        suggestions: [],
-      };
-    },
-    scoring(match: MatchExtended) {
-      // The length of the password is multiplied by 10 to create a higher score the more characters are added.
-      return match.token.length * 10;
-    },
-  };
 
   const regexMatcher: Matcher = {
     Matching: class MatchRegex {
@@ -90,10 +63,8 @@ const PasswordInputMeter = (props: IconTextInputProps) => {
         /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
 
       match({ password }: { password: string }) {
-        // console.log(password);
         const matches: Match[] = [];
         const result = this.regex.exec(password);
-        console.log(result);
         if (!result) {
           matches.push({
             pattern: "passRegex",
@@ -103,7 +74,6 @@ const PasswordInputMeter = (props: IconTextInputProps) => {
             lenght: password.length,
           });
         }
-        // console.log(matches);
         return matches;
       }
     },
@@ -137,7 +107,6 @@ const PasswordInputMeter = (props: IconTextInputProps) => {
     },
   };
 
-  // zxcvbnOptions.addMatcher("minLength", minLengthMatcher);
   zxcvbnOptions.setOptions(options);
   zxcvbnOptions.addMatcher("passRegex", regexMatcher);
   zxcvbnOptions.addMatcher("pwned", matcherPwned);
@@ -145,20 +114,20 @@ const PasswordInputMeter = (props: IconTextInputProps) => {
   useEffect(() => {
     const validatePassword = async () => {
       zxcvbnAsync(value).then((res) => {
-        // console.log(res);
         const warningMsg = res.feedback.warning;
         const suggestMsg = res.feedback.suggestions.join(" ");
         setPasswordStrength(res.score);
         setPasswordFeedback(
           warningMsg ? warningMsg.concat(` ${suggestMsg}`) : suggestMsg,
         );
-        if (res.score <= 0) {
+        setErrMessage(warningMsg || "");
+        const result = res.score <= 0;
+        setValidateError(result);
+        if (result) {
           setShake(true);
           setTimeout(() => setShake(false), 500);
         }
       });
-
-      // console.log(result);
     };
 
     if (typing) {
@@ -180,6 +149,9 @@ const PasswordInputMeter = (props: IconTextInputProps) => {
 
   const handleFocus = () => setFocused(true);
   const handleBlur = () => setFocused(false);
+  // const renderHelperText = helperText !== false || invalid;
+  const isError = validateError || invalid;
+  console.log("isError", isError);
 
   // const renderHelperText = helperText !== false || invalid;
   // const isError = validateError?.error || invalid;
@@ -210,8 +182,16 @@ const PasswordInputMeter = (props: IconTextInputProps) => {
         onChange={handlePasswordChange}
         onFocus={handleFocus}
         onBlur={handleBlur}
-        error={!!invalid}
-        helperText={invalid ? error?.message : ""}
+        error={isError}
+        // helperText={isError ? error?.message : ""}
+        // helperText={
+        //   renderHelperText ? (
+        //     <InputHelperText
+        //       error={errMessage || error?.message}
+        //       helperText={helperText}
+        //     />
+        //   ) : undefined
+        // }
         fullWidth={true}
         className={clsx("ra-input", `ra-input-${source}`, className)}
         InputProps={{
