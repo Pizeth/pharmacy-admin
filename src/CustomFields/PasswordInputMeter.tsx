@@ -54,12 +54,33 @@ const PasswordInputMeter = (props: IconTextInputProps) => {
   const [shake, setShake] = useState(false);
   const typingInterval = import.meta.env.VITE_DELAY_CALL || 2500; // Time in milliseconds
 
-  const options = {
-    translations: zxcvbnEnPackage.translations,
-    graphs: zxcvbnCommonPackage.adjacencyGraphs,
-    dictionary: {
-      ...zxcvbnCommonPackage.dictionary,
-      ...zxcvbnEnPackage.dictionary,
+  const minLengthMatcher: Matcher = {
+    Matching: class MatchMinLength {
+      minLength = 30;
+
+      match({ password }: { password: string }) {
+        const matches: Match[] = [];
+        console.log(password.length);
+        if (password.length <= this.minLength) {
+          matches.push({
+            pattern: "minLength",
+            token: password,
+            i: 0,
+            j: password.length - 1,
+          });
+        }
+        return matches;
+      }
+    },
+    feedback(match: MatchEstimated, isSoleMatch?: boolean) {
+      return {
+        warning: "Your password is not long enough",
+        suggestions: [],
+      };
+    },
+    scoring(match: MatchExtended) {
+      // The length of the password is multiplied by 10 to create a higher score the more characters are added.
+      return match.token.length * 10;
     },
   };
 
@@ -69,17 +90,20 @@ const PasswordInputMeter = (props: IconTextInputProps) => {
         /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
 
       match({ password }: { password: string }) {
+        // console.log(password);
         const matches: Match[] = [];
         const result = this.regex.exec(password);
-
-        if (result) {
+        console.log(result);
+        if (!result) {
           matches.push({
-            pattern: "regex",
-            token: result[0],
-            i: result.index,
-            j: result.index + result[0].length - 1,
+            pattern: "passRegex",
+            token: password,
+            i: 0,
+            j: password.length - 1,
+            lenght: password.length,
           });
         }
+        // console.log(matches);
         return matches;
       }
     },
@@ -87,11 +111,11 @@ const PasswordInputMeter = (props: IconTextInputProps) => {
       return {
         warning: "Your password does not meet the required criteria.",
         suggestions: [
-          "Include at least one uppercase letter.",
-          "Include at least one lowercase letter.",
-          "Include at least one digit.",
-          "Include at least one special character.",
-          "Ensure the password is at least eight characters long.",
+          "Password must be at least 8 characters,",
+          "include uppercase,",
+          "lowercase,",
+          "number,",
+          "and special character!",
         ],
       };
     },
@@ -101,25 +125,40 @@ const PasswordInputMeter = (props: IconTextInputProps) => {
     },
   };
 
+  const matcherPwned = PwnedMatcher(fetch, zxcvbnOptions);
+
+  const options = {
+    // matchers: { regexMatcher },
+    translations: zxcvbnEnPackage.translations,
+    graphs: zxcvbnCommonPackage.adjacencyGraphs,
+    dictionary: {
+      ...zxcvbnCommonPackage.dictionary,
+      ...zxcvbnEnPackage.dictionary,
+    },
+  };
+
+  // zxcvbnOptions.addMatcher("minLength", minLengthMatcher);
   zxcvbnOptions.setOptions(options);
-  // const matcherPwned = PwnedMatcher(fetch, zxcvbnOptions);
-  // zxcvbnOptions.addMatcher("pwned", matcherPwned);
-  zxcvbnOptions.addMatcher("regex", regexMatcher);
+  zxcvbnOptions.addMatcher("passRegex", regexMatcher);
+  zxcvbnOptions.addMatcher("pwned", matcherPwned);
 
   useEffect(() => {
     const validatePassword = async () => {
-      const result = await zxcvbnAsync(value);
+      zxcvbnAsync(value).then((res) => {
+        // console.log(res);
+        const warningMsg = res.feedback.warning;
+        const suggestMsg = res.feedback.suggestions.join(" ");
+        setPasswordStrength(res.score);
+        setPasswordFeedback(
+          warningMsg ? warningMsg.concat(` ${suggestMsg}`) : suggestMsg,
+        );
+        if (res.score <= 0) {
+          setShake(true);
+          setTimeout(() => setShake(false), 500);
+        }
+      });
+
       // console.log(result);
-      const warningMsg = result.feedback.warning;
-      const suggestMsg = result.feedback.suggestions.join(" ");
-      setPasswordStrength(result.score);
-      setPasswordFeedback(
-        warningMsg ? warningMsg.concat(` ${suggestMsg}`) : suggestMsg,
-      );
-      if (result.score <= 0) {
-        setShake(true);
-        setTimeout(() => setShake(false), 500);
-      }
     };
 
     if (typing) {
