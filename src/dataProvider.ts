@@ -175,16 +175,17 @@ export const dataProvider: DataProvider = {
       method: "POST",
     };
 
-    if (FormSerializer.hasFileField(params.data)) {
-      console.log("has file field");
-      req.body = createPostFormData(params);
-    } else {
-      console.log("no file field");
-      req.body = JSON.stringify(params.data);
-      // req.headers = {
-      //   "Content-Type": "application/json",
-      // };
-    }
+    // if (FormSerializer.hasFileField(params.data)) {
+    //   req.body = createPostFormData(params);
+    // } else {
+    //   req.body = JSON.stringify(params.data);
+    // }
+
+    req.body = FormSerializer.hasFileField(params.data)
+      ? createPostFormData(params)
+      : JSON.stringify(params.data);
+
+    console.log(params.data);
 
     const response = await fetchUtils.fetchJson(
       `${API_URL}/${resource}/Register`,
@@ -229,14 +230,15 @@ export const dataProvider: DataProvider = {
       method: "PUT",
     };
 
-    if (FormSerializer.hasFileField(params.data)) {
-      req.body = createPostFormData(params);
-    } else {
-      req.body = JSON.stringify(params.data);
-      // req.headers = {
-      //   "Content-Type": "application/json",
-      // };
-    }
+    // if (FormSerializer.hasFileField(params.data)) {
+    //   req.body = createPostFormData(params);
+    // } else {
+    //   req.body = JSON.stringify(params.data);
+    // }
+
+    req.body = FormSerializer.hasFileField(params.data)
+      ? createPostFormData(params)
+      : JSON.stringify(params.data);
 
     const response = await fetchUtils.fetchJson(`${API_URL}/${resource}`, req);
 

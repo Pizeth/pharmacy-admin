@@ -4,6 +4,7 @@ import {
   Form,
   ImageField,
   ImageInput,
+  isRequired,
   maxLength,
   minLength,
   NumberInput,
@@ -13,6 +14,7 @@ import {
   SaveButton,
   SelectInput,
   SimpleForm,
+  TextInput,
   Toolbar,
 } from "react-admin";
 import { Box, Grid, IconButton, InputAdornment } from "@mui/material";
@@ -142,14 +144,15 @@ export const UserCreate = () => {
           iconStart={<PermIdentity />}
           required
         />
-
+        <TextInput source="username" />
+        {/* <TextInput source="email" type="email" /> */}
         <ValidationInput
           source="email"
           resettable
-          required
           className="icon-input"
           iconStart={<MailOutline />}
           type="email"
+          required
         />
         <PasswordInputMeter
           source="password"
