@@ -29,6 +29,7 @@ import {
 } from "@mui/icons-material";
 import { useMemo, useState } from "react";
 import React from "react";
+import { PasswordInputTest } from "./fortest";
 
 const choices = [
   { id: "SUPER_ADMIN", name: "Super Admin", disabled: true },
@@ -144,7 +145,7 @@ export const UserCreate = () => {
           iconStart={<PermIdentity />}
           required
         />
-        <TextInput source="username" />
+        {/* <TextInput source="username" /> */}
         {/* <TextInput source="email" type="email" /> */}
         <ValidationInput
           source="email"
@@ -160,6 +161,7 @@ export const UserCreate = () => {
           className="icon-input"
           required
         />
+        {/* <PasswordInputTest source="password" className="icon-input" required /> */}
         <PasswordInput
           source="rePassword"
           InputProps={{

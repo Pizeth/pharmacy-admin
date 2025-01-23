@@ -236,12 +236,7 @@
 // export default ValidationInput;
 
 import React, { useEffect, useState } from "react";
-import {
-  PasswordInputProps,
-  TextInputProps,
-  useInput,
-  useNotify,
-} from "react-admin";
+import { PasswordInputProps, useInput } from "react-admin";
 import clsx from "clsx";
 import { styled } from "@mui/material/styles";
 import { FieldError, serverValidator } from "../Utils/validator";
@@ -294,7 +289,7 @@ const ValidationInput = (props: IconTextInputProps) => {
     ...rest,
   });
 
-  const notify = useNotify();
+  // const notify = useNotify();
   const [value, setValue] = useState(field.value || "");
   const [typing, setTyping] = useState(false);
   const [shake, setShake] = useState(false);
@@ -307,12 +302,12 @@ const ValidationInput = (props: IconTextInputProps) => {
   const typingInterval = import.meta.env.VITE_DELAY_CALL || 2500; // Time in milliseconds
 
   useEffect(() => {
-    // console.log("Current Value: ", value);
+    console.log("Current Value: ", value);
     const validateInput = async () => {
       const result = await serverValidator(value, `validate/${source}`);
       setValidateError(result);
       if (result?.error) {
-        notify(result.message, { type: "warning" });
+        // notify(result.message, { type: "warning" });
         setShake(true);
         setTimeout(() => setShake(false), 500);
       }
@@ -325,7 +320,7 @@ const ValidationInput = (props: IconTextInputProps) => {
       }, typingInterval);
       return () => clearTimeout(timer);
     }
-  }, [typing, value, source, notify, typingInterval]);
+  }, [typing, value, source, /*notify*,*/ typingInterval]);
 
   // const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
   //   setValue(e?.target?.value ?? e);
