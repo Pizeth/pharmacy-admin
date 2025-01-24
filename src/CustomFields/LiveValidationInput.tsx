@@ -251,6 +251,7 @@ import InputAdornment from "@mui/material/InputAdornment";
 export interface IconTextInputProps extends PasswordInputProps {
   iconStart?: React.ReactNode;
   iconEnd?: React.ReactNode;
+  passwordValue?: string; // Props for RepasswordInput to receive the password field value
 }
 
 const ValidationInput = (props: IconTextInputProps) => {
@@ -302,7 +303,6 @@ const ValidationInput = (props: IconTextInputProps) => {
   const typingInterval = import.meta.env.VITE_DELAY_CALL || 2500; // Time in milliseconds
 
   useEffect(() => {
-    console.log("Current Value: ", value);
     const validateInput = async () => {
       const result = await serverValidator(value, `validate/${source}`);
       setValidateError(result);

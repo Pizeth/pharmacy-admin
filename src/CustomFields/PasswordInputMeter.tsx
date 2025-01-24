@@ -9,6 +9,7 @@ import { clsx } from "clsx";
 import LinearProgressWithLabel from "../CustomComponents/LinearProgessWithLabel";
 import {
   zxcvbnOptions,
+  zxcvbn,
   zxcvbnAsync,
   debounce,
   Match,
@@ -76,15 +77,12 @@ zxcvbnOptions.setOptions(options);
 zxcvbnOptions.addMatcher("passRegex", regexMatcher);
 zxcvbnOptions.addMatcher("pwned", matcherPwned);
 
-// const PasswordInputMeter = forwardRef<HTMLInputElement, IconTextInputProps>(
-//   (props, ref) => {
 const PasswordInputMeter = (props: IconTextInputProps) => {
   const {
     className,
     defaultValue,
     label,
     format,
-    // helperText,
     onBlur,
     onChange,
     parse,
@@ -92,7 +90,6 @@ const PasswordInputMeter = (props: IconTextInputProps) => {
     source,
     validate,
     iconStart,
-    // iconEnd,
     initiallyVisible = false,
     ...rest
   } = props;
@@ -134,31 +131,55 @@ const PasswordInputMeter = (props: IconTextInputProps) => {
 
   useEffect(() => {
     const validatePassword = async () => {
-      zxcvbnAsync(value).then((res) => {
-        const warningMsg = res.feedback.warning;
-        const suggestMsg = res.feedback.suggestions.join(" ");
-        const result = res.score <= 0;
+      if (value === "") {
+        setValidateError(false);
+        return;
+      }
+      const result = await zxcvbnAsync(value);
+      // .then((res) => {
+      //   const warningMsg = res.feedback.warning;
+      //   const suggestMsg = res.feedback.suggestions.join(" ");
+      //   const result = res.score <= 0;
 
-        setValidateError(result);
-        setErrMessage(warningMsg || "");
-        setPasswordStrength(res.score);
-        setPasswordFeedback(
-          result
-            ? suggestMsg
-            : warningMsg
-              ? warningMsg.concat(` ${suggestMsg}`)
-              : suggestMsg,
-        );
-        if (result) {
-          setShake(true);
-          setTimeout(() => setShake(false), 500);
-        }
-      });
+      //   setValidateError(result);
+      //   setErrMessage(warningMsg || "");
+      //   setPasswordStrength(res.score);
+      //   setPasswordFeedback(
+      //     result
+      //       ? suggestMsg
+      //       : warningMsg
+      //         ? warningMsg.concat(` ${suggestMsg}`)
+      //         : suggestMsg,
+      //   );
+      //   if (result) {
+      //     setShake(true);
+      //     setTimeout(() => setShake(false), 500);
+      //   }
+      // });
+      const warningMsg = result.feedback.warning;
+      const suggestMsg = result.feedback.suggestions.join(" ");
+      const isValid = result.score <= 0;
+
+      setValidateError(isValid);
+      setErrMessage(warningMsg || "");
+      setPasswordStrength(result.score);
+      setPasswordFeedback(
+        result
+          ? suggestMsg
+          : warningMsg
+            ? warningMsg.concat(` ${suggestMsg}`)
+            : suggestMsg,
+      );
+      if (result) {
+        setShake(true);
+        setTimeout(() => setShake(false), 500);
+      }
     };
 
     if (typing) {
       const timer = setTimeout(() => {
         setTyping(false);
+        // validatePassword();
         const debouncedValidation = debounce(validatePassword, interval, true);
         debouncedValidation();
       }, 1500);

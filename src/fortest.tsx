@@ -1,31 +1,19 @@
-import React, { useEffect, useState } from "react";
-import {
-  PasswordInputProps,
-  TextInput,
-  useInput,
-  useNotify,
-} from "react-admin";
-import clsx from "clsx";
-import { styled } from "@mui/material/styles";
-// import { FieldError, serverValidator } from "../Utils/validator";
-import {
-  ResettableTextField,
-  FieldTitle,
-  InputHelperText,
-  sanitizeInputRestProps,
-} from "react-admin";
-import "./Styles/style.css";
-import InputAdornment from "@mui/material/InputAdornment";
-import { FieldError } from "./Utils/validator";
+import { ChangeEvent, useEffect, useState } from "react";
+import { FieldTitle, useInput, useTranslate } from "ra-core";
+import { InputAdornment, IconButton, Typography, Box } from "@mui/material";
+import Visibility from "@mui/icons-material/Visibility";
+import VisibilityOff from "@mui/icons-material/VisibilityOff";
+import { ResettableTextField, sanitizeInputRestProps } from "react-admin";
+
+import { clsx } from "clsx";
 import { IconTextInputProps } from "./CustomFields/LiveValidationInput";
 
-export const PasswordInputTest = (props: IconTextInputProps) => {
+export const RepasswordInput = (props: IconTextInputProps) => {
   const {
     className,
     defaultValue,
     label,
     format,
-    helperText,
     onBlur,
     onChange,
     parse,
@@ -33,13 +21,14 @@ export const PasswordInputTest = (props: IconTextInputProps) => {
     source,
     validate,
     iconStart,
-    iconEnd,
+    initiallyVisible = false,
+    passwordValue,
     ...rest
   } = props;
 
   const {
     field,
-    fieldState: { error, invalid },
+    fieldState: { invalid, error },
     id,
     isRequired,
   } = useInput({
@@ -55,71 +44,81 @@ export const PasswordInputTest = (props: IconTextInputProps) => {
     ...rest,
   });
 
+  const translate = useTranslate();
+  const [visible, setVisible] = useState(initiallyVisible);
   const [value, setValue] = useState(field.value || "");
-  const [typing, setTyping] = useState(false);
-  const [shake, setShake] = useState(false);
-  const [validateError, setValidateError] = useState<FieldError | null>(null);
+  const [errMessage, setErrMessage] = useState(error?.message || "");
   const [focused, setFocused] = useState(false);
+  const [shake, setShake] = useState(false);
+  const [validateError, setValidateError] = useState(false);
+
+  useEffect(() => {
+    const result = passwordValue !== value && value !== "";
+    setValidateError(result);
+    setErrMessage(result ? "Passwords do not match!" : "");
+    if (result) {
+      setShake(true);
+      setTimeout(() => setShake(false), 500);
+    }
+    // if (passwordValue !== value && value !== "") {
+    //   setErrMessage("Passwords do not match!");
+    //   setShake(true);
+    //   setTimeout(() => setShake(false), 500);
+    // } else {
+    //   setErrMessage("");
+    // }
+  }, [passwordValue, value]);
+
+  const handleClick = () => {
+    setVisible(!visible);
+  };
+
+  const handlePasswordChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const newValue = e?.target?.value ?? e;
+    setValue(newValue); // Ensure value state is updated
+    field.onChange(newValue); // Ensure form data is in sync
+  };
 
   const handleFocus = () => setFocused(true);
   const handleBlur = () => setFocused(false);
 
-  const typingInterval = import.meta.env.VITE_DELAY_CALL || 2500; // Time in milliseconds
-
-  useEffect(() => {
-    // console.log("Current Value: ", value);
-    // const validateInput = async () => {
-    //   const result = await serverValidator(value, `validate/${source}`);
-    //   setValidateError(result);
-    //   if (result?.error) {
-    //     notify(result.message, { type: "warning" });
-    //     setShake(true);
-    //     setTimeout(() => setShake(false), 500);
-    //   }
-    // };
-    // if (typing) {
-    //   const timer = setTimeout(() => {
-    //     setTyping(false);
-    //     validateInput();
-    //   }, typingInterval);
-    //   return () => clearTimeout(timer);
-    // }
-  }, [typing, value, source, typingInterval]);
-
-  // const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-  //   setValue(e?.target?.value ?? e);
-  //   setTyping(true);
-  // };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = e?.target?.value ?? e;
-    setValue(newValue); // Ensure value state is updated
-    field.onChange(newValue); // Ensure form data is in sync
-    setTyping(true);
-  };
-
-  const renderHelperText = helperText !== false || invalid;
-  const isError = validateError?.error || invalid;
+  // const isError = validateError || invalid;
+  // const errMsg = errMessage || error?.message;
 
   return (
     <ResettableTextField
       id={id}
       {...field}
-      value={value}
-      onChange={handleChange}
-      onFocus={handleFocus}
-      onBlur={handleBlur}
+      source={source}
+      type={visible ? "text" : "password"}
+      size="small"
+      onChange={handlePasswordChange}
+      fullWidth={true}
       className={clsx("ra-input", `ra-input-${source}`, className)}
+      error={Boolean(errMessage) || invalid}
+      helperText={errMessage}
       InputProps={{
         startAdornment: iconStart ? (
           <InputAdornment position="start">{iconStart}</InputAdornment>
         ) : null,
-        endAdornment: iconEnd ? (
-          <InputAdornment position="end">{iconEnd}</InputAdornment>
-        ) : null,
+        endAdornment: (
+          <InputAdornment position="end">
+            <IconButton
+              aria-label={translate(
+                visible
+                  ? "ra.input.password.toggle_visible"
+                  : "ra.input.password.toggle_hidden",
+              )}
+              onClick={handleClick}
+              size="large"
+            >
+              {visible ? <Visibility /> : <VisibilityOff />}
+            </IconButton>
+          </InputAdornment>
+        ),
       }}
       InputLabelProps={{
-        shrink: focused || value !== "",
+        shrink: field.value !== undefined && field.value !== "",
         className: clsx({ shake: shake }),
       }}
       label={
@@ -127,24 +126,9 @@ export const PasswordInputTest = (props: IconTextInputProps) => {
           <FieldTitle label={label} source={source} isRequired={isRequired} />
         ) : null
       }
-      resource={resource}
-      error={true}
-      helperText={
-        renderHelperText ? (
-          <InputHelperText
-            error={validateError?.message || error?.message}
-            helperText={helperText}
-          />
-        ) : null
-      }
       {...sanitizeInputRestProps(rest)}
     />
   );
 };
 
-export default PasswordInputTest;
-
-// export type IconTextInputProps = PasswordInputProps & {
-//   iconStart?: React.ReactNode;
-//   iconEnd?: React.ReactNode;
-// };
+export default RepasswordInput;

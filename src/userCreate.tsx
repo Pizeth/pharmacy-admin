@@ -29,7 +29,7 @@ import {
 } from "@mui/icons-material";
 import { useMemo, useState } from "react";
 import React from "react";
-import { PasswordInputTest } from "./fortest";
+import { RepasswordInput } from "./fortest";
 
 const choices = [
   { id: "SUPER_ADMIN", name: "Super Admin", disabled: true },
@@ -125,7 +125,7 @@ const RePasswordInput = (props: { source: string; required: boolean }) => {
 
 export const UserCreate = () => {
   type FocusedField = "rePassword" | "role" | null;
-  const [rePassword, setRePassword] = useState("");
+  const [password, setPassword] = useState<string>("");
   const [role, setRole] = useState("");
   // const [focused, setFocused] = useState(false);
   const [focused, setFocused] = useState<FocusedField>(null);
@@ -159,10 +159,24 @@ export const UserCreate = () => {
           source="password"
           iconStart={<Password />}
           className="icon-input"
+          // onChangeCapture={(e) =>
+          //   setPassword((e.target as HTMLInputElement).value)
+          // }
+          onInput={(e) => setPassword((e.target as HTMLInputElement).value)}
+          // onChange={(e) => setPassword(e.target.value)}
+          // onBlurCapture={(e) => {
+          //   setPassword((e.target as HTMLInputElement).value);
+          // }}
           required
         />
-        {/* <PasswordInputTest source="password" className="icon-input" required /> */}
-        <PasswordInput
+        <RepasswordInput
+          source="rePassword"
+          passwordValue={password}
+          iconStart={<Password />}
+          className="icon-input"
+          required
+        />
+        {/* <PasswordInput
           source="rePassword"
           InputProps={{
             startAdornment: (
@@ -181,7 +195,7 @@ export const UserCreate = () => {
           InputLabelProps={{
             shrink: rePassword !== "" || focused === "rePassword",
           }}
-        />
+        /> */}
         {/* <RePasswordInput source="rePassword" required /> */}
         <ImageInput
           source="file"
