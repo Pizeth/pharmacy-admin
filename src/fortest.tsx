@@ -99,6 +99,8 @@ const loadZxcvbn = async () => {
     },
   };
 
+  const zxcvbnOptions = await loadOptions();
+
   zxcvbnOptions.setOptions(options);
   zxcvbnOptions.addMatcher("passRegex", regexMatcher);
   zxcvbnOptions.addMatcher("pwned", matcherPwned);
