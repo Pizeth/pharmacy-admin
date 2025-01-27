@@ -155,7 +155,7 @@ export const UserCreate = () => {
           type="email"
           required
         />
-        <PasswordInputMeter
+        {/* <PasswordInputMeter
           source="password"
           iconStart={<Password />}
           className="icon-input"
@@ -164,18 +164,31 @@ export const UserCreate = () => {
           // }
           onInput={(e) => setPassword((e.target as HTMLInputElement).value)}
           // onChange={(e) => setPassword(e.target.value)}
-          // onBlurCapture={(e) => {
-          //   setPassword((e.target as HTMLInputElement).value);
-          // }}
+          required
+        /> */}
+        <RepasswordInput
+          source="password"
+          iconStart={<Password />}
+          className="icon-input"
+          strengthMeter
+          onInput={(e) => setPassword((e.target as HTMLInputElement).value)}
           required
         />
         <RepasswordInput
           source="rePassword"
           passwordValue={password}
+          rePassword
           iconStart={<Password />}
           className="icon-input"
           required
         />
+        {/* <RepasswordInput
+          source="rePassword"
+          passwordValue={password}
+          iconStart={<Password />}
+          className="icon-input"
+          required
+        /> */}
         {/* <PasswordInput
           source="rePassword"
           InputProps={{

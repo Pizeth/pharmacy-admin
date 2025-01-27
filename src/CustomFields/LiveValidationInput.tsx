@@ -251,6 +251,8 @@ import InputAdornment from "@mui/material/InputAdornment";
 export interface IconTextInputProps extends PasswordInputProps {
   iconStart?: React.ReactNode;
   iconEnd?: React.ReactNode;
+  strengthMeter?: boolean;
+  rePassword?: boolean;
   passwordValue?: string; // Props for RepasswordInput to receive the password field value
 }
 

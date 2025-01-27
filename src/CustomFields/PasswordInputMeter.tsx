@@ -112,13 +112,8 @@ const PasswordInputMeter = (props: IconTextInputProps) => {
     ...rest,
   });
 
-  const [visible, setVisible] = useState(initiallyVisible);
   const translate = useTranslate();
-
-  const handleClick = () => {
-    setVisible(!visible);
-  };
-
+  const [visible, setVisible] = useState(initiallyVisible);
   const [passwordStrength, setPasswordStrength] = useState(0);
   const [passwordFeedback, setPasswordFeedback] = useState("");
   const [value, setValue] = useState(field.value || "");
@@ -186,6 +181,10 @@ const PasswordInputMeter = (props: IconTextInputProps) => {
       return () => clearTimeout(timer);
     }
   }, [typing, value, interval]);
+
+  const handleClick = () => {
+    setVisible(!visible);
+  };
 
   const handlePasswordChange = (e: ChangeEvent<HTMLInputElement>) => {
     const newValue = e?.target?.value ?? e;
