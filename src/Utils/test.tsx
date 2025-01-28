@@ -1,16 +1,90 @@
+// update: async <T extends RaRecord>(
+//   resource: string,
+//   params: UpdateParams<T>,
+// ) => {
+//   const hasFile = Object.values(params.data).some(
+//     (value) => value instanceof File || (value && typeof value === 'object' && 'rawFile' in value)
+//   );
+
+//   let body: any;
+//   let headers: any = {};
+
+//   if (hasFile) {
+//     body = createPostFormData(params);
+//   } else {
+//     body = JSON.stringify(params.data);
+//     headers['Content-Type'] = 'application/json';
+//   }
+
+//   const response = await fetchUtils.fetchJson(`${API_URL}/${resource}`, {
+//     method: "PUT",
+//     body,
+//     headers,
+//   });
+
+//   return {
+//     data: response.json.data,
+//   };
+// },
+
+// // const appendFormData = (
+// //   formData: FormData,
+// //   key: string,
+// //   value: any,
+// // ): FormData => serialize(value, {}, formData, key);
+
+// // export default appendFormData;
+
+// const hasFileField = (data: any): boolean => {
+//   return Object.values(data).some(value =>
+//     value instanceof File ||
+//     (value && typeof value === 'object' && ('rawFile' in value || 'file' in value))
+//   );
+// };
+
+// update: async <T extends RaRecord>(
+//   resource: string,
+//   params: UpdateParams<T>,
+// ) => {
+//   const config: RequestInit = {
+//     method: 'PUT',
+//   };
+
+//   if (hasFileField(params.data)) {
+//     config.body = createPostFormData(params);
+//   } else {
+//     config.body = JSON.stringify(params.data);
+//     config.headers = {
+//       'Content-Type': 'application/json',
+//     };
+//   }
+
+//   const response = await fetchUtils.fetchJson(
+//     `${API_URL}/${resource}`,
+//     config
+//   );
+
+//   if (!response.ok) {
+//     throw new Error(`Error updating ${resource}`);
+//   }
+
+//   return {
+//     data: response.json.data,
+//   };
+// },
+
 import { ChangeEvent, useCallback, useEffect, useState } from "react";
 import { FieldTitle, useInput, useTranslate } from "ra-core";
 import { InputAdornment, IconButton, Typography, Box } from "@mui/material";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import { ResettableTextField, sanitizeInputRestProps } from "react-admin";
-import { clsx } from "clsx";
-import { IconTextInputProps } from "./CustomFields/LiveValidationInput";
-import LinearProgressWithLabel from "./CustomComponents/LinearProgessWithLabel";
-import loadZxcvbn, { loadDebounce } from "./Utils/lazyZxcvbn";
+import clsx from "clsx";
+import { IconTextInputProps } from "../CustomFields/LiveValidationInput";
+import LinearProgressWithLabel from "../CustomComponents/LinearProgessWithLabel";
+import loadZxcvbn from "../Utils/lazyZxcvbn";
 
 const MESSAGE = import.meta.env.VITE_PASSWORD_HINT;
-const zxcvbnAsync = await loadZxcvbn();
 
 export const RepasswordInput = (props: IconTextInputProps) => {
   const {
@@ -59,9 +133,10 @@ export const RepasswordInput = (props: IconTextInputProps) => {
   const [focused, setFocused] = useState(false);
   const [shake, setShake] = useState(false);
   const [validateError, setValidateError] = useState(false);
-  const interval = import.meta.env.VITE_DELAY_CALL || 2500; // Time in milliseconds
+  const interval = import.meta.env.VITE_DELAY_CALL || 2500;
 
   const validatePassword = useCallback(async () => {
+    const zxcvbnAsync = await loadZxcvbn();
     const result = await zxcvbnAsync(value);
     const warningMsg = result.feedback.warning;
     const suggestMsg = result.feedback.suggestions.join(" ");
@@ -80,6 +155,11 @@ export const RepasswordInput = (props: IconTextInputProps) => {
   }, [value]);
 
   useEffect(() => {
+    const loadDebounce = async () => {
+      const debounceModule = await import("@zxcvbn-ts/core");
+      return debounceModule.debounce;
+    };
+
     if (strengthMeter) {
       if (value === "") {
         setValidateError(false);
@@ -89,11 +169,9 @@ export const RepasswordInput = (props: IconTextInputProps) => {
       if (typing) {
         const timer = setTimeout(async () => {
           setTyping(false);
-          // const debouncedValidation = debounce(validatePassword, interval);
-          // debouncedValidation();
           const debounce = await loadDebounce();
-          debounce(validatePassword, 500)();
-        }, interval);
+          debounce(validatePassword, interval)();
+        }, 1500);
         return () => clearTimeout(timer);
       }
     } else {
@@ -108,14 +186,12 @@ export const RepasswordInput = (props: IconTextInputProps) => {
   }, [passwordValue, typing, value, interval, strengthMeter, validatePassword]);
 
   const handleClick = () => setVisible(!visible);
-
   const handlePasswordChange = (e: ChangeEvent<HTMLInputElement>) => {
     const newValue = e?.target?.value ?? e;
-    setValue(newValue); // Ensure value state is updated
-    field.onChange(newValue); // Ensure form data is in sync
+    setValue(newValue);
+    field.onChange(newValue);
     setTyping(true);
   };
-
   const handleFocus = () => setFocused(true);
   const handleBlur = () => setFocused(false);
   const isError = validateError || invalid;

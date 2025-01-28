@@ -177,7 +177,6 @@ export const UserCreate = () => {
         <RepasswordInput
           source="rePassword"
           passwordValue={password}
-          rePassword
           iconStart={<Password />}
           className="icon-input"
           required
