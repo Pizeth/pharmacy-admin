@@ -236,7 +236,8 @@
 // export default ValidationInput;
 
 import React, { useEffect, useState } from "react";
-import { PasswordInputProps, useInput } from "react-admin";
+import { useInput } from "react-admin";
+import { IconTextInputProps } from "../Types/types";
 import clsx from "clsx";
 import { styled } from "@mui/material/styles";
 import { FieldError, serverValidator } from "../Utils/validator";
@@ -248,12 +249,12 @@ import {
 } from "react-admin";
 import "../Styles/style.css";
 import InputAdornment from "@mui/material/InputAdornment";
-export interface IconTextInputProps extends PasswordInputProps {
-  iconStart?: React.ReactNode;
-  iconEnd?: React.ReactNode;
-  strengthMeter?: boolean;
-  passwordValue?: string; // Props for RepasswordInput to receive the password field value
-}
+// export interface IconTextInputProps extends PasswordInputProps {
+//   iconStart?: React.ReactNode;
+//   iconEnd?: React.ReactNode;
+//   strengthMeter?: boolean;
+//   passwordValue?: string; // Props for RepasswordInput to receive the password field value
+// }
 
 const ValidationInput = (props: IconTextInputProps) => {
   const {

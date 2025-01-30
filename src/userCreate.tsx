@@ -1,25 +1,17 @@
 import {
-  Button,
   Create,
-  Form,
   ImageField,
   ImageInput,
-  isRequired,
   maxLength,
   minLength,
   NumberInput,
-  PasswordInput,
   regex,
   required,
-  SaveButton,
   SelectInput,
   SimpleForm,
-  TextInput,
-  Toolbar,
 } from "react-admin";
-import { Box, Grid, IconButton, InputAdornment } from "@mui/material";
+import { InputAdornment } from "@mui/material";
 import ValidationInput from "./CustomFields/LiveValidationInput";
-import PasswordInputMeter from "./CustomFields/PasswordInputMeter";
 import { FormSpy } from "react-final-form";
 import {
   PermIdentity,
@@ -27,9 +19,9 @@ import {
   Password,
   PeopleAltRounded,
 } from "@mui/icons-material";
-import { useMemo, useState } from "react";
-import React from "react";
-import { RepasswordInput } from "./fortest";
+import { useState } from "react";
+import PasswordValidationInput from "./fortest";
+// import PasswordValidationInput from "./CustomFields/PasswordValidationInput";
 
 const choices = [
   { id: "SUPER_ADMIN", name: "Super Admin", disabled: true },
@@ -166,7 +158,7 @@ export const UserCreate = () => {
           // onChange={(e) => setPassword(e.target.value)}
           required
         /> */}
-        <RepasswordInput
+        <PasswordValidationInput
           source="password"
           iconStart={<Password />}
           className="icon-input"
@@ -174,7 +166,7 @@ export const UserCreate = () => {
           onInput={(e) => setPassword((e.target as HTMLInputElement).value)}
           required
         />
-        <RepasswordInput
+        <PasswordValidationInput
           source="rePassword"
           passwordValue={password}
           iconStart={<Password />}

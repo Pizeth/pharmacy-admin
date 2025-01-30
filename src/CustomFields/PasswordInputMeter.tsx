@@ -4,12 +4,11 @@ import { InputAdornment, IconButton, Typography, Box } from "@mui/material";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import { ResettableTextField, sanitizeInputRestProps } from "react-admin";
-import { IconTextInputProps } from "./LiveValidationInput";
+import { IconTextInputProps } from "../Types/types";
 import { clsx } from "clsx";
 import LinearProgressWithLabel from "../CustomComponents/LinearProgessWithLabel";
 import {
   zxcvbnOptions,
-  zxcvbn,
   zxcvbnAsync,
   debounce,
   Match,

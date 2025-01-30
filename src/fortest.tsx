@@ -5,14 +5,15 @@ import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import { ResettableTextField, sanitizeInputRestProps } from "react-admin";
 import { clsx } from "clsx";
-import { IconTextInputProps } from "./CustomFields/LiveValidationInput";
+import { IconTextInputProps } from "./Types/types";
 import LinearProgressWithLabel from "./CustomComponents/LinearProgessWithLabel";
 import loadZxcvbn, { loadDebounce } from "./Utils/lazyZxcvbn";
+import PasswordStrengthMeter from "./CustomComponents/PasswordStrengthMeter";
 
 const MESSAGE = import.meta.env.VITE_PASSWORD_HINT;
 const zxcvbnAsync = await loadZxcvbn();
 
-export const RepasswordInput = (props: IconTextInputProps) => {
+export const PasswordValidationInput = (props: IconTextInputProps) => {
   const {
     className,
     defaultValue,
@@ -82,6 +83,7 @@ export const RepasswordInput = (props: IconTextInputProps) => {
   useEffect(() => {
     if (strengthMeter) {
       if (value === "") {
+        setPasswordStrength(0);
         setValidateError(false);
         return;
       }
@@ -121,21 +123,43 @@ export const RepasswordInput = (props: IconTextInputProps) => {
   const isError = validateError || invalid;
   const errMsg = errMessage || error?.message;
 
-  const getColor = (score: number) => {
-    switch (score) {
-      case 0:
-        return "darkred";
-      case 1:
-        return "orange";
-      case 2:
-        return "yellow";
-      case 3:
-        return "blue";
-      case 4:
-        return "green";
-      default:
-        return "#dd741d";
-    }
+  // const getColor = (score: number) => {
+  //   switch (score) {
+  //     case 0:
+  //       return "darkred";
+  //     case 1:
+  //       return "orange";
+  //     case 2:
+  //       return "yellow";
+  //     case 3:
+  //       return "blue";
+  //     case 4:
+  //       return "green";
+  //     default:
+  //       return "#dd741d";
+  //   }
+  // };
+
+  // const getColor = (strength: number): string => {
+  //   switch (strength) {
+  //     case 0:
+  //       return "#f44336"; // Red
+  //     case 1:
+  //       return "#ff9800"; // Orange
+  //     case 2:
+  //       return "#ffeb3b"; // Yellow
+  //     case 3:
+  //       return "#4caf50"; // Light Green
+  //     case 4:
+  //       return "#2e7d32"; // Dark Green
+  //     default:
+  //       return "#e0e0e0"; // Grey
+  //   }
+  // };
+
+  const getColor = (strength: number) => {
+    const colors = ["#ff0000", "#ff9900", "#ffff00", "#99ff00", "#00ff00"];
+    return colors[Math.min(strength, colors.length - 1)];
   };
 
   return (
@@ -184,20 +208,33 @@ export const RepasswordInput = (props: IconTextInputProps) => {
         }
         {...sanitizeInputRestProps(rest)}
       />
-      {strengthMeter && (
+      {/* {strengthMeter && (
         <Box>
           <LinearProgressWithLabel
             variant="determinate"
             value={(passwordStrength / 4) * 100}
-            style={{ backgroundColor: getColor(passwordStrength) }}
+            // style={{ backgroundColor: getColor(passwordStrength) }}
+            sx={{
+              backgroundColor: (theme) => theme.palette.grey[300],
+              "& .MuiLinearProgress-bar": {
+                backgroundColor: getColor(passwordStrength),
+              },
+            }}
           />
           <Typography variant="caption" color="textSecondary">
             {field.value ? passwordFeedback : MESSAGE}
           </Typography>
         </Box>
+      )} */}
+      {props.strengthMeter && (
+        <PasswordStrengthMeter
+          passwordStrength={passwordStrength}
+          passwordFeedback={passwordFeedback}
+          value={field.value}
+        />
       )}
     </Box>
   );
 };
 
-export default RepasswordInput;
+export default PasswordValidationInput;

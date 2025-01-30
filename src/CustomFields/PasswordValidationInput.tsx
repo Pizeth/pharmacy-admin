@@ -1,149 +1,105 @@
-import { useInput, useTranslate, FieldTitle } from "ra-core";
-import { InputAdornment, IconButton, Typography, Box } from "@mui/material";
-import Visibility from "@mui/icons-material/Visibility";
-import VisibilityOff from "@mui/icons-material/VisibilityOff";
-import { ResettableTextField, sanitizeInputRestProps } from "react-admin";
-import { clsx } from "clsx";
-import { IconTextInputProps } from "../CustomFields/LiveValidationInput";
+import { useEffect } from "react";
+import { useInput, ResettableTextField, FieldTitle } from "react-admin";
 import LinearProgressWithLabel from "../CustomComponents/LinearProgessWithLabel";
-import usePasswordInput from "../CustomHooks/UsePasswordInput";
+import usePasswordValidation from "../CustomHooks/UsePasswordValidation";
+import { InputAdornment, IconButton, Typography, Box } from "@mui/material";
+import { Visibility, VisibilityOff } from "@mui/icons-material";
+import { IconTextInputProps } from "../Types/types";
 
-const MESSAGE = import.meta.env.VITE_PASSWORD_HINT;
+// const getStrengthColor = (strength: number): string => {
+//   switch (strength) {
+//     case 0:
+//       return "#f44336"; // Red
+//     case 1:
+//       return "#ff9800"; // Orange
+//     case 2:
+//       return "#ffeb3b"; // Yellow
+//     case 3:
+//       return "#4caf50"; // Light Green
+//     case 4:
+//       return "#2e7d32"; // Dark Green
+//     default:
+//       return "#e0e0e0"; // Grey
+//   }
+// };
 
+const getStrengthColor = (strength: number) => {
+  const colors = ["#ff0000", "#ff9900", "#ffff00", "#99ff00", "#00ff00"];
+  return colors[Math.min(strength, colors.length - 1)];
+};
+
+// 3. PasswordInput.tsx (Main component)
 export const PasswordValidationInput = (props: IconTextInputProps) => {
-  const {
-    className,
-    defaultValue,
-    label,
-    format,
-    onBlur,
-    onChange,
-    parse,
-    resource,
-    source,
-    validate,
-    iconStart,
-    initiallyVisible = false,
-    strengthMeter = false,
-    passwordValue,
-    ...rest
-  } = props;
-
   const {
     field,
     fieldState: { invalid, error },
     id,
     isRequired,
-  } = useInput({
-    defaultValue,
-    format,
-    parse,
-    resource,
-    source,
-    type: "text",
-    validate,
-    onBlur,
-    onChange,
-    ...rest,
-  });
+  } = useInput({ ...props, type: "password" });
 
-  const translate = useTranslate();
+  const { state, actions } = usePasswordValidation(
+    field.value as string,
+    props.strengthMeter,
+  );
 
-  const {
-    visible,
-    passwordStrength,
-    passwordFeedback,
-    value,
-    errMessage,
-    focused,
-    shake,
-    validateError,
-    isError,
-    handleClick,
-    handlePasswordChange,
-    handleFocus,
-    handleBlur,
-  } = usePasswordInput({
-    initialPassword: field.value || "",
-    initiallyVisible,
-    passwordValue,
-    strengthMeter,
-  });
-
-  const errMsg = errMessage || error?.message;
-
-  const getColor = (score: number) => {
-    switch (score) {
-      case 0:
-        return "darkred";
-      case 1:
-        return "orange";
-      case 2:
-        return "yellow";
-      case 3:
-        return "blue";
-      case 4:
-        return "green";
-      default:
-        return "#dd741d";
+  useEffect(() => {
+    // Sync with react-admin form
+    if (field.value !== state.value) {
+      field.onChange(state.value);
     }
-  };
+  }, [state.value]);
 
   return (
     <Box width="100%">
       <ResettableTextField
-        id={id}
         {...field}
-        source={source}
-        type={visible ? "text" : "password"}
-        size="small"
-        onChange={handlePasswordChange}
-        onFocus={handleFocus}
-        onBlur={handleBlur}
-        fullWidth={true}
-        className={clsx("ra-input", `ra-input-${source}`, className)}
-        error={isError}
-        helperText={isError ? errMsg : ""}
+        id={id}
+        type={state.visible ? "text" : "password"}
+        label={
+          <FieldTitle
+            label={props.label}
+            source={props.source}
+            isRequired={isRequired}
+          />
+        }
+        error={invalid || state.shake}
+        helperText={error?.message || (state.shake && state.feedback) || ""}
         InputProps={{
-          startAdornment: iconStart ? (
-            <InputAdornment position="start">{iconStart}</InputAdornment>
-          ) : null,
+          startAdornment: props.iconStart && (
+            <InputAdornment position="start">{props.iconStart}</InputAdornment>
+          ),
           endAdornment: (
             <InputAdornment position="end">
               <IconButton
-                aria-label={translate(
-                  visible
-                    ? "ra.input.password.toggle_visible"
-                    : "ra.input.password.toggle_hidden",
-                )}
-                onClick={handleClick}
-                size="large"
+                onClick={actions.toggleVisibility}
+                edge="end"
+                aria-label={state.visible ? "Hide password" : "Show password"}
               >
-                {visible ? <Visibility /> : <VisibilityOff />}
+                {state.visible ? <VisibilityOff /> : <Visibility />}
               </IconButton>
             </InputAdornment>
           ),
         }}
-        InputLabelProps={{
-          shrink: focused || value !== "",
-          className: clsx({ shake: shake }),
-        }}
-        label={
-          label !== "" && label !== false ? (
-            <FieldTitle label={label} source={source} isRequired={isRequired} />
-          ) : null
+        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+          actions.handleChange(e.target.value)
         }
-        {...sanitizeInputRestProps(rest)}
+        onFocus={actions.handleFocus}
+        onBlur={actions.handleBlur}
       />
-      {strengthMeter && (
-        <Box>
+
+      {props.strengthMeter && (
+        <Box mt={1}>
           <LinearProgressWithLabel
-            variant="determinate"
-            value={(passwordStrength / 4) * 100}
-            style={{ backgroundColor: getColor(passwordStrength) }}
+            value={(state.strength / 4) * 100}
+            sx={{
+              backgroundColor: (theme) => theme.palette.grey[300],
+              "& .MuiLinearProgress-bar": {
+                backgroundColor: getStrengthColor(state.strength),
+              },
+            }}
           />
           <Typography variant="caption" color="textSecondary">
-            {field.value ? passwordFeedback : MESSAGE}
+            {state.value ? state.feedback : "Password strength indicator"}
           </Typography>
         </Box>
       )}
