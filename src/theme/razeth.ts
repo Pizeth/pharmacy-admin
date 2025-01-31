@@ -3,6 +3,23 @@ import { defaultDarkTheme, defaultTheme, RaThemeOptions } from "react-admin";
 import { red, blue } from "@mui/material/colors";
 import { createTheme, Theme } from "@mui/material/styles";
 
+declare module "@mui/material/styles" {
+  interface Palette {
+    passwordStrength: string[] | ((theme: Theme) => string[]);
+  }
+  interface PaletteOptions {
+    passwordStrength?: string[] | ((theme: Theme) => string[]);
+  }
+}
+
+declare module "@mui/material/LinearProgress" {
+  interface LinearProgressProps {
+    ownerState?: {
+      strength?: number;
+    };
+  }
+}
+
 const defaultThemeInvariants = {
   typography: {
     h6: {
@@ -72,9 +89,31 @@ const customBaseTheme = createTheme({
     warning: { main: "#FFD22B" },
     info: { main: "#f89696" },
     success: { main: "#2ece71" },
+    // primary: { main: "#e1232e", contrastText: "#fff" },
+    // secondary: { main: "#007bff", dark: "#0056b3" },
+    // error: { main: "#f58700", dark: "#e76f51" },
+    // warning: { main: "#FFD22B", dark: "#f58700" },
+    // info: { main: "#f89696", dark: "#cc56e4" },
+    // success: { main: "#2ece71", dark: "#079e0f" },
     mode: "dark",
     background: { default: "#121212", paper: "#1d1d1d" },
     text: { primary: "#ffffff", secondary: "#aaaaaa" },
+    passwordStrength: ["#f44336", "#ff9900", "#ffeb3b", "#4caf50", "#2e7d32"],
+    // passwordStrength: (theme) => [
+    //   // This is a function that returns the array
+    //   theme.palette.error.main,
+    //   theme.palette.warning.main,
+    //   theme.palette.info.main,
+    //   theme.palette.success.main,
+    //   theme.palette.success.dark,
+    // ],
+    // passwordStrength: (theme: Theme) => [
+    //   theme.palette.error.main,
+    //   theme.palette.warning.main,
+    //   theme.palette.info.main,
+    //   theme.palette.success.main,
+    //   theme.palette.success.dark,
+    // ],
   },
   components: {
     MuiAppBar: {
@@ -122,6 +161,89 @@ const customBaseTheme = createTheme({
             color: props.theme.palette.error.main,
           },
         }),
+      },
+    },
+    MuiCssBaseline: {
+      styleOverrides: `
+        .MuiBox-root {
+          margin-top: 0px !important;
+        }
+      `,
+    },
+    MuiCard: {
+      styleOverrides: {
+        root: {
+          "&.MuiBox-root": {
+            // color: props.theme.palette.primary.main,
+            margin: "0px",
+          },
+        },
+      },
+    },
+    MuiLinearProgress: {
+      styleOverrides: {
+        // Target the bar itself
+        // bar: {
+        //   backgroundColor: "#4caf50", // Custom color
+        //   borderRadius: "4px", // Rounded corners
+        //   height: "10px", // Adjust thickness
+        // },
+        // Optional: Override other states (e.g., buffer or query animation)
+        colorPrimary: {
+          backgroundColor: "#e0e0e0", // Background color of the progress track
+        },
+
+        root: ({ theme }) => ({
+          height: 8,
+          borderRadius: 4,
+          backgroundColor: theme.palette.grey[300],
+          // backgroundColor: "#e0e0e0",
+        }),
+        bar: ({ theme, ownerState }) => {
+          // Resolve the passwordStrength array properly
+          const strengthColors =
+            typeof theme.palette.passwordStrength === "function"
+              ? theme.palette.passwordStrength(theme)
+              : theme.palette.passwordStrength || [];
+
+          return {
+            borderRadius: 4,
+            backgroundColor:
+              ownerState?.strength !== undefined
+                ? strengthColors[
+                    Math.min(ownerState.strength, strengthColors.length - 1)
+                  ]
+                : theme.palette.primary.main,
+          };
+        },
+        // bar: ({ theme, ownerState }) => ({
+        //   borderRadius: 4,
+        //   // Use ownerState to access custom props
+        //   backgroundColor:
+        //     ownerState?.strength !== undefined
+        //       ? Array.isArray(theme.palette.passwordStrength)
+        //         ? theme.palette.passwordStrength[
+        //             Math.min(
+        //               ownerState.strength as number,
+        //               theme.palette.passwordStrength.length - 1,
+        //             )
+        //           ]
+        //         : theme.palette.primary.main
+        //       : theme.palette.primary.main,
+        // }),
+        // bar: ({ theme, ownerState }) => ({
+        //   borderRadius: 4,
+        //   backgroundColor:
+        //     ownerState?.strength !== undefined &&
+        //     Array.isArray(theme.palette.passwordStrength)
+        //       ? theme.palette.passwordStrength[
+        //           Math.min(
+        //             ownerState.strength,
+        //             theme.palette.passwordStrength.length - 1,
+        //           )
+        //         ]
+        //       : theme.palette.primary.main,
+        // }),
       },
     },
     // MuiFormHelperText: {

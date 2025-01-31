@@ -43,6 +43,29 @@ const getColor = (strength: number) => {
   return colors[Math.min(strength, colors.length - 1)];
 };
 
+// export const PasswordStrengthMeter = ({
+//   passwordStrength,
+//   passwordFeedback,
+//   value,
+// }: PasswordStrengthMeterProps) => (
+//   <Box mt={1}>
+//     <LinearProgressWithLabel
+//       variant="determinate"
+//       value={(passwordStrength / 4) * 100}
+//       // style={{ backgroundColor: getColor(passwordStrength), height: 8 }}
+//       sx={{
+//         backgroundColor: (theme) => theme.palette.grey[300],
+//         "& .MuiLinearProgress-bar": {
+//           backgroundColor: getColor(passwordStrength),
+//         },
+//       }}
+//     />
+//     <Typography variant="caption" color="textSecondary">
+//       {value ? passwordFeedback : MESSAGE}
+//     </Typography>
+//   </Box>
+// );
+
 export const PasswordStrengthMeter = ({
   passwordStrength,
   passwordFeedback,
@@ -52,13 +75,6 @@ export const PasswordStrengthMeter = ({
     <LinearProgressWithLabel
       variant="determinate"
       value={(passwordStrength / 4) * 100}
-      // style={{ backgroundColor: getColor(passwordStrength), height: 8 }}
-      sx={{
-        backgroundColor: (theme) => theme.palette.grey[300],
-        "& .MuiLinearProgress-bar": {
-          backgroundColor: getColor(passwordStrength),
-        },
-      }}
     />
     <Typography variant="caption" color="textSecondary">
       {value ? passwordFeedback : MESSAGE}

@@ -1,6 +1,6 @@
 // types.ts
 import { ChangeEvent, ReactNode } from "react";
-import { PasswordInputProps } from "react-admin";
+import { LinearProgressProps, PasswordInputProps } from "react-admin";
 
 export interface IconTextInputProps extends PasswordInputProps {
   iconStart?: ReactNode;
@@ -15,6 +15,10 @@ export interface PasswordStrengthMeterProps {
   value: string;
 }
 
+export interface LinearProgressWithLabelProps extends LinearProgressProps {
+  strength?: number;
+  value: number;
+}
 // export interface PasswordValidationResults {
 //   visible: boolean;
 //   value: string;
