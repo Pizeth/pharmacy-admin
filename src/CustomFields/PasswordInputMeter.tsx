@@ -265,6 +265,7 @@ const PasswordInputMeter = (props: IconTextInputProps) => {
           variant="determinate"
           value={(passwordStrength / 4) * 100}
           style={{ backgroundColor: getColor(passwordStrength) }}
+          strength={passwordStrength}
         />
         <Typography variant="caption" color="textSecondary">
           {/* {passwordFeedback} */}

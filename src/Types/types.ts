@@ -16,7 +16,7 @@ export interface PasswordStrengthMeterProps {
 }
 
 export interface LinearProgressWithLabelProps extends LinearProgressProps {
-  strength?: number;
+  strength: number;
   value: number;
 }
 // export interface PasswordValidationResults {

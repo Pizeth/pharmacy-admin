@@ -340,6 +340,7 @@ const ValidationInput = (props: IconTextInputProps) => {
 
   const renderHelperText = helperText !== false || invalid;
   const isError = validateError?.error || invalid;
+  const errMsg = validateError?.message || error?.message;
 
   return (
     <ResettableTextField
@@ -369,14 +370,15 @@ const ValidationInput = (props: IconTextInputProps) => {
       }
       resource={resource}
       error={isError}
-      helperText={
-        renderHelperText ? (
-          <InputHelperText
-            error={validateError?.message || error?.message}
-            helperText={helperText}
-          />
-        ) : null
-      }
+      helperText={isError ? errMsg : ""}
+      // helperText={
+      //   renderHelperText ? (
+      //     <InputHelperText
+      //       error={validateError?.message || error?.message}
+      //       helperText={helperText}
+      //     />
+      //   ) : null
+      // }
       {...sanitizeInputRestProps(rest)}
     />
   );

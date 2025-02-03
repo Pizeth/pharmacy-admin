@@ -16,7 +16,7 @@
   }
 }
 .shake span {
-  animation: shake 0.25s ease-in-out;
+  animation: shake 0.5s ease-in-out;
   display: inline-block;
   /* vertical-align: middle; */
   position: relative;
@@ -33,6 +33,17 @@
 
 .icon-input .MuiInputLabel-root.MuiInputLabel-shrink {
   margin-left: 0;
+}
+
+.passHint {
+  margin-top: 1em;
+}
+.text-center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  /* height: 100vh; */
 }
 
 /* .label-shake {

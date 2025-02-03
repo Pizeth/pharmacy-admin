@@ -38,10 +38,10 @@ const MESSAGE = import.meta.env.VITE_PASSWORD_HINT;
 //   }
 // };
 
-const getColor = (strength: number) => {
-  const colors = ["#f44336", "#ff9900", "#ffeb3b", "#4caf50", "#2e7d32"];
-  return colors[Math.min(strength, colors.length - 1)];
-};
+// const getColor = (strength: number) => {
+//   const colors = ["#f44336", "#ff9900", "#ffeb3b", "#4caf50", "#2e7d32"];
+//   return colors[Math.min(strength, colors.length - 1)];
+// };
 
 // export const PasswordStrengthMeter = ({
 //   passwordStrength,
@@ -75,8 +75,9 @@ export const PasswordStrengthMeter = ({
     <LinearProgressWithLabel
       variant="determinate"
       value={(passwordStrength / 4) * 100}
+      strength={passwordStrength} // Pass strength to LinearProgressWithLabel
     />
-    <Typography variant="caption" color="textSecondary">
+    <Typography className={"passHint"} variant="caption" color="textSecondary">
       {value ? passwordFeedback : MESSAGE}
     </Typography>
   </Box>

@@ -28,7 +28,7 @@ export const loadZxcvbn = async () => {
   const regexMatcher = {
     Matching: class MatchRegex {
       regex =
-        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{12,}$/;
+        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{10,}$/;
 
       match({ password }: { password: string }) {
         const matches: any[] = [];

@@ -12,13 +12,13 @@ declare module "@mui/material/styles" {
   }
 }
 
-declare module "@mui/material/LinearProgress" {
-  interface LinearProgressProps {
-    ownerState?: {
-      strength?: number;
-    };
-  }
-}
+// declare module "@mui/material/LinearProgress" {
+//   interface LinearProgressProps {
+//     ownerState?: {
+//       strength?: number;
+//     };
+//   }
+// }
 
 const defaultThemeInvariants = {
   typography: {
@@ -98,7 +98,8 @@ const customBaseTheme = createTheme({
     mode: "dark",
     background: { default: "#121212", paper: "#1d1d1d" },
     text: { primary: "#ffffff", secondary: "#aaaaaa" },
-    passwordStrength: ["#f44336", "#ff9900", "#ffeb3b", "#4caf50", "#2e7d32"],
+    // passwordStrength: ["#f44336", "#ff9900", "#ffeb3b", "#4caf50", "#2e7d32"],
+    passwordStrength: ["#aaaaaa", "#e76f51", "#f58700", "#0668d1", "#4caf50"],
     // passwordStrength: (theme) => [
     //   // This is a function that returns the array
     //   theme.palette.error.main,
@@ -131,8 +132,28 @@ const customBaseTheme = createTheme({
       },
     },
     MuiFormControl: {
-      defaultProps: {
-        variant: "outlined",
+      styleOverrides: {
+        root: {
+          marginTop: "0.5em",
+          marginBottom: "0.25em",
+        },
+      },
+    },
+    MuiFormHelperText: {
+      styleOverrides: {
+        root: {
+          marginTop: "0.75em",
+          // "&.Mui-error": { color: (theme: Theme) => theme.palette.error.main },
+        },
+      },
+    },
+    MuiTypography: {
+      styleOverrides: {
+        root: {
+          "&.MuiTypography-caption": {
+            marginleft: "0.25em",
+          },
+        },
       },
     },
     MuiFilledInput: {
@@ -164,9 +185,44 @@ const customBaseTheme = createTheme({
       },
     },
     MuiCssBaseline: {
-      styleOverrides: `
-        .MuiBox-root {
-          margin-top: 0px !important;
+      styleOverrides: (theme) => `
+        // .MuiBox-root {
+        //   // Default styles for all Box components
+        //   margin: ${theme.spacing(0)};
+        //   padding: ${theme.spacing(0)};
+        
+        //   // Specific styles for react-admin components
+        //   &.RaFileInput-dropZone {
+        //     border: 2px dashed ${theme.palette.divider};
+        //     padding: ${theme.spacing(4)};
+        //     text-align: center;
+        //   }
+
+        //   &.css-164r41r { // Password strength meter container
+        //     margin-top: ${theme.spacing(0)};
+        //     padding: ${theme.spacing(0)};
+        //   }
+        // }
+
+        /* Target ALL Boxes inside Stacks */
+        .MuiStack-root .MuiBox-root {
+          margin: ${theme.spacing(0)};
+          padding: ${theme.spacing(0)};
+          line-height: 0;
+        }
+
+        /* Specific to Password Strength Meter Box */
+        .MuiStack-root > .MuiBox-root:has(.MuiLinearProgress-root) {
+          margin-top: ${theme.spacing(0)};
+          padding: ${theme.spacing(0)};
+          // background-color: ${theme.palette.grey[100]};
+        }
+
+        /* For browsers without :has() support (fallback) */
+        .MuiStack-root > .MuiBox-root[data-pw-strength] {
+          margin-top: ${theme.spacing(0)};
+          padding: ${theme.spacing(0)};
+          // background-color: ${theme.palette.grey[100]};
         }
       `,
     },
@@ -189,33 +245,53 @@ const customBaseTheme = createTheme({
         //   height: "10px", // Adjust thickness
         // },
         // Optional: Override other states (e.g., buffer or query animation)
-        colorPrimary: {
-          backgroundColor: "#e0e0e0", // Background color of the progress track
-        },
+        // colorPrimary: {
+        // backgroundColor: "#e0e0e0", // Background color of the progress track
+        // backgroundColor: "#bd222a",
+        // },
 
         root: ({ theme }) => ({
-          height: 8,
-          borderRadius: 4,
-          backgroundColor: theme.palette.grey[300],
+          height: 5,
+          borderRadius: 5,
+          // backgroundColor: "#bd222a",
           // backgroundColor: "#e0e0e0",
         }),
-        bar: ({ theme, ownerState }) => {
-          // Resolve the passwordStrength array properly
-          const strengthColors =
-            typeof theme.palette.passwordStrength === "function"
-              ? theme.palette.passwordStrength(theme)
-              : theme.palette.passwordStrength || [];
+        // bar: ({ theme, ownerState }) => {
+        //   // Resolve the passwordStrength array properly
+        //   const strengthColors =
+        //     typeof theme.palette.passwordStrength === "function"
+        //       ? theme.palette.passwordStrength(theme)
+        //       : theme.palette.passwordStrength || [];
 
-          return {
-            borderRadius: 4,
-            backgroundColor:
-              ownerState?.strength !== undefined
-                ? strengthColors[
-                    Math.min(ownerState.strength, strengthColors.length - 1)
-                  ]
-                : theme.palette.primary.main,
-          };
-        },
+        //   return {
+        //     borderRadius: 4,
+        //     backgroundColor:
+        //       ownerState?.strength !== undefined
+        //         ? strengthColors[
+        //             Math.min(ownerState.strength, strengthColors.length - 1)
+        //           ]
+        //         : theme.palette.primary.main,
+        //   };
+        // },
+        // bar: ({ theme, ownerState }) => {
+        //   // Handle fallback for passwordStrength array
+        //   const strengthColors = Array.isArray(theme.palette.passwordStrength)
+        //     ? theme.palette.passwordStrength
+        //     : ["#f44336", "#ff9900", "#ffeb3b", "#4caf50", "#2e7d32"];
+
+        //   const strength = ownerState?.strength ?? 0;
+
+        //   return {
+        //     borderRadius: 4,
+        //     backgroundColor:
+        //       strengthColors[Math.min(strength, strengthColors.length - 1)],
+        //   };
+        // },
+        // Add this to fix the colorPrimary error
+        // colorPrimary: ({ theme }) => ({
+        //   backgroundColor: theme.palette.grey[300],
+        // }),
+
         // bar: ({ theme, ownerState }) => ({
         //   borderRadius: 4,
         //   // Use ownerState to access custom props
