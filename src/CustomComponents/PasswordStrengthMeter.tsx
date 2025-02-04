@@ -4,23 +4,6 @@ import { PasswordStrengthMeterProps } from "../Types/types";
 
 const MESSAGE = import.meta.env.VITE_PASSWORD_HINT;
 
-// const getColor = (score: number) => {
-//   switch (score) {
-//     case 0:
-//       return "darkred";
-//     case 1:
-//       return "orange";
-//     case 2:
-//       return "yellow";
-//     case 3:
-//       return "blue";
-//     case 4:
-//       return "green";
-//     default:
-//       return "#dd741d";
-//   }
-// };
-
 // const getColor = (strength: number): string => {
 //   switch (strength) {
 //     case 0:

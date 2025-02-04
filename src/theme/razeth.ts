@@ -135,7 +135,7 @@ const customBaseTheme = createTheme({
       styleOverrides: {
         root: {
           marginTop: "0.5em",
-          marginBottom: "0.25em",
+          marginBottom: "0.5em",
         },
       },
     },
@@ -151,7 +151,9 @@ const customBaseTheme = createTheme({
       styleOverrides: {
         root: {
           "&.MuiTypography-caption": {
-            marginleft: "0.25em",
+            // marginLeft: "0.25em",
+            // weight: "bold",
+            // fontWeight: "bold",
           },
         },
       },
@@ -223,6 +225,10 @@ const customBaseTheme = createTheme({
           margin-top: ${theme.spacing(0)};
           padding: ${theme.spacing(0)};
           // background-color: ${theme.palette.grey[100]};
+        }
+
+        .MuiStack-root > .MuiBox-root p.Mui-error {
+          margin-bottom: -0.5em;
         }
       `,
     },

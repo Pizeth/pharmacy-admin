@@ -1,107 +1,177 @@
-import { useEffect } from "react";
-import { useInput, ResettableTextField, FieldTitle } from "react-admin";
-import LinearProgressWithLabel from "../CustomComponents/LinearProgessWithLabel";
-import usePasswordValidation from "../CustomHooks/UsePasswordValidation";
-import { InputAdornment, IconButton, Typography, Box } from "@mui/material";
-import { Visibility, VisibilityOff } from "@mui/icons-material";
+import { ChangeEvent, useCallback, useEffect, useState } from "react";
+import { FieldTitle, useInput, useTranslate } from "ra-core";
+import { InputAdornment, IconButton, Box } from "@mui/material";
+import Visibility from "@mui/icons-material/Visibility";
+import VisibilityOff from "@mui/icons-material/VisibilityOff";
+import { ResettableTextField, sanitizeInputRestProps } from "react-admin";
+import { clsx } from "clsx";
 import { IconTextInputProps } from "../Types/types";
+import loadZxcvbn, { loadDebounce } from "../Utils/lazyZxcvbn";
+import PasswordStrengthMeter from "../CustomComponents/PasswordStrengthMeter";
 
-// const getStrengthColor = (strength: number): string => {
-//   switch (strength) {
-//     case 0:
-//       return "#f44336"; // Red
-//     case 1:
-//       return "#ff9800"; // Orange
-//     case 2:
-//       return "#ffeb3b"; // Yellow
-//     case 3:
-//       return "#4caf50"; // Light Green
-//     case 4:
-//       return "#2e7d32"; // Dark Green
-//     default:
-//       return "#e0e0e0"; // Grey
-//   }
-// };
+const zxcvbnAsync = await loadZxcvbn();
 
-const getStrengthColor = (strength: number) => {
-  const colors = ["#ff0000", "#ff9900", "#ffff00", "#99ff00", "#00ff00"];
-  return colors[Math.min(strength, colors.length - 1)];
-};
-
-// 3. PasswordInput.tsx (Main component)
 export const PasswordValidationInput = (props: IconTextInputProps) => {
+  const {
+    className,
+    defaultValue,
+    label,
+    format,
+    onBlur,
+    onChange,
+    parse,
+    resource,
+    source,
+    validate,
+    iconStart,
+    initiallyVisible = false,
+    strengthMeter = false,
+    passwordValue,
+    ...rest
+  } = props;
+
   const {
     field,
     fieldState: { invalid, error },
     id,
     isRequired,
-  } = useInput({ ...props, type: "password" });
+  } = useInput({
+    defaultValue,
+    format,
+    parse,
+    resource,
+    source,
+    type: "text",
+    validate,
+    onBlur,
+    onChange,
+    ...rest,
+  });
 
-  const { state, actions } = usePasswordValidation(
-    field.value as string,
-    props.strengthMeter,
-  );
+  const translate = useTranslate();
+  const [visible, setVisible] = useState(initiallyVisible);
+  const [passwordStrength, setPasswordStrength] = useState(0);
+  const [passwordFeedback, setPasswordFeedback] = useState("");
+  const [value, setValue] = useState(field.value || "");
+  const [errMessage, setErrMessage] = useState(error?.message || "");
+  const [typing, setTyping] = useState(false);
+  const [focused, setFocused] = useState(false);
+  const [shake, setShake] = useState(false);
+  const [validateError, setValidateError] = useState(false);
+  const interval = import.meta.env.VITE_DELAY_CALL || 2500; // Time in milliseconds
+
+  const validatePassword = useCallback(async () => {
+    const result = await zxcvbnAsync(value);
+    const warningMsg = result.feedback.warning;
+    const suggestMsg = result.feedback.suggestions.join(" ");
+    const isValid = result.score <= 0;
+
+    setValidateError(isValid);
+    setErrMessage(warningMsg || "");
+    setPasswordStrength(result.score);
+    setPasswordFeedback(
+      result ? suggestMsg : (warningMsg ?? "").concat(` ${suggestMsg}`),
+    );
+    if (result) {
+      setShake(true);
+      setTimeout(() => setShake(false), 500);
+    }
+  }, [value]);
 
   useEffect(() => {
-    // Sync with react-admin form
-    if (field.value !== state.value) {
-      field.onChange(state.value);
+    if (strengthMeter) {
+      if (value === "") {
+        setPasswordStrength(0);
+        setValidateError(false);
+        return;
+      }
+
+      if (typing) {
+        const timer = setTimeout(async () => {
+          setTyping(false);
+          const debounce = await loadDebounce();
+          debounce(validatePassword, 500)();
+        }, interval);
+        return () => clearTimeout(timer);
+      }
+    } else {
+      const result = passwordValue !== value && value !== "";
+
+      setValidateError(result);
+      setErrMessage(result ? "Passwords do not match!" : "");
+      if (result) {
+        setShake(true);
+        setTimeout(() => setShake(false), 500);
+      }
     }
-  }, [state.value]);
+  }, [passwordValue, typing, value, interval, strengthMeter, validatePassword]);
+
+  const handleClick = () => setVisible(!visible);
+
+  const handlePasswordChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const newValue = e?.target?.value ?? e;
+    setValue(newValue); // Ensure value state is updated
+    field.onChange(newValue); // Ensure form data is in sync
+    setTyping(true);
+  };
+
+  const handleFocus = () => setFocused(true);
+  const handleBlur = () => setFocused(false);
+  const isError = validateError || invalid;
+  const errMsg = errMessage || error?.message;
 
   return (
     <Box width="100%">
       <ResettableTextField
-        {...field}
         id={id}
-        type={state.visible ? "text" : "password"}
-        label={
-          <FieldTitle
-            label={props.label}
-            source={props.source}
-            isRequired={isRequired}
-          />
-        }
-        error={invalid || state.shake}
-        helperText={error?.message || (state.shake && state.feedback) || ""}
+        {...field}
+        source={source}
+        type={visible ? "text" : "password"}
+        size="small"
+        onChange={handlePasswordChange}
+        onFocus={handleFocus}
+        onBlur={handleBlur}
+        fullWidth={true}
+        className={clsx("ra-input", `ra-input-${source}`, className)}
+        error={isError}
+        helperText={isError ? errMsg : ""}
         InputProps={{
-          startAdornment: props.iconStart && (
-            <InputAdornment position="start">{props.iconStart}</InputAdornment>
-          ),
+          startAdornment: iconStart ? (
+            <InputAdornment position="start">{iconStart}</InputAdornment>
+          ) : null,
           endAdornment: (
             <InputAdornment position="end">
               <IconButton
-                onClick={actions.toggleVisibility}
-                edge="end"
-                aria-label={state.visible ? "Hide password" : "Show password"}
+                aria-label={translate(
+                  visible
+                    ? "ra.input.password.toggle_visible"
+                    : "ra.input.password.toggle_hidden",
+                )}
+                onClick={handleClick}
+                size="large"
               >
-                {state.visible ? <VisibilityOff /> : <Visibility />}
+                {visible ? <Visibility /> : <VisibilityOff />}
               </IconButton>
             </InputAdornment>
           ),
         }}
-        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-          actions.handleChange(e.target.value)
+        InputLabelProps={{
+          shrink: focused || value !== "",
+          className: clsx({ shake: shake }),
+        }}
+        label={
+          label !== "" && label !== false ? (
+            <FieldTitle label={label} source={source} isRequired={isRequired} />
+          ) : null
         }
-        onFocus={actions.handleFocus}
-        onBlur={actions.handleBlur}
+        {...sanitizeInputRestProps(rest)}
       />
-
       {props.strengthMeter && (
-        <Box mt={1}>
-          <LinearProgressWithLabel
-            value={(state.strength / 4) * 100}
-            sx={{
-              backgroundColor: (theme) => theme.palette.grey[300],
-              "& .MuiLinearProgress-bar": {
-                backgroundColor: getStrengthColor(state.strength),
-              },
-            }}
-          />
-          <Typography variant="caption" color="textSecondary">
-            {state.value ? state.feedback : "Password strength indicator"}
-          </Typography>
-        </Box>
+        <PasswordStrengthMeter
+          passwordStrength={passwordStrength}
+          passwordFeedback={passwordFeedback}
+          value={field.value}
+        />
       )}
     </Box>
   );

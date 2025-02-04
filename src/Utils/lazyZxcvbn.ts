@@ -49,7 +49,7 @@ export const loadZxcvbn = async () => {
       return {
         warning: "Your password does not meet the required criteria.",
         suggestions: [
-          "Password must be at least 8 characters,",
+          "Password must be at least 10 characters,",
           "include uppercase,",
           "lowercase,",
           "number,",

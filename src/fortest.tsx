@@ -6,11 +6,9 @@ import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import { ResettableTextField, sanitizeInputRestProps } from "react-admin";
 import { clsx } from "clsx";
 import { IconTextInputProps } from "./Types/types";
-import LinearProgressWithLabel from "./CustomComponents/LinearProgessWithLabel";
 import loadZxcvbn, { loadDebounce } from "./Utils/lazyZxcvbn";
 import PasswordStrengthMeter from "./CustomComponents/PasswordStrengthMeter";
 
-const MESSAGE = import.meta.env.VITE_PASSWORD_HINT;
 const zxcvbnAsync = await loadZxcvbn();
 
 export const PasswordValidationInput = (props: IconTextInputProps) => {
@@ -100,6 +98,7 @@ export const PasswordValidationInput = (props: IconTextInputProps) => {
       }
     } else {
       const result = passwordValue !== value && value !== "";
+
       setValidateError(result);
       setErrMessage(result ? "Passwords do not match!" : "");
       if (result) {
@@ -122,45 +121,6 @@ export const PasswordValidationInput = (props: IconTextInputProps) => {
   const handleBlur = () => setFocused(false);
   const isError = validateError || invalid;
   const errMsg = errMessage || error?.message;
-
-  // const getColor = (score: number) => {
-  //   switch (score) {
-  //     case 0:
-  //       return "darkred";
-  //     case 1:
-  //       return "orange";
-  //     case 2:
-  //       return "yellow";
-  //     case 3:
-  //       return "blue";
-  //     case 4:
-  //       return "green";
-  //     default:
-  //       return "#dd741d";
-  //   }
-  // };
-
-  // const getColor = (strength: number): string => {
-  //   switch (strength) {
-  //     case 0:
-  //       return "#f44336"; // Red
-  //     case 1:
-  //       return "#ff9800"; // Orange
-  //     case 2:
-  //       return "#ffeb3b"; // Yellow
-  //     case 3:
-  //       return "#4caf50"; // Light Green
-  //     case 4:
-  //       return "#2e7d32"; // Dark Green
-  //     default:
-  //       return "#e0e0e0"; // Grey
-  //   }
-  // };
-
-  const getColor = (strength: number) => {
-    const colors = ["#ff0000", "#ff9900", "#ffff00", "#99ff00", "#00ff00"];
-    return colors[Math.min(strength, colors.length - 1)];
-  };
 
   return (
     <Box width="100%">
