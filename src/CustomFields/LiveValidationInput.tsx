@@ -300,7 +300,9 @@ const ValidationInput = (props: IconTextInputProps) => {
   const [focused, setFocused] = useState(false);
 
   const handleFocus = () => setFocused(true);
-  const handleBlur = () => setFocused(false);
+  const handleBlur = () => {
+    setFocused(false);
+  };
 
   const typingInterval = import.meta.env.VITE_DELAY_CALL || 2500; // Time in milliseconds
 
@@ -341,6 +343,7 @@ const ValidationInput = (props: IconTextInputProps) => {
   const renderHelperText = helperText !== false || invalid;
   const isError = validateError?.error || invalid;
   const errMsg = validateError?.message || error?.message;
+  // console.log("Error: ", error?.message);
 
   return (
     <ResettableTextField
@@ -369,8 +372,9 @@ const ValidationInput = (props: IconTextInputProps) => {
         ) : null
       }
       resource={resource}
-      error={isError}
-      helperText={isError ? errMsg : ""}
+      error={validateError?.error || invalid}
+      // helperText={isError ? errMsg : ""}
+      helperText={validateError?.message || error?.message}
       // helperText={
       //   renderHelperText ? (
       //     <InputHelperText

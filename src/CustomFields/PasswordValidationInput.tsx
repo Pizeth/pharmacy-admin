@@ -1,6 +1,6 @@
 import { ChangeEvent, useCallback, useEffect, useState } from "react";
 import { FieldTitle, useInput, useTranslate } from "ra-core";
-import { InputAdornment, IconButton, Box } from "@mui/material";
+import { InputAdornment, IconButton, Typography, Box } from "@mui/material";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import { ResettableTextField, sanitizeInputRestProps } from "react-admin";
@@ -8,6 +8,7 @@ import { clsx } from "clsx";
 import { IconTextInputProps } from "../Types/types";
 import loadZxcvbn, { loadDebounce } from "../Utils/lazyZxcvbn";
 import PasswordStrengthMeter from "../CustomComponents/PasswordStrengthMeter";
+import StringUtils from "../Utils/StringUtils";
 
 const zxcvbnAsync = await loadZxcvbn();
 
@@ -82,7 +83,8 @@ export const PasswordValidationInput = (props: IconTextInputProps) => {
     if (strengthMeter) {
       if (value === "") {
         setPasswordStrength(0);
-        setValidateError(false);
+        setValidateError(true);
+        setErrMessage(`${StringUtils.capitalize(source)} is required!`);
         return;
       }
 
@@ -95,6 +97,12 @@ export const PasswordValidationInput = (props: IconTextInputProps) => {
         return () => clearTimeout(timer);
       }
     } else {
+      if (value === "") {
+        setPasswordStrength(0);
+        setValidateError(true);
+        setErrMessage(`${StringUtils.capitalize(source)} is required!`);
+        return;
+      }
       const result = passwordValue !== value && value !== "";
 
       setValidateError(result);
@@ -104,7 +112,15 @@ export const PasswordValidationInput = (props: IconTextInputProps) => {
         setTimeout(() => setShake(false), 500);
       }
     }
-  }, [passwordValue, typing, value, interval, strengthMeter, validatePassword]);
+  }, [
+    passwordValue,
+    typing,
+    value,
+    interval,
+    strengthMeter,
+    source,
+    validatePassword,
+  ]);
 
   const handleClick = () => setVisible(!visible);
 

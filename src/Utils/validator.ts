@@ -54,6 +54,7 @@
 // import { useEffect, useState } from "react";
 import axios from "axios";
 import statusCode from "http-status-codes";
+import StringUtils from "./StringUtils";
 
 export type FieldError = {
   error?: boolean;
@@ -66,7 +67,14 @@ export const serverValidator = async (
   value: string | undefined,
   resource: string,
 ): Promise<FieldError | null> => {
-  if (!value) return null;
+  // if (!value) return null;
+  if (!value) {
+    const field = StringUtils.getLastSegment(resource);
+    return {
+      error: true,
+      message: `${StringUtils.capitalize(field)} is required!`,
+    };
+  }
 
   try {
     const response = await axios.get<any>(`${API_URL}/${resource}/${value}`);

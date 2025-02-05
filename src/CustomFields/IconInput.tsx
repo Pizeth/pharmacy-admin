@@ -9,7 +9,7 @@ import {
 } from "react-admin";
 import "../Styles/style.css";
 import InputAdornment from "@mui/material/InputAdornment";
-import { capitalizeString } from "../Utils/textDecor";
+import StringUtils from "../Utils/StringUtils";
 
 const ValidationInput = (props: IconTextInputProps) => {
   const {
@@ -54,11 +54,12 @@ const ValidationInput = (props: IconTextInputProps) => {
 
   const validteResult = () => {
     const isValid = required() && !value;
+    console.log("isValid", isValid);
     setValidateError(isValid);
-    if (isValid) {
+    if (!isValid) {
       setShake(true);
       setTimeout(() => setShake(false), 500);
-      const displayLabel = label ? label : capitalizeString(source);
+      const displayLabel = label ? label : StringUtils.capitalize(source);
       setErrMessage(`${displayLabel} is required`);
     }
   };
@@ -77,7 +78,11 @@ const ValidationInput = (props: IconTextInputProps) => {
     validteResult();
     setFocused(false);
   };
+  console.log("validateError", validateError);
   const isError = validateError || invalid;
+  console.log("invalid", invalid);
+  console.log("error", error);
+  console.log("isError", isError);
   const errMsg = errMessage || error?.message;
 
   return (

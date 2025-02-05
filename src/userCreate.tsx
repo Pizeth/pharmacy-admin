@@ -1,11 +1,20 @@
 import {
   Create,
+  email,
   ImageField,
   ImageInput,
   NumberInput,
+  required,
+  SaveButton,
   SelectInput,
   SimpleForm,
+  TextInput,
+  Toolbar,
+  ToolbarProps,
+  useNotify,
+  useRecordContext,
 } from "react-admin";
+import { useFormState, useFormContext } from "react-hook-form";
 import { InputAdornment } from "@mui/material";
 import ValidationInput from "./CustomFields/LiveValidationInput";
 import {
@@ -27,6 +36,38 @@ const choices = [
   { id: "USER", name: "User" },
 ];
 
+// const CustomToolbar = (props: ToolbarProps) => {
+//   const { errors, isValid, isDirty } = useFormState();
+//   console.log(errors);
+//   console.log(isValid);
+//   console.log(isDirty);
+//   console.log(useFormState());
+//   const hasErrors = Object.keys(errors).length > 0;
+
+//   return (
+//     <Toolbar {...props}>
+//       <SaveButton disabled={hasErrors || !isValid || !isDirty} />
+//     </Toolbar>
+//   );
+// };
+
+const CustomToolbar = (props: ToolbarProps) => {
+  // const {
+  //   formState: { errors, isValid, isDirty },
+  // } = useFormContext();
+  const { errors, isValid, isDirty } = useFormState();
+  console.log(errors);
+  // const hasErrors = Object.keys(errors).length > 0;
+  const hasErrors = Object.values(errors).some((error) => !!error);
+  // console.log(hasErrors);
+
+  return (
+    <Toolbar {...props}>
+      <SaveButton disabled={hasErrors || !isValid || !isDirty} />
+    </Toolbar>
+  );
+};
+
 export const UserCreate = () => {
   type FocusedField = "rePassword" | "role" | null;
   const [password, setPassword] = useState<string>("");
@@ -41,13 +82,18 @@ export const UserCreate = () => {
 
   return (
     <Create>
-      <SimpleForm>
+      <SimpleForm
+        toolbar={<CustomToolbar />}
+        mode="onBlur"
+        reValidateMode="onBlur"
+        sanitizeEmptyValues
+      >
         <ValidationInput
           source="username"
           resettable
           className="icon-input"
           iconStart={<PermIdentity />}
-          required
+          validate={[required("Username is required")]}
         />
         <ValidationInput
           source="email"
@@ -55,7 +101,8 @@ export const UserCreate = () => {
           className="icon-input"
           iconStart={<MailOutline />}
           type="email"
-          required
+          validate={[required("Email is required"), email()]}
+          // required
         />
         {/* <PasswordInputMeter
           source="password"
@@ -74,20 +121,27 @@ export const UserCreate = () => {
           className="icon-input"
           strengthMeter
           onInput={(e) => setPassword((e.target as HTMLInputElement).value)}
-          required
+          validate={[required("Password is required")]}
+          // required
         />
         <PasswordValidationInput
           source="rePassword"
           passwordValue={password}
           iconStart={<Password />}
           className="icon-input"
-          required
+          validate={[
+            required("Re Password is required"),
+            // (v) => (v === password ? null : "Passwords do not match"),
+          ]}
+          // required
         />
         <IconInput
           source="authMethod"
           className="icon-input"
           iconStart={<SwitchAccount />}
-          required
+          validate={[required()]}
+          resettable
+          // required
         />
         <SelectInput
           source="role"

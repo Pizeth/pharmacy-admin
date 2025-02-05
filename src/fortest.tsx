@@ -8,6 +8,7 @@ import { clsx } from "clsx";
 import { IconTextInputProps } from "./Types/types";
 import loadZxcvbn, { loadDebounce } from "./Utils/lazyZxcvbn";
 import PasswordStrengthMeter from "./CustomComponents/PasswordStrengthMeter";
+import StringUtils from "./Utils/StringUtils";
 
 const zxcvbnAsync = await loadZxcvbn();
 
@@ -118,7 +119,13 @@ export const PasswordValidationInput = (props: IconTextInputProps) => {
   };
 
   const handleFocus = () => setFocused(true);
-  const handleBlur = () => setFocused(false);
+  const handleBlur = () => {
+    setFocused(false);
+    if (value === "") {
+      setValidateError(true);
+      setErrMessage(`${StringUtils.capitalize(source)} is required!`);
+    }
+  };
   const isError = validateError || invalid;
   const errMsg = errMessage || error?.message;
 
