@@ -1,6 +1,6 @@
 import { ChangeEvent, useCallback, useEffect, useState } from "react";
 import { FieldTitle, useInput, useTranslate } from "ra-core";
-import { InputAdornment, IconButton, Typography, Box } from "@mui/material";
+import { InputAdornment, IconButton, Box } from "@mui/material";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import { ResettableTextField, sanitizeInputRestProps } from "react-admin";
@@ -83,8 +83,7 @@ export const PasswordValidationInput = (props: IconTextInputProps) => {
     if (strengthMeter) {
       if (value === "") {
         setPasswordStrength(0);
-        setValidateError(true);
-        setErrMessage(`${StringUtils.capitalize(source)} is required!`);
+        setValidateError(false);
         return;
       }
 
@@ -97,30 +96,17 @@ export const PasswordValidationInput = (props: IconTextInputProps) => {
         return () => clearTimeout(timer);
       }
     } else {
-      if (value === "") {
-        setPasswordStrength(0);
-        setValidateError(true);
-        setErrMessage(`${StringUtils.capitalize(source)} is required!`);
-        return;
-      }
       const result = passwordValue !== value && value !== "";
 
       setValidateError(result);
-      setErrMessage(result ? "Passwords do not match!" : "");
+
       if (result) {
+        setErrMessage("Passwords do not match!");
         setShake(true);
         setTimeout(() => setShake(false), 500);
       }
     }
-  }, [
-    passwordValue,
-    typing,
-    value,
-    interval,
-    strengthMeter,
-    source,
-    validatePassword,
-  ]);
+  }, [passwordValue, typing, value, interval, strengthMeter, validatePassword]);
 
   const handleClick = () => setVisible(!visible);
 
@@ -132,7 +118,16 @@ export const PasswordValidationInput = (props: IconTextInputProps) => {
   };
 
   const handleFocus = () => setFocused(true);
-  const handleBlur = () => setFocused(false);
+  const handleBlur = () => {
+    setFocused(false);
+    if (value === "") {
+      setValidateError(true);
+      setShake(true);
+      setTimeout(() => setShake(false), 500);
+      const displayLabel = label ? label : StringUtils.capitalize(source);
+      setErrMessage(`${displayLabel} is required`);
+    }
+  };
   const isError = validateError || invalid;
   const errMsg = errMessage || error?.message;
 

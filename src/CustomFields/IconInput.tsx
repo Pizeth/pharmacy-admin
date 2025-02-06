@@ -53,10 +53,9 @@ const ValidationInput = (props: IconTextInputProps) => {
   const [focused, setFocused] = useState(false);
 
   const validteResult = () => {
-    const isValid = required() && !value;
-    console.log("isValid", isValid);
-    setValidateError(isValid);
-    if (!isValid) {
+    const isInvalid = isRequired && !value;
+    setValidateError(isInvalid);
+    if (isInvalid) {
       setShake(true);
       setTimeout(() => setShake(false), 500);
       const displayLabel = label ? label : StringUtils.capitalize(source);
@@ -78,11 +77,11 @@ const ValidationInput = (props: IconTextInputProps) => {
     validteResult();
     setFocused(false);
   };
-  console.log("validateError", validateError);
+  // console.log("validateError", validateError);
   const isError = validateError || invalid;
-  console.log("invalid", invalid);
-  console.log("error", error);
-  console.log("isError", isError);
+  // console.log("invalid", invalid);
+  // console.log("error", error);
+  // console.log("isError", isError);
   const errMsg = errMessage || error?.message;
 
   return (
@@ -112,6 +111,7 @@ const ValidationInput = (props: IconTextInputProps) => {
           <FieldTitle label={label} source={source} isRequired={isRequired} />
         ) : null
       }
+      // required={isRequired}
       resource={resource}
       error={isError}
       helperText={isError ? errMsg : ""}

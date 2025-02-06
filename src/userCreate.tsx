@@ -56,7 +56,7 @@ const CustomToolbar = (props: ToolbarProps) => {
   //   formState: { errors, isValid, isDirty },
   // } = useFormContext();
   const { errors, isValid, isDirty } = useFormState();
-  console.log(errors);
+  // console.log(errors);
   // const hasErrors = Object.keys(errors).length > 0;
   const hasErrors = Object.values(errors).some((error) => !!error);
   // console.log(hasErrors);
@@ -84,7 +84,7 @@ export const UserCreate = () => {
     <Create>
       <SimpleForm
         toolbar={<CustomToolbar />}
-        mode="onBlur"
+        mode="all"
         reValidateMode="onBlur"
         sanitizeEmptyValues
       >
@@ -93,7 +93,7 @@ export const UserCreate = () => {
           resettable
           className="icon-input"
           iconStart={<PermIdentity />}
-          validate={[required("Username is required")]}
+          validate={[required()]}
         />
         <ValidationInput
           source="email"
@@ -101,7 +101,7 @@ export const UserCreate = () => {
           className="icon-input"
           iconStart={<MailOutline />}
           type="email"
-          validate={[required("Email is required"), email()]}
+          validate={[required(), email()]}
           // required
         />
         {/* <PasswordInputMeter
@@ -121,19 +121,14 @@ export const UserCreate = () => {
           className="icon-input"
           strengthMeter
           onInput={(e) => setPassword((e.target as HTMLInputElement).value)}
-          validate={[required("Password is required")]}
-          // required
+          validate={[required()]}
         />
         <PasswordValidationInput
           source="rePassword"
           passwordValue={password}
           iconStart={<Password />}
           className="icon-input"
-          validate={[
-            required("Re Password is required"),
-            // (v) => (v === password ? null : "Passwords do not match"),
-          ]}
-          // required
+          validate={[required()]}
         />
         <IconInput
           source="authMethod"
@@ -141,7 +136,7 @@ export const UserCreate = () => {
           iconStart={<SwitchAccount />}
           validate={[required()]}
           resettable
-          // required
+          // required={true}
         />
         <SelectInput
           source="role"

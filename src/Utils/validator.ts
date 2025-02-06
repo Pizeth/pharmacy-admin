@@ -55,6 +55,7 @@
 import axios from "axios";
 import statusCode from "http-status-codes";
 import StringUtils from "./StringUtils";
+import loadZxcvbn from "./lazyZxcvbn";
 
 export type FieldError = {
   error?: boolean;
@@ -62,6 +63,8 @@ export type FieldError = {
 };
 
 const API_URL = import.meta.env.VITE_API_URL;
+
+const zxcvbnAsync = await loadZxcvbn();
 
 export const serverValidator = async (
   value: string | undefined,
@@ -93,4 +96,22 @@ export const serverValidator = async (
   }
 };
 
-export default serverValidator;
+export const passwordStrength = async (value: string) => {
+  if (!value) return "Required";
+  const result = await zxcvbnAsync(value);
+  const warningMsg = result.feedback.warning;
+  const suggestMsg = result.feedback.suggestions.join(" ");
+  // const isValid = result.score <= 0;
+
+  if (result.score <= 0) {
+    // Adjust threshold as needed
+    return result ? suggestMsg : (warningMsg ?? "").concat(` ${suggestMsg}`);
+  }
+  return undefined; // No error
+};
+
+export const matchPassword = (passwordValue: string) => (value: string) => {
+  return value !== passwordValue ? "Passwords do not match!" : undefined;
+};
+
+export default { serverValidator, passwordStrength, matchPassword };

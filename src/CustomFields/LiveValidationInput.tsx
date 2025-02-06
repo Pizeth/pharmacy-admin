@@ -249,6 +249,7 @@ import {
 } from "react-admin";
 import "../Styles/style.css";
 import InputAdornment from "@mui/material/InputAdornment";
+import StringUtils from "../Utils/StringUtils";
 // export interface IconTextInputProps extends PasswordInputProps {
 //   iconStart?: React.ReactNode;
 //   iconEnd?: React.ReactNode;
@@ -302,6 +303,16 @@ const ValidationInput = (props: IconTextInputProps) => {
   const handleFocus = () => setFocused(true);
   const handleBlur = () => {
     setFocused(false);
+    if (value === "") {
+      const displayLabel = label ? label : StringUtils.capitalize(source);
+      const fieldError = {
+        error: true,
+        message: `${displayLabel} is required`,
+      };
+      setValidateError(fieldError);
+      setShake(true);
+      setTimeout(() => setShake(false), 500);
+    }
   };
 
   const typingInterval = import.meta.env.VITE_DELAY_CALL || 2500; // Time in milliseconds

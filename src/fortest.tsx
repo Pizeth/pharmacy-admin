@@ -1,6 +1,6 @@
-import { ChangeEvent, useCallback, useEffect, useState } from "react";
+import { ChangeEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { FieldTitle, useInput, useTranslate } from "ra-core";
-import { InputAdornment, IconButton, Typography, Box } from "@mui/material";
+import { InputAdornment, IconButton, Box } from "@mui/material";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import { ResettableTextField, sanitizeInputRestProps } from "react-admin";
@@ -9,6 +9,7 @@ import { IconTextInputProps } from "./Types/types";
 import loadZxcvbn, { loadDebounce } from "./Utils/lazyZxcvbn";
 import PasswordStrengthMeter from "./CustomComponents/PasswordStrengthMeter";
 import StringUtils from "./Utils/StringUtils";
+import { matchPassword, passwordStrength } from "./Utils/validator";
 
 const zxcvbnAsync = await loadZxcvbn();
 
@@ -23,13 +24,27 @@ export const PasswordValidationInput = (props: IconTextInputProps) => {
     parse,
     resource,
     source,
-    validate,
+    // validate,
+    validate = [],
     iconStart,
     initiallyVisible = false,
     strengthMeter = false,
     passwordValue,
     ...rest
   } = props;
+
+  // Compute validators
+  const validators = useMemo(() => {
+    const normalizedValidate = Array.isArray(validate) ? validate : [validate];
+    const baseValidators = [...normalizedValidate];
+    if (strengthMeter) {
+      baseValidators.push(passwordStrength);
+    }
+    if (passwordValue !== undefined) {
+      baseValidators.push(matchPassword(passwordValue));
+    }
+    return baseValidators;
+  }, [validate, strengthMeter, passwordValue, passwordStrength]);
 
   const {
     field,
@@ -43,7 +58,7 @@ export const PasswordValidationInput = (props: IconTextInputProps) => {
     resource,
     source,
     type: "text",
-    validate,
+    validate: validators,
     onBlur,
     onChange,
     ...rest,
@@ -79,6 +94,19 @@ export const PasswordValidationInput = (props: IconTextInputProps) => {
     }
   }, [value]);
 
+  // Remove local error states (validateError, errMessage)
+  // Keep UI-focused states (shake, passwordStrength, etc.)
+
+  // Update password strength (for UI only)
+  useEffect(() => {
+    if (strengthMeter && value) {
+      zxcvbnAsync(value).then((result) => {
+        setPasswordStrength(result.score);
+        setPasswordFeedback(result.feedback.suggestions?.join(" ") || "");
+      });
+    }
+  }, [value, strengthMeter]);
+
   useEffect(() => {
     if (strengthMeter) {
       if (value === "") {
@@ -101,8 +129,9 @@ export const PasswordValidationInput = (props: IconTextInputProps) => {
       const result = passwordValue !== value && value !== "";
 
       setValidateError(result);
-      setErrMessage(result ? "Passwords do not match!" : "");
+
       if (result) {
+        setErrMessage("Passwords do not match!");
         setShake(true);
         setTimeout(() => setShake(false), 500);
       }
@@ -121,9 +150,14 @@ export const PasswordValidationInput = (props: IconTextInputProps) => {
   const handleFocus = () => setFocused(true);
   const handleBlur = () => {
     setFocused(false);
+    field.onBlur(); // Ensure React Admin's onBlur is called
     if (value === "") {
       setValidateError(true);
-      setErrMessage(`${StringUtils.capitalize(source)} is required!`);
+      setShake(true);
+      setTimeout(() => setShake(false), 500);
+      const displayLabel = label ? label : StringUtils.capitalize(source);
+      setErrMessage(`${displayLabel} is required`);
+      // setErrMessage(`${StringUtils.capitalize(source)} is required!`);
     }
   };
   const isError = validateError || invalid;

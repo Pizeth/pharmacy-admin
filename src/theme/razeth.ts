@@ -144,6 +144,10 @@ const customBaseTheme = createTheme({
         root: {
           marginTop: "0.75em",
           // "&.Mui-error": { color: (theme: Theme) => theme.palette.error.main },
+          // Apply styles when the helper text is in an error state
+          "&.Mui-error": {
+            marginBottom: "-0.5em", // Negative margin adjustment
+          },
         },
       },
     },
@@ -227,9 +231,12 @@ const customBaseTheme = createTheme({
           // background-color: ${theme.palette.grey[100]};
         }
 
-        .MuiStack-root > .MuiBox-root p.Mui-error {
-          margin-bottom: -0.5em;
-        }
+        // .MuiStack-root > .MuiBox-root p.Mui-error {
+        //   margin-bottom: -0.5em;
+        // }
+        // .MuiFormControl-root p.Mui-error {
+        //   margin-bottom: -0.5em;
+        // }
       `,
     },
     MuiCard: {
