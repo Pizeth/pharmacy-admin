@@ -1,5 +1,6 @@
 import { ChangeEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { FieldTitle, useInput, useTranslate } from "ra-core";
+import { useFormContext } from "react-hook-form";
 import { InputAdornment, IconButton, Box } from "@mui/material";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
@@ -9,7 +10,7 @@ import { IconTextInputProps } from "./Types/types";
 import loadZxcvbn, { loadDebounce } from "./Utils/lazyZxcvbn";
 import PasswordStrengthMeter from "./CustomComponents/PasswordStrengthMeter";
 import StringUtils from "./Utils/StringUtils";
-import { matchPassword, passwordStrength } from "./Utils/validator";
+import { matchPassword, validateStrength } from "./Utils/validator";
 
 const zxcvbnAsync = await loadZxcvbn();
 
@@ -24,7 +25,6 @@ export const PasswordValidationInput = (props: IconTextInputProps) => {
     parse,
     resource,
     source,
-    // validate,
     validate = [],
     iconStart,
     initiallyVisible = false,
@@ -33,18 +33,18 @@ export const PasswordValidationInput = (props: IconTextInputProps) => {
     ...rest
   } = props;
 
-  // Compute validators
+  const { setError, clearErrors } = useFormContext();
+  const [asyncError, setAsyncError] = useState<string | undefined>();
+
+  // Compute validators with normalization
   const validators = useMemo(() => {
     const normalizedValidate = Array.isArray(validate) ? validate : [validate];
     const baseValidators = [...normalizedValidate];
-    if (strengthMeter) {
-      baseValidators.push(passwordStrength);
-    }
     if (passwordValue !== undefined) {
       baseValidators.push(matchPassword(passwordValue));
     }
     return baseValidators;
-  }, [validate, strengthMeter, passwordValue, passwordStrength]);
+  }, [validate, passwordValue]);
 
   const {
     field,
@@ -69,74 +69,143 @@ export const PasswordValidationInput = (props: IconTextInputProps) => {
   const [passwordStrength, setPasswordStrength] = useState(0);
   const [passwordFeedback, setPasswordFeedback] = useState("");
   const [value, setValue] = useState(field.value || "");
-  const [errMessage, setErrMessage] = useState(error?.message || "");
+  // const [errMessage, setErrMessage] = useState(error?.message || "");
   const [typing, setTyping] = useState(false);
   const [focused, setFocused] = useState(false);
   const [shake, setShake] = useState(false);
-  const [validateError, setValidateError] = useState(false);
+  // const [validateError, setValidateError] = useState(false);
   const interval = import.meta.env.VITE_DELAY_CALL || 2500; // Time in milliseconds
 
-  const validatePassword = useCallback(async () => {
-    const result = await zxcvbnAsync(value);
-    const warningMsg = result.feedback.warning;
-    const suggestMsg = result.feedback.suggestions.join(" ");
-    const isValid = result.score <= 0;
+  // Async validation effect
+  // useEffect(() => {
+  //   if (!strengthMeter || !field.value) return;
 
-    setValidateError(isValid);
-    setErrMessage(warningMsg || "");
-    setPasswordStrength(result.score);
-    setPasswordFeedback(
-      result ? suggestMsg : (warningMsg ?? "").concat(` ${suggestMsg}`),
-    );
-    if (result) {
-      setShake(true);
-      setTimeout(() => setShake(false), 500);
-    }
-  }, [value]);
+  //   const validateAsync = async () => {
+  //     try {
+  //       const error = await validateStrength(field.value);
+  //       setAsyncError(error?.message);
+  //       if (error) {
+  //         setError(source, { type: "manual", message: error.message });
+  //       } else {
+  //         clearErrors(source);
+  //       }
+  //     } catch (err) {
+  //       setError(source, { type: "manual", message: "Validation failed" });
+  //     }
+  //   };
+
+  //   const debounceTimer = setTimeout(validateAsync, 500); // Debounce
+  //   return () => clearTimeout(debounceTimer);
+  // }, [field.value, strengthMeter, source, setError, clearErrors]);
 
   // Remove local error states (validateError, errMessage)
   // Keep UI-focused states (shake, passwordStrength, etc.)
 
   // Update password strength (for UI only)
-  useEffect(() => {
-    if (strengthMeter && value) {
-      zxcvbnAsync(value).then((result) => {
-        setPasswordStrength(result.score);
-        setPasswordFeedback(result.feedback.suggestions?.join(" ") || "");
-      });
-    }
-  }, [value, strengthMeter]);
+  // useEffect(() => {
+  //   if (strengthMeter && value) {
+  //     zxcvbnAsync(value).then((result) => {
+  //       setPasswordStrength(result.score);
+  //       setPasswordFeedback(result.feedback.suggestions?.join(" ") || "");
+  //     });
+  //   }
+  // }, [value, strengthMeter]);
+
+  // const validatePassword = useCallback(async () => {
+  //   const result = await zxcvbnAsync(value);
+  //   const warningMsg = result.feedback.warning;
+  //   const suggestMsg = result.feedback.suggestions.join(" ");
+  //   const isValid = result.score <= 0;
+
+  //   setValidateError(isValid);
+  //   setErrMessage(warningMsg || "");
+  //   setPasswordStrength(result.score);
+  //   setPasswordFeedback(
+  //     result ? suggestMsg : (warningMsg ?? "").concat(` ${suggestMsg}`),
+  //   );
+  //   if (result) {
+  //     setShake(true);
+  //     setTimeout(() => setShake(false), 500);
+  //   }
+  // }, [value]);
 
   useEffect(() => {
-    if (strengthMeter) {
-      if (value === "") {
-        setPasswordStrength(0);
-        setValidateError(false);
-        return;
+    const validateAsync = async () => {
+      try {
+        const error = await validateStrength(field.value);
+        if (error) {
+          if (error.invalid) {
+            setShake(true);
+            setTimeout(() => setShake(false), 500);
+            setError(source, { type: "manual", message: error.message });
+          }
+          setAsyncError(error.message || "");
+          setPasswordStrength(error.score);
+          setPasswordFeedback(error.feedbackMsg);
+        } else {
+          clearErrors(source);
+        }
+      } catch (err) {
+        setError(source, { type: "manual", message: "Validation failed" });
       }
+    };
 
-      if (typing) {
-        const timer = setTimeout(async () => {
-          setTyping(false);
-          // const debouncedValidation = debounce(validatePassword, interval);
-          // debouncedValidation();
-          const debounce = await loadDebounce();
-          debounce(validatePassword, 500)();
-        }, interval);
-        return () => clearTimeout(timer);
-      }
-    } else {
-      const result = passwordValue !== value && value !== "";
-
-      setValidateError(result);
-
-      if (result) {
-        setErrMessage("Passwords do not match!");
-        setShake(true);
-        setTimeout(() => setShake(false), 500);
-      }
+    if (!strengthMeter || !field.value) {
+      setPasswordStrength(0);
+      return;
     }
-  }, [passwordValue, typing, value, interval, strengthMeter, validatePassword]);
+
+    if (typing) {
+      const timer = setTimeout(async () => {
+        setTyping(false);
+        // const debouncedValidation = debounce(validatePassword, interval);
+        // debouncedValidation();
+        const debounce = await loadDebounce();
+        debounce(validateAsync, 500)();
+      }, interval);
+      return () => clearTimeout(timer);
+    }
+
+    // const debounceTimer = setTimeout(validateAsync, 500); // Debounce
+    // return () => clearTimeout(debounceTimer);
+
+    // if (strengthMeter) {
+    //   if (value === "") {
+    //     setPasswordStrength(0);
+    //     setValidateError(false);
+    //     return;
+    //   }
+
+    //   if (typing) {
+    //     const timer = setTimeout(async () => {
+    //       setTyping(false);
+    //       // const debouncedValidation = debounce(validatePassword, interval);
+    //       // debouncedValidation();
+    //       const debounce = await loadDebounce();
+    //       debounce(validatePassword, 500)();
+    //     }, interval);
+    //     return () => clearTimeout(timer);
+    //   }
+    // } else {
+    //   const result = passwordValue !== value && value !== "";
+
+    //   setValidateError(result);
+
+    //   if (result) {
+    //     setErrMessage("Passwords do not match!");
+    //     setShake(true);
+    //     setTimeout(() => setShake(false), 500);
+    //   }
+    // }
+  }, [
+    clearErrors,
+    field.value,
+    interval,
+    setError,
+    source,
+    strengthMeter,
+    typing,
+  ]);
 
   const handleClick = () => setVisible(!visible);
 
@@ -151,17 +220,21 @@ export const PasswordValidationInput = (props: IconTextInputProps) => {
   const handleBlur = () => {
     setFocused(false);
     field.onBlur(); // Ensure React Admin's onBlur is called
-    if (value === "") {
-      setValidateError(true);
-      setShake(true);
-      setTimeout(() => setShake(false), 500);
-      const displayLabel = label ? label : StringUtils.capitalize(source);
-      setErrMessage(`${displayLabel} is required`);
-      // setErrMessage(`${StringUtils.capitalize(source)} is required!`);
-    }
+    // if (value === "") {
+    //   setValidateError(true);
+    //   setShake(true);
+    //   setTimeout(() => setShake(false), 500);
+    //   const displayLabel = label ? label : StringUtils.capitalize(source);
+    //   setErrMessage(`${displayLabel} is required`);
+    // }
   };
-  const isError = validateError || invalid;
-  const errMsg = errMessage || error?.message;
+
+  // const isError = validateError || invalid;
+  // const errMsg = errMessage || error?.message;
+
+  // Combine sync and async errors
+  const isError = invalid || !!asyncError;
+  const errMsg = error?.message || asyncError;
 
   return (
     <Box width="100%">

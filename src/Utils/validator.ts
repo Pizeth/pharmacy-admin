@@ -96,22 +96,67 @@ export const serverValidator = async (
   }
 };
 
-export const passwordStrength = async (value: string) => {
-  if (!value) return "Required";
+export const validateStrength = async (value: string) => {
+  if (!value)
+    return {
+      message: "Required",
+      feedbackMsg: "",
+      score: 0,
+      invalid: false,
+      args: { password: "" },
+    };
   const result = await zxcvbnAsync(value);
   const warningMsg = result.feedback.warning;
   const suggestMsg = result.feedback.suggestions.join(" ");
-  // const isValid = result.score <= 0;
+  const score = result.score;
+  const invalid = score <= 0;
 
-  if (result.score <= 0) {
+  // setValidateError(isValid);
+  // setErrMessage(warningMsg || "");
+  // setPasswordStrength(result.score);
+  // setPasswordFeedback(
+  //   result ? suggestMsg : (warningMsg ?? "").concat(` ${suggestMsg}`),
+  // );
+
+  if (invalid) {
     // Adjust threshold as needed
-    return result ? suggestMsg : (warningMsg ?? "").concat(` ${suggestMsg}`);
+    return {
+      message: warningMsg || "",
+      feedbackMsg: (warningMsg ?? "").concat(` ${suggestMsg}`),
+      score: score,
+      invalid: invalid,
+      args: { password: StringUtils.truncate(value, 5) },
+    };
   }
-  return undefined; // No error
+  return {
+    message: undefined,
+    feedbackMsg: (warningMsg ?? "").concat(` ${suggestMsg}`),
+    score: score,
+    invalid: invalid,
+    args: { password: StringUtils.truncate(value, 5) },
+  }; // No error
 };
+
+// const validateEmailUnicity = async (value: string) => {
+//   const isEmailUnique = await checkEmailIsUnique(value);
+//   if (!isEmailUnique) {
+//     return "Email already used";
+
+//     // You can return a translation key as well
+//     return "myroot.validation.email_already_used";
+
+//     // Or even an object just like the other validators
+//     return {
+//       message: "myroot.validation.email_already_used",
+//       args: { email: value },
+//     };
+//   }
+
+//   return undefined;
+// };
 
 export const matchPassword = (passwordValue: string) => (value: string) => {
   return value !== passwordValue ? "Passwords do not match!" : undefined;
 };
 
-export default { serverValidator, passwordStrength, matchPassword };
+export default { serverValidator, validateStrength, matchPassword };
