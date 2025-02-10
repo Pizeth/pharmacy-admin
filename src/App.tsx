@@ -30,6 +30,7 @@ import { UserShow } from "./userDetail";
 import { UserEdit } from "./userEdit";
 import { UserCreate } from "./userCreate";
 import { lightTheme, darkTheme, darkTheme1 } from "./theme/razeth";
+import { i18nProvider } from "./i18n/i18nProvider";
 
 const store = localStorageStore(undefined, "ECommerce");
 
@@ -56,6 +57,7 @@ export const App = () => {
   // const darkTheme = themes.find((theme) => theme.name === themeName)?.dark;
   return (
     <Admin
+      // i18nProvider={i18nProvider}
       layout={Layout}
       dataProvider={dataProvider}
       // authProvider={authProvider}

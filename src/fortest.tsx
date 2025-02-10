@@ -1,7 +1,12 @@
 import { ChangeEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { FieldTitle, useInput, useTranslate } from "ra-core";
 import { useFormContext } from "react-hook-form";
-import { InputAdornment, IconButton, Box } from "@mui/material";
+import {
+  InputAdornment,
+  IconButton,
+  Box,
+  CircularProgress,
+} from "@mui/material";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import { ResettableTextField, sanitizeInputRestProps } from "react-admin";
@@ -35,6 +40,7 @@ export const PasswordValidationInput = (props: IconTextInputProps) => {
 
   const { setError, clearErrors } = useFormContext();
   const [asyncError, setAsyncError] = useState<string | undefined>();
+  const [isValidating, setIsValidating] = useState(false);
 
   // Compute validators with normalization
   const validators = useMemo(() => {
@@ -129,24 +135,28 @@ export const PasswordValidationInput = (props: IconTextInputProps) => {
   //   }
   // }, [value]);
 
+  // Async validation effect
   useEffect(() => {
     const validateAsync = async () => {
+      setIsValidating(true); // Start validation
       try {
-        const error = await validateStrength(field.value);
-        if (error) {
-          if (error.invalid) {
-            setShake(true);
-            setTimeout(() => setShake(false), 500);
-            setError(source, { type: "manual", message: error.message });
-          }
-          setAsyncError(error.message || "");
-          setPasswordStrength(error.score);
-          setPasswordFeedback(error.feedbackMsg);
+        const result = await validateStrength(field.value);
+        if (result.invalid) {
+          // if (error.invalid) {
+          setShake(true);
+          setTimeout(() => setShake(false), 500);
+          setError(source, { type: "async", message: result.message });
+          // }
         } else {
           clearErrors(source);
         }
+        setAsyncError(result.message || "");
+        setPasswordStrength(result.score);
+        setPasswordFeedback(result.feedbackMsg);
       } catch (err) {
         setError(source, { type: "manual", message: "Validation failed" });
+      } finally {
+        setIsValidating(false); // End validation
       }
     };
 
@@ -255,7 +265,9 @@ export const PasswordValidationInput = (props: IconTextInputProps) => {
           startAdornment: iconStart ? (
             <InputAdornment position="start">{iconStart}</InputAdornment>
           ) : null,
-          endAdornment: (
+          endAdornment: isValidating ? (
+            <CircularProgress size={20} /> // Show loading spinner
+          ) : (
             <InputAdornment position="end">
               <IconButton
                 aria-label={translate(
