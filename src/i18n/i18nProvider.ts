@@ -1,9 +1,9 @@
 import polyglotI18nProvider from "ra-i18n-polyglot";
-import englishMessages from "ra-language-english";
+import en from "ra-language-english";
 
 const messages: { [key: string]: any } = {
   en: {
-    ...englishMessages,
+    ...en,
     ra: {
       validation: {
         required: "This field is required", // Add the translation
