@@ -57,7 +57,7 @@ export const App = () => {
   // const darkTheme = themes.find((theme) => theme.name === themeName)?.dark;
   return (
     <Admin
-      // i18nProvider={i18nProvider}
+      i18nProvider={i18nProvider}
       layout={Layout}
       dataProvider={dataProvider}
       // authProvider={authProvider}

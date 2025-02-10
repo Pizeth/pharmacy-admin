@@ -154,13 +154,21 @@ export const PasswordValidationInput = (props: IconTextInputProps) => {
         setPasswordStrength(result.score);
         setPasswordFeedback(result.feedbackMsg);
       } catch (err) {
-        setError(source, { type: "manual", message: "Validation failed" });
+        setError(source, { type: "async", message: "Validation failed" });
       } finally {
         setIsValidating(false); // End validation
       }
     };
 
-    if (!strengthMeter || !field.value) {
+    if (!strengthMeter) {
+      const result = passwordValue !== value && value !== "";
+      if (result) {
+        setShake(true);
+        setTimeout(() => setShake(false), 500);
+      }
+      return;
+    }
+    if (!field.value) {
       setPasswordStrength(0);
       return;
     }
@@ -211,25 +219,37 @@ export const PasswordValidationInput = (props: IconTextInputProps) => {
     clearErrors,
     field.value,
     interval,
+    passwordValue,
     setError,
     source,
     strengthMeter,
     typing,
+    value,
   ]);
+
+  // Combine sync and async errors
+  const isError = invalid || !!asyncError;
+  const errMsg = error?.message || asyncError;
 
   const handleClick = () => setVisible(!visible);
 
   const handlePasswordChange = (e: ChangeEvent<HTMLInputElement>) => {
     const newValue = e?.target?.value ?? e;
+    setTyping(true);
     setValue(newValue); // Ensure value state is updated
     field.onChange(newValue); // Ensure form data is in sync
-    setTyping(true);
   };
 
   const handleFocus = () => setFocused(true);
   const handleBlur = () => {
     setFocused(false);
     field.onBlur(); // Ensure React Admin's onBlur is called
+    // console.log(isRequired);
+    console.log(isError);
+    if (isError || (isRequired && value == "")) {
+      setShake(true);
+      setTimeout(() => setShake(false), 500);
+    }
     // if (value === "") {
     //   setValidateError(true);
     //   setShake(true);
@@ -241,10 +261,6 @@ export const PasswordValidationInput = (props: IconTextInputProps) => {
 
   // const isError = validateError || invalid;
   // const errMsg = errMessage || error?.message;
-
-  // Combine sync and async errors
-  const isError = invalid || !!asyncError;
-  const errMsg = error?.message || asyncError;
 
   return (
     <Box width="100%">
