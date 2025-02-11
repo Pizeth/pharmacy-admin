@@ -4,7 +4,6 @@ import {
   ImageField,
   ImageInput,
   NumberInput,
-  required,
   SaveButton,
   SelectInput,
   SimpleForm,
@@ -13,6 +12,11 @@ import {
   ToolbarProps,
   useNotify,
   useRecordContext,
+  useTranslate,
+  useUnique,
+  // required,
+  maxValue,
+  PasswordInput,
 } from "react-admin";
 import { useFormState, useFormContext } from "react-hook-form";
 import { InputAdornment } from "@mui/material";
@@ -27,6 +31,8 @@ import {
 import { useState } from "react";
 import PasswordValidationInput from "./fortest";
 import IconInput from "./CustomFields/IconInput";
+import { matchPassword, useRequired } from "./Utils/validator";
+// import { required } from "./Utils/validator";
 
 const choices = [
   { id: "SUPER_ADMIN", name: "Super Admin", disabled: true },
@@ -79,6 +85,15 @@ export const UserCreate = () => {
   const handleFocus = (field: FocusedField) => setFocused(field);
   // const handleBlur = () => setFocused(false);
   const handleBlur = () => setFocused(null);
+  const unique = useUnique();
+  const required = useRequired();
+  const translate = useTranslate();
+
+  const DebugTranslations = () => {
+    const translate = useTranslate();
+    console.log(translate("razeth.validation.notmatch")); // Should log "This field is required"
+    return null;
+  };
 
   return (
     <Create>
@@ -88,20 +103,32 @@ export const UserCreate = () => {
         reValidateMode="onBlur"
         sanitizeEmptyValues
       >
-        <ValidationInput
+        {/* <ValidationInput
           source="username"
           resettable
           className="icon-input"
           iconStart={<PermIdentity />}
           validate={[required()]}
+        /> */}
+        <TextInput
+          source="username"
+          validate={[
+            unique({
+              message: "ra.validation.unique",
+              debounce: 1000,
+            }),
+            required("username"),
+            maxValue(5),
+          ]}
         />
+        {/* <PasswordInput source={""}/> */}
         <ValidationInput
           source="email"
           resettable
           className="icon-input"
           iconStart={<MailOutline />}
           type="email"
-          validate={[required(), email()]}
+          validate={[required("email"), email()]}
           // required
         />
         {/* <PasswordInputMeter
@@ -121,20 +148,23 @@ export const UserCreate = () => {
           className="icon-input"
           strengthMeter
           onInput={(e) => setPassword((e.target as HTMLInputElement).value)}
-          validate={[required()]}
+          // validate={required("password")}
         />
         <PasswordValidationInput
           source="rePassword"
           passwordValue={password}
           iconStart={<Password />}
           className="icon-input"
-          validate={[required()]}
+          // validate={[required("rePassword")]}
+          // validate={[
+          //   matchPassword(password, translate, "razeth.validation.notmatch"),
+          // ]} // Add translate function to matchPassword and pass the translation key
         />
         <IconInput
           source="authMethod"
           className="icon-input"
           iconStart={<SwitchAccount />}
-          validate={[required()]}
+          validate={[required("authMethod")]}
           resettable
           // required={true}
         />

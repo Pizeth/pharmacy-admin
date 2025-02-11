@@ -6,11 +6,11 @@ import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import { ResettableTextField, sanitizeInputRestProps } from "react-admin";
 import { clsx } from "clsx";
 import { IconTextInputProps } from "../Types/types";
-import loadZxcvbn, { loadDebounce } from "../Utils/lazyZxcvbn";
+import zxcvbn from "../Utils/lazyZxcvbn";
 import PasswordStrengthMeter from "../CustomComponents/PasswordStrengthMeter";
 import StringUtils from "../Utils/StringUtils";
 
-const zxcvbnAsync = await loadZxcvbn();
+const zxcvbnAsync = await zxcvbn.loadZxcvbn();
 
 export const PasswordValidationInput = (props: IconTextInputProps) => {
   const {
@@ -90,7 +90,7 @@ export const PasswordValidationInput = (props: IconTextInputProps) => {
       if (typing) {
         const timer = setTimeout(async () => {
           setTyping(false);
-          const debounce = await loadDebounce();
+          const debounce = await zxcvbn.loadDebounce();
           debounce(validatePassword, 500)();
         }, interval);
         return () => clearTimeout(timer);

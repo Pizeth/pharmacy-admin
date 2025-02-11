@@ -79,4 +79,4 @@ export const loadZxcvbn = async () => {
   return zxcvbnAsync;
 };
 
-export default loadZxcvbn;
+export default { loadDebounce, loadZxcvbn };

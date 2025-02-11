@@ -54,13 +54,17 @@ const ValidationInput = (props: IconTextInputProps) => {
 
   const validteResult = () => {
     const isInvalid = isRequired && !value;
-    setValidateError(isInvalid);
+    // setValidateError(isInvalid);
     if (isInvalid) {
       setShake(true);
       setTimeout(() => setShake(false), 500);
-      const displayLabel = label ? label : StringUtils.capitalize(source);
-      setErrMessage(`${displayLabel} is required`);
+      // const displayLabel = label ? label : StringUtils.capitalize(source);
+      // setErrMessage(`${displayLabel} is required`);
     }
+    // if (isError || (isRequired && value == "")) {
+    //   setShake(true);
+    //   setTimeout(() => setShake(false), 500);
+    // }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -74,8 +78,9 @@ const ValidationInput = (props: IconTextInputProps) => {
   };
   const handleFocus = () => setFocused(true);
   const handleBlur = () => {
-    validteResult();
     setFocused(false);
+    field.onBlur();
+    validteResult();
   };
   // console.log("validateError", validateError);
   const isError = validateError || invalid;
@@ -94,17 +99,32 @@ const ValidationInput = (props: IconTextInputProps) => {
       onFocus={handleFocus}
       onBlur={handleBlur}
       className={clsx("ra-input", `ra-input-${source}`, className)}
-      InputProps={{
-        startAdornment: iconStart ? (
-          <InputAdornment position="start">{iconStart}</InputAdornment>
-        ) : null,
-        endAdornment: iconEnd ? (
-          <InputAdornment position="end">{iconEnd}</InputAdornment>
-        ) : null,
-      }}
-      InputLabelProps={{
-        shrink: focused || value !== "",
-        className: clsx({ shake: shake }),
+      // InputProps={{
+      //   startAdornment: iconStart ? (
+      //     <InputAdornment position="start">{iconStart}</InputAdornment>
+      //   ) : null,
+      //   endAdornment: iconEnd ? (
+      //     <InputAdornment position="end">{iconEnd}</InputAdornment>
+      //   ) : null,
+      // }}
+      // InputLabelProps={{
+      //   shrink: focused || value !== "",
+      //   className: clsx({ shake: shake }),
+      // }}
+      slotProps={{
+        input: {
+          startAdornment: iconStart ? (
+            <InputAdornment position="start">{iconStart}</InputAdornment>
+          ) : null,
+          endAdornment: iconEnd ? (
+            <InputAdornment position="end">{iconEnd}</InputAdornment>
+          ) : null,
+        },
+        inputLabel: {
+          shrink: focused || value !== "",
+          className: clsx({ shake: shake }),
+        },
+        // formHelperText: CustomFormHelperTextProps,
       }}
       label={
         label !== "" && label !== false ? (

@@ -1,7 +1,32 @@
 // types.ts
 import { ChangeEvent, ReactNode } from "react";
-import { LinearProgressProps, PasswordInputProps } from "react-admin";
+import {
+  LinearProgressProps,
+  PasswordInputProps,
+  ValidationErrorMessage,
+} from "react-admin";
 
+export type FieldError = {
+  error?: boolean;
+  message?: string;
+};
+
+export type Memoize = <T extends (...args: any[]) => any>(
+  func: T,
+  resolver?: (...args: any[]) => any,
+) => T;
+
+export type MessageFunc = (params: MessageFuncParams) => ValidationErrorMessage;
+interface MessageFuncParams {
+  args: any;
+  value: any;
+  values: any;
+}
+
+export type UseFieldOptions = {
+  resource?: string;
+  message?: string;
+};
 export interface IconTextInputProps extends PasswordInputProps {
   iconStart?: ReactNode;
   iconEnd?: ReactNode;

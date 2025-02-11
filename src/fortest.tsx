@@ -12,12 +12,9 @@ import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import { ResettableTextField, sanitizeInputRestProps } from "react-admin";
 import { clsx } from "clsx";
 import { IconTextInputProps } from "./Types/types";
-import loadZxcvbn, { loadDebounce } from "./Utils/lazyZxcvbn";
+import zxcvbn from "./Utils/lazyZxcvbn";
 import PasswordStrengthMeter from "./CustomComponents/PasswordStrengthMeter";
-import StringUtils from "./Utils/StringUtils";
 import { matchPassword, validateStrength } from "./Utils/validator";
-
-const zxcvbnAsync = await loadZxcvbn();
 
 export const PasswordValidationInput = (props: IconTextInputProps) => {
   const {
@@ -41,16 +38,17 @@ export const PasswordValidationInput = (props: IconTextInputProps) => {
   const { setError, clearErrors } = useFormContext();
   const [asyncError, setAsyncError] = useState<string | undefined>();
   const [isValidating, setIsValidating] = useState(false);
+  const translate = useTranslate();
 
-  // Compute validators with normalization
+  // ... inside the useMemo for validators
   const validators = useMemo(() => {
     const normalizedValidate = Array.isArray(validate) ? validate : [validate];
     const baseValidators = [...normalizedValidate];
     if (passwordValue !== undefined) {
-      baseValidators.push(matchPassword(passwordValue));
+      baseValidators.push(matchPassword(passwordValue, translate)); // Pass the translate function
     }
     return baseValidators;
-  }, [validate, passwordValue]);
+  }, [validate, passwordValue, translate]); // add translate to the dependencies
 
   const {
     field,
@@ -70,7 +68,6 @@ export const PasswordValidationInput = (props: IconTextInputProps) => {
     ...rest,
   });
 
-  const translate = useTranslate();
   const [visible, setVisible] = useState(initiallyVisible);
   const [passwordStrength, setPasswordStrength] = useState(0);
   const [passwordFeedback, setPasswordFeedback] = useState("");
@@ -81,6 +78,16 @@ export const PasswordValidationInput = (props: IconTextInputProps) => {
   const [shake, setShake] = useState(false);
   // const [validateError, setValidateError] = useState(false);
   const interval = import.meta.env.VITE_DELAY_CALL || 2500; // Time in milliseconds
+
+  // Compute validators with normalization
+  // const validators = useMemo(() => {
+  //   const normalizedValidate = Array.isArray(validate) ? validate : [validate];
+  //   const baseValidators = [...normalizedValidate];
+  //   if (passwordValue !== undefined) {
+  //     baseValidators.push(matchPassword(passwordValue));
+  //   }
+  //   return baseValidators;
+  // }, [validate, passwordValue]);
 
   // Async validation effect
   // useEffect(() => {
@@ -145,7 +152,7 @@ export const PasswordValidationInput = (props: IconTextInputProps) => {
           // if (error.invalid) {
           setShake(true);
           setTimeout(() => setShake(false), 500);
-          setError(source, { type: "async", message: result.message });
+          setError(source, { type: "async", message: result.message }); // Error message is already translated in validateStrength
           // }
         } else {
           clearErrors(source);
@@ -178,7 +185,7 @@ export const PasswordValidationInput = (props: IconTextInputProps) => {
         setTyping(false);
         // const debouncedValidation = debounce(validatePassword, interval);
         // debouncedValidation();
-        const debounce = await loadDebounce();
+        const debounce = await zxcvbn.loadDebounce();
         debounce(validateAsync, 500)();
       }, interval);
       return () => clearTimeout(timer);
@@ -229,7 +236,14 @@ export const PasswordValidationInput = (props: IconTextInputProps) => {
 
   // Combine sync and async errors
   const isError = invalid || !!asyncError;
-  const errMsg = error?.message || asyncError;
+  const errMsg = translate(error?.message || asyncError || "");
+
+  console.log("Translated message:", errMsg); // Debugging
+  console.log("Validation error:", error); // Debugging
+  console.log(
+    "Hardcoded translation:",
+    translate("razeth.validation.notmatch"),
+  ); // Debugging
 
   const handleClick = () => setVisible(!visible);
 
@@ -245,7 +259,6 @@ export const PasswordValidationInput = (props: IconTextInputProps) => {
     setFocused(false);
     field.onBlur(); // Ensure React Admin's onBlur is called
     // console.log(isRequired);
-    console.log(isError);
     if (isError || (isRequired && value == "")) {
       setShake(true);
       setTimeout(() => setShake(false), 500);
@@ -277,32 +290,61 @@ export const PasswordValidationInput = (props: IconTextInputProps) => {
         className={clsx("ra-input", `ra-input-${source}`, className)}
         error={isError}
         helperText={isError ? errMsg : ""}
-        InputProps={{
-          startAdornment: iconStart ? (
-            <InputAdornment position="start">{iconStart}</InputAdornment>
-          ) : null,
-          endAdornment: isValidating ? (
-            <CircularProgress size={20} /> // Show loading spinner
-          ) : (
-            <InputAdornment position="end">
-              <IconButton
-                aria-label={translate(
-                  visible
-                    ? "ra.input.password.toggle_visible"
-                    : "ra.input.password.toggle_hidden",
-                )}
-                onClick={handleClick}
-                size="large"
-              >
-                {visible ? <Visibility /> : <VisibilityOff />}
-              </IconButton>
-            </InputAdornment>
-          ),
+        slotProps={{
+          input: {
+            startAdornment: iconStart ? (
+              <InputAdornment position="start">{iconStart}</InputAdornment>
+            ) : null,
+            endAdornment: isValidating ? (
+              <CircularProgress size={20} /> // Show loading spinner
+            ) : (
+              <InputAdornment position="end">
+                <IconButton
+                  aria-label={translate(
+                    visible
+                      ? "ra.input.password.toggle_visible"
+                      : "ra.input.password.toggle_hidden",
+                  )}
+                  onClick={handleClick}
+                  size="large"
+                >
+                  {visible ? <Visibility /> : <VisibilityOff />}
+                </IconButton>
+              </InputAdornment>
+            ),
+          },
+          inputLabel: {
+            shrink: focused || value !== "",
+            className: clsx({ shake: shake }),
+          },
+          // formHelperText: CustomFormHelperTextProps,
         }}
-        InputLabelProps={{
-          shrink: focused || value !== "",
-          className: clsx({ shake: shake }),
-        }}
+        // InputProps={{
+        //   startAdornment: iconStart ? (
+        //     <InputAdornment position="start">{iconStart}</InputAdornment>
+        //   ) : null,
+        //   endAdornment: isValidating ? (
+        //     <CircularProgress size={20} /> // Show loading spinner
+        //   ) : (
+        //     <InputAdornment position="end">
+        //       <IconButton
+        //         aria-label={translate(
+        //           visible
+        //             ? "ra.input.password.toggle_visible"
+        //             : "ra.input.password.toggle_hidden",
+        //         )}
+        //         onClick={handleClick}
+        //         size="large"
+        //       >
+        //         {visible ? <Visibility /> : <VisibilityOff />}
+        //       </IconButton>
+        //     </InputAdornment>
+        //   ),
+        // }}
+        // InputLabelProps={{
+        //   shrink: focused || value !== "",
+        //   className: clsx({ shake: shake }),
+        // }}
         label={
           label !== "" && label !== false ? (
             <FieldTitle label={label} source={source} isRequired={isRequired} />

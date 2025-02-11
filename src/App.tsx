@@ -1,19 +1,8 @@
 import {
   Admin,
   Resource,
-  ListGuesser,
-  EditGuesser,
-  ShowGuesser,
-  nanoDarkTheme,
-  nanoLightTheme,
-  radiantLightTheme,
-  radiantDarkTheme,
-  houseLightTheme,
-  houseDarkTheme,
-  useStore,
   localStorageStore,
   StoreContextProvider,
-  defaultTheme,
 } from "react-admin";
 import { Layout } from "./Layout/Layout";
 // import { Layout } from "./Layout";
@@ -25,11 +14,10 @@ import { UserList } from "./users";
 // import PostIcon from "@mui/icons-material/Book";
 import UserIcon from "@mui/icons-material/Group";
 import { Dashboard } from "./dashboard";
-import { ThemeName, themes } from "./theme/themes";
 import { UserShow } from "./userDetail";
 import { UserEdit } from "./userEdit";
 import { UserCreate } from "./userCreate";
-import { lightTheme, darkTheme, darkTheme1 } from "./theme/razeth";
+import { lightTheme, darkTheme } from "./theme/razeth";
 import { i18nProvider } from "./i18n/i18nProvider";
 
 const store = localStorageStore(undefined, "ECommerce");

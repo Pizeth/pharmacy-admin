@@ -55,16 +55,34 @@
 import axios from "axios";
 import statusCode from "http-status-codes";
 import StringUtils from "./StringUtils";
-import loadZxcvbn from "./lazyZxcvbn";
+import zxcvbn from "./lazyZxcvbn";
+import {
+  InputProps,
+  isEmpty,
+  useRecordContext,
+  useResourceContext,
+  useTranslate,
+  useTranslateLabel,
+  UseUniqueOptions,
+} from "react-admin";
+import {
+  FieldError,
+  Memoize,
+  MessageFunc,
+  UseFieldOptions,
+} from "../Types/types";
+import lodashMemoize from "lodash/memoize";
+import { merge } from "lodash";
 
-export type FieldError = {
-  error?: boolean;
-  message?: string;
-};
+// If we define validation functions directly in JSX, it will
+// result in a new function at every render, and then trigger infinite re-render.
+// Hence, we memoize every built-in validator to prevent a "Maximum call stack" error.
+const memoize: Memoize = (fn: any) =>
+  lodashMemoize(fn, (...args) => JSON.stringify(args));
 
 const API_URL = import.meta.env.VITE_API_URL;
 
-const zxcvbnAsync = await loadZxcvbn();
+const zxcvbnAsync = await zxcvbn.loadZxcvbn();
 
 export const serverValidator = async (
   value: string | undefined,
@@ -137,26 +155,167 @@ export const validateStrength = async (value: string) => {
   }; // No error
 };
 
-// const validateEmailUnicity = async (value: string) => {
-//   const isEmailUnique = await checkEmailIsUnique(value);
-//   if (!isEmailUnique) {
-//     return "Email already used";
+// export const matchPassword = memoize(
+//   (passwordValue: string, message = "razeth.validation.notmatch") =>
+//     (value: string, values: any) =>
+//       value !== passwordValue
+//         ? getMessage(message, { passwordValue }, value, values)
+//         : undefined,
+// );
 
-//     // You can return a translation key as well
-//     return "myroot.validation.email_already_used";
+// export const matchPassword = memoize(
+//   (
+//     passwordValue: string,
+//     translate: (key: string, options?: any) => string,
+//     message = "razeth.validation.notmatch", // Add translate to the parameters
+//   ) =>
+//     (value: string, values: any) =>
+//       value !== passwordValue
+//         ? getMessage(message, { passwordValue }, translate) // Pass translate function
+//         : undefined,
+// );
 
-//     // Or even an object just like the other validators
-//     return {
-//       message: "myroot.validation.email_already_used",
-//       args: { email: value },
-//     };
-//   }
+export const matchPassword = memoize(
+  (passwordValue: string, message = "razeth.validation.notmatch") =>
+    (value: string) =>
+      value !== passwordValue ? message : undefined,
+);
 
-//   return undefined;
+/**
+ * Required validator
+ *
+ * Returns an error if the value is null, undefined, or empty
+ *
+ * @param {string|Function} message
+ *
+ * @example
+ *
+ * const titleValidators = [required('The title is required')];
+ * <TextInput name="title" validate={titleValidators} />
+ */
+// export const required = memoize((message = "razeth.validation.required") =>
+//   // const translateLabel = useTranslateLabel();
+//   Object.assign(
+//     (value: any, values: any, props: InputProps) =>
+//       isEmpty(value)
+//         ? getMessage(
+//             message,
+//             {
+//               source: props.source,
+//               value,
+//               field: /*translateLabel(*/ {
+//                 label: props.label,
+//                 source: props.source,
+//               } /*)*/,
+//             },
+//             value,
+//             values,
+//           )
+//         : undefined,
+//     { isRequired: true },
+//   ),
+// );
+
+export const useRequired = (
+  options?: UseFieldOptions,
+  message = "ra.validation.required",
+) => {
+  // const dataProvider = useDataProvider();
+  const translateLabel = useTranslateLabel();
+  const resource = useResourceContext(options);
+  if (!resource) {
+    throw new Error("useField: missing resource prop or context");
+  }
+
+  const validateField = (resource: string) => {
+    // return (value: any, allValues: any, props: InputProps) => {
+    //   if (isEmpty(value)) return undefined;
+    //   return {
+    //     message,
+    //     args: {
+    //       source: props.source,
+    //       value,
+    //       field: translateLabel({
+    //         label: props.label,
+    //         source: props.source,
+    //         resource,
+    //       }),
+    //     },
+    //     isRequired: true,
+    //   };
+    // };
+
+    return (value: any, allValues: any, props: InputProps) => {
+      if (isEmpty(value)) {
+        return {
+          message,
+          args: {
+            source: props.source,
+            value,
+            field: translateLabel({
+              label: props.label,
+              source: props.source,
+              resource,
+            }),
+          },
+          isRequired: true,
+        };
+      }
+      return undefined; // Return undefined if the value is not empty
+    };
+  };
+
+  return validateField;
+};
+
+// export const required = memoize((message = "razeth.validation.required") =>
+//   Object.assign(
+//     (value: any, values: any) =>
+//       isEmpty(value)
+//         ? getMessage(message, undefined, value, values)
+//         : undefined,
+//     { isRequired: true },
+//   ),
+// );
+
+// return {
+//   message,
+//   args: {
+//     source: props.source,
+//     value,
+//     field: translateLabel({
+//       label: props.label,
+//       source: props.source,
+//       resource,
+//     }),
+//   },
 // };
 
-export const matchPassword = (passwordValue: string) => (value: string) => {
-  return value !== passwordValue ? "Passwords do not match!" : undefined;
+const getMessage = (
+  message: string, // Now always a translation key
+  messageArgs: any,
+  translate: (key: string, options?: any) => string, // Add translate function as a parameter
+) => {
+  return translate(message, messageArgs); // Always translate
 };
+
+// const getMessage = (
+//   message: string | MessageFunc,
+//   messageArgs: any,
+//   value: any,
+//   values: any,
+// ) =>
+//   typeof message === "function"
+//     ? message({
+//         args: messageArgs,
+//         value,
+//         values,
+//       })
+//     : messageArgs
+//       ? {
+//           message,
+//           args: messageArgs,
+//         }
+//       : message;
 
 export default { serverValidator, validateStrength, matchPassword };

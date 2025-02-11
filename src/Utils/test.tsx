@@ -1,7 +1,6 @@
 import {
   Create,
   email,
-  required,
   SaveButton,
   SimpleForm,
   Toolbar,
@@ -18,11 +17,10 @@ import {
 import { useState } from "react";
 import PasswordValidationInput from "../fortest";
 import IconInput from "../CustomFields/IconInput";
+import { useRequired } from "../Utils/validator";
 
 const CustomToolbar = (props: ToolbarProps) => {
   const { errors, isValid, isDirty } = useFormState();
-
-  // const hasErrors = Object.keys(errors).length > 0;
   const hasErrors = Object.values(errors).some((error) => !!error);
 
   return (
@@ -34,6 +32,8 @@ const CustomToolbar = (props: ToolbarProps) => {
 
 export const UserCreate = () => {
   const [password, setPassword] = useState<string>("");
+  const required = useRequired();
+
   return (
     <Create>
       <SimpleForm
@@ -47,7 +47,7 @@ export const UserCreate = () => {
           resettable
           className="icon-input"
           iconStart={<PermIdentity />}
-          validate={[required()]}
+          validate={[required("username")]}
         />
         <ValidationInput
           source="email"
@@ -55,7 +55,7 @@ export const UserCreate = () => {
           className="icon-input"
           iconStart={<MailOutline />}
           type="email"
-          validate={[required(), email()]}
+          validate={[required("email"), email()]}
         />
         <PasswordValidationInput
           source="password"
@@ -63,20 +63,17 @@ export const UserCreate = () => {
           className="icon-input"
           strengthMeter
           onInput={(e) => setPassword((e.target as HTMLInputElement).value)}
-          validate={[required()]}
         />
         <PasswordValidationInput
           source="rePassword"
           passwordValue={password}
           iconStart={<Password />}
           className="icon-input"
-          validate={[required()]}
         />
         <IconInput
           source="authMethod"
           className="icon-input"
           iconStart={<SwitchAccount />}
-          validate={[required()]}
           resettable
         />
       </SimpleForm>

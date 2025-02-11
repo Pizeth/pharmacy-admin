@@ -237,10 +237,10 @@
 
 import React, { useEffect, useState } from "react";
 import { useInput } from "react-admin";
-import { IconTextInputProps } from "../Types/types";
+import { FieldError, IconTextInputProps } from "../Types/types";
 import clsx from "clsx";
 import { styled } from "@mui/material/styles";
-import { FieldError, serverValidator } from "../Utils/validator";
+import { serverValidator } from "../Utils/validator";
 import {
   ResettableTextField,
   FieldTitle,
