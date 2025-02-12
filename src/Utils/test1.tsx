@@ -45,7 +45,7 @@ export const PasswordValidationInput = (props: IconTextInputProps) => {
     const normalizedValidate = Array.isArray(validate) ? validate : [validate];
     const baseValidators = [...normalizedValidate];
     if (passwordValue !== undefined) {
-      baseValidators.push(matchPassword(passwordValue, translate)); // Pass the translate function
+      baseValidators.push(matchPassword(passwordValue)); // Pass the translate function
     }
     return baseValidators;
   }, [validate, passwordValue, translate]); // add translate to the dependencies

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { required, useInput } from "react-admin";
+import { useInput } from "react-admin";
 import { IconTextInputProps } from "../Types/types";
 import clsx from "clsx";
 import {
@@ -9,12 +9,14 @@ import {
 } from "react-admin";
 import "../Styles/style.css";
 import InputAdornment from "@mui/material/InputAdornment";
-import StringUtils from "../Utils/StringUtils";
+import { CircularProgress } from "@mui/material";
+import { InputHelper } from "../CustomComponents/InputHelper";
 
 const ValidationInput = (props: IconTextInputProps) => {
   const {
     className,
     defaultValue,
+    helperText,
     label,
     format,
     onBlur,
@@ -27,6 +29,8 @@ const ValidationInput = (props: IconTextInputProps) => {
     iconEnd,
     ...rest
   } = props;
+
+  const [isValidating, setIsValidating] = useState(false);
 
   const {
     field,
@@ -82,12 +86,10 @@ const ValidationInput = (props: IconTextInputProps) => {
     field.onBlur();
     validteResult();
   };
-  // console.log("validateError", validateError);
+
   const isError = validateError || invalid;
-  // console.log("invalid", invalid);
-  // console.log("error", error);
-  // console.log("isError", isError);
   const errMsg = errMessage || error?.message;
+  const renderHelperText = helperText !== false || invalid;
 
   return (
     <ResettableTextField
@@ -116,7 +118,9 @@ const ValidationInput = (props: IconTextInputProps) => {
           startAdornment: iconStart ? (
             <InputAdornment position="start">{iconStart}</InputAdornment>
           ) : null,
-          endAdornment: iconEnd ? (
+          endAdornment: isValidating ? (
+            <CircularProgress size={20} /> // Show loading spinner
+          ) : iconEnd ? (
             <InputAdornment position="end">{iconEnd}</InputAdornment>
           ) : null,
         },
@@ -124,17 +128,20 @@ const ValidationInput = (props: IconTextInputProps) => {
           shrink: focused || value !== "",
           className: clsx({ shake: shake }),
         },
-        // formHelperText: CustomFormHelperTextProps,
       }}
       label={
         label !== "" && label !== false ? (
           <FieldTitle label={label} source={source} isRequired={isRequired} />
         ) : null
       }
-      // required={isRequired}
+      helperText={
+        renderHelperText ? (
+          <InputHelper error={errMsg} helperText={helperText} />
+        ) : null
+      }
       resource={resource}
       error={isError}
-      helperText={isError ? errMsg : ""}
+      // helperText={isError ? errMsg : ""}
       {...sanitizeInputRestProps(rest)}
     />
   );

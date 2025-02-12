@@ -11,6 +11,7 @@ const messages: { [key: string]: any } = {
       validation: {
         required: "%{field} is required!",
         notmatch: "The password do not match!",
+        unique: "%{field} %{value} is already existed!",
       },
     },
     // "razeth.validation.required": "%{field} is required!",
@@ -44,12 +45,23 @@ const messages: { [key: string]: any } = {
 // );
 
 export const i18nProvider = polyglotI18nProvider(
-  // (locale) => messages[locale] || messages.en,
-  (locale) => {
-    const messagesForLocale = messages[locale] || messages.en;
-    console.log("Loaded messages:", messagesForLocale); // Debugging
-    return messagesForLocale;
-  },
+  (locale) => messages[locale] || messages.en,
+  // (locale) => {
+  //   const messagesForLocale = messages[locale] || messages.en;
+  //   console.log("Loaded messages:", messagesForLocale); // Debugging
+  //   return messagesForLocale;
+  // },
+  // (locale) => {
+  //   const finalMessages = {
+  //     ...(messages[locale] || messages.en),
+  //     // Add fallback for missing translations
+  //     "razeth.validation.notmatch":
+  //       messages[locale]?.["razeth.validation.notmatch"] ||
+  //       "Password mismatch (fallback)",
+  //   };
+  //   // console.log("Active translations:", finalMessages);
+  //   return finalMessages;
+  // },
   resolveBrowserLocale(),
   [
     { locale: "en", name: "English" },

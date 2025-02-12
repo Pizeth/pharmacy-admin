@@ -114,6 +114,20 @@ export const serverValidator = async (
   }
 };
 
+// export const validateStrength = async (value: string) => {
+//   if (!value) return { invalid: false };
+
+//   const result = await zxcvbnAsync(value);
+//   return {
+//     invalid: result.score <= 2, // Example threshold
+//     message: "razeth.validation.strength",
+//     args: {
+//       strength: result.score,
+//       warning: result.feedback.warning,
+//     },
+//   };
+// };
+
 export const validateStrength = async (value: string) => {
   if (!value)
     return {
@@ -143,7 +157,11 @@ export const validateStrength = async (value: string) => {
       feedbackMsg: (warningMsg ?? "").concat(` ${suggestMsg}`),
       score: score,
       invalid: invalid,
-      args: { password: StringUtils.truncate(value, 5) },
+      args: {
+        password: StringUtils.truncate(value, 5),
+        strength: result.score,
+        warning: result.feedback.warning,
+      },
     };
   }
   return {
@@ -151,17 +169,21 @@ export const validateStrength = async (value: string) => {
     feedbackMsg: (warningMsg ?? "").concat(` ${suggestMsg}`),
     score: score,
     invalid: invalid,
-    args: { password: StringUtils.truncate(value, 5) },
+    args: {
+      password: StringUtils.truncate(value, 5),
+      strength: result.score,
+      warning: result.feedback.warning,
+    },
   }; // No error
 };
 
-// export const matchPassword = memoize(
-//   (passwordValue: string, message = "razeth.validation.notmatch") =>
-//     (value: string, values: any) =>
-//       value !== passwordValue
-//         ? getMessage(message, { passwordValue }, value, values)
-//         : undefined,
-// );
+export const matchPassword = memoize(
+  (passwordValue: string, message = "razeth.validation.notmatch") =>
+    (value: string, values: any) =>
+      value !== passwordValue
+        ? getMessage(message, { passwordValue }, value, values)
+        : undefined,
+);
 
 // export const matchPassword = memoize(
 //   (
@@ -175,11 +197,18 @@ export const validateStrength = async (value: string) => {
 //         : undefined,
 // );
 
-export const matchPassword = memoize(
-  (passwordValue: string, message = "razeth.validation.notmatch") =>
-    (value: string) =>
-      value !== passwordValue ? message : undefined,
-);
+// export const matchPassword = memoize(
+//   (passwordValue: string, message = "razeth.validation.notmatch") =>
+//     (value: string) =>
+//       value !== passwordValue ? message : undefined,
+// );
+
+// export const matchPassword = memoize(
+//   (passwordValue: string) => (value: string) =>
+//     value !== passwordValue
+//       ? { message: "razeth.validation.notmatch", args: {} }
+//       : undefined,
+// );
 
 /**
  * Required validator
@@ -218,7 +247,7 @@ export const matchPassword = memoize(
 
 export const useRequired = (
   options?: UseFieldOptions,
-  message = "ra.validation.required",
+  message = "razeth.validation.required",
 ) => {
   // const dataProvider = useDataProvider();
   const translateLabel = useTranslateLabel();
@@ -227,7 +256,7 @@ export const useRequired = (
     throw new Error("useField: missing resource prop or context");
   }
 
-  const validateField = (resource: string) => {
+  const validateField = (resource?: string) => {
     // return (value: any, allValues: any, props: InputProps) => {
     //   if (isEmpty(value)) return undefined;
     //   return {
@@ -245,24 +274,44 @@ export const useRequired = (
     //   };
     // };
 
-    return (value: any, allValues: any, props: InputProps) => {
-      if (isEmpty(value)) {
-        return {
-          message,
-          args: {
-            source: props.source,
-            value,
-            field: translateLabel({
-              label: props.label,
-              source: props.source,
-              resource,
-            }),
-          },
-          isRequired: true,
-        };
-      }
-      return undefined; // Return undefined if the value is not empty
-    };
+    // return (value: any, allValues: any, props: InputProps) => {
+    //   if (isEmpty(value)) {
+    //     return {
+    //       message,
+    //       args: {
+    //         source: props.source,
+    //         value,
+    //         field: translateLabel({
+    //           label: props.label,
+    //           source: props.source,
+    //           resource,
+    //         }),
+    //       },
+    //       isRequired: true,
+    //     };
+    //   }
+    //   return undefined; // Return undefined if the value is not empty
+    // };
+    return Object.assign(
+      (value: any, values: any, props: InputProps) =>
+        isEmpty(value)
+          ? getMessage(
+              message,
+              {
+                source: props.source,
+                value,
+                field: translateLabel({
+                  label: props.label,
+                  source: props.source,
+                  resource,
+                }),
+              },
+              value,
+              values,
+            )
+          : undefined, // Return undefined if the value is not empty
+      { isRequired: true },
+    );
   };
 
   return validateField;
@@ -291,31 +340,31 @@ export const useRequired = (
 //   },
 // };
 
-const getMessage = (
-  message: string, // Now always a translation key
-  messageArgs: any,
-  translate: (key: string, options?: any) => string, // Add translate function as a parameter
-) => {
-  return translate(message, messageArgs); // Always translate
-};
-
 // const getMessage = (
-//   message: string | MessageFunc,
+//   message: string, // Now always a translation key
 //   messageArgs: any,
-//   value: any,
-//   values: any,
-// ) =>
-//   typeof message === "function"
-//     ? message({
-//         args: messageArgs,
-//         value,
-//         values,
-//       })
-//     : messageArgs
-//       ? {
-//           message,
-//           args: messageArgs,
-//         }
-//       : message;
+//   translate: (key: string, options?: any) => string, // Add translate function as a parameter
+// ) => {
+//   return translate(message, messageArgs); // Always translate
+// };
+
+const getMessage = (
+  message: string | MessageFunc,
+  messageArgs: any,
+  value: any,
+  values: any,
+) =>
+  typeof message === "function"
+    ? message({
+        args: messageArgs,
+        value,
+        values,
+      })
+    : messageArgs
+      ? {
+          message,
+          args: messageArgs,
+        }
+      : message;
 
 export default { serverValidator, validateStrength, matchPassword };

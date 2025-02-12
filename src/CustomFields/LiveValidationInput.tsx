@@ -304,12 +304,12 @@ const ValidationInput = (props: IconTextInputProps) => {
   const handleBlur = () => {
     setFocused(false);
     if (value === "") {
-      const displayLabel = label ? label : StringUtils.capitalize(source);
-      const fieldError = {
-        error: true,
-        message: `${displayLabel} is required`,
-      };
-      setValidateError(fieldError);
+      // const displayLabel = label ? label : StringUtils.capitalize(source);
+      // const fieldError = {
+      //   error: true,
+      //   message: `${displayLabel} is required`,
+      // };
+      // setValidateError(fieldError);
       setShake(true);
       setTimeout(() => setShake(false), 500);
     }

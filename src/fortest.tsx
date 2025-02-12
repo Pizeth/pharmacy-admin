@@ -1,4 +1,4 @@
-import { ChangeEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { ChangeEvent, useEffect, useMemo, useState } from "react";
 import { FieldTitle, useInput, useTranslate } from "ra-core";
 import { useFormContext } from "react-hook-form";
 import {
@@ -14,13 +14,19 @@ import { clsx } from "clsx";
 import { IconTextInputProps } from "./Types/types";
 import zxcvbn from "./Utils/lazyZxcvbn";
 import PasswordStrengthMeter from "./CustomComponents/PasswordStrengthMeter";
-import { matchPassword, validateStrength } from "./Utils/validator";
+import {
+  matchPassword,
+  useRequired,
+  validateStrength,
+} from "./Utils/validator";
+import { InputHelper } from "./CustomComponents/InputHelper";
 
 export const PasswordValidationInput = (props: IconTextInputProps) => {
   const {
     className,
     defaultValue,
     label,
+    helperText,
     format,
     onBlur,
     onChange,
@@ -39,16 +45,22 @@ export const PasswordValidationInput = (props: IconTextInputProps) => {
   const [asyncError, setAsyncError] = useState<string | undefined>();
   const [isValidating, setIsValidating] = useState(false);
   const translate = useTranslate();
+  // Get required validator
+  const require = useRequired();
 
-  // ... inside the useMemo for validators
+  // Compute validators with normalization
   const validators = useMemo(() => {
     const normalizedValidate = Array.isArray(validate) ? validate : [validate];
     const baseValidators = [...normalizedValidate];
-    if (passwordValue !== undefined) {
-      baseValidators.push(matchPassword(passwordValue, translate)); // Pass the translate function
+    if (passwordValue) {
+      baseValidators.push(require());
+      baseValidators.push(matchPassword(passwordValue));
+    }
+    if (strengthMeter) {
+      baseValidators.push(require());
     }
     return baseValidators;
-  }, [validate, passwordValue, translate]); // add translate to the dependencies
+  }, [validate, passwordValue, strengthMeter, require]);
 
   const {
     field,
@@ -78,16 +90,6 @@ export const PasswordValidationInput = (props: IconTextInputProps) => {
   const [shake, setShake] = useState(false);
   // const [validateError, setValidateError] = useState(false);
   const interval = import.meta.env.VITE_DELAY_CALL || 2500; // Time in milliseconds
-
-  // Compute validators with normalization
-  // const validators = useMemo(() => {
-  //   const normalizedValidate = Array.isArray(validate) ? validate : [validate];
-  //   const baseValidators = [...normalizedValidate];
-  //   if (passwordValue !== undefined) {
-  //     baseValidators.push(matchPassword(passwordValue));
-  //   }
-  //   return baseValidators;
-  // }, [validate, passwordValue]);
 
   // Async validation effect
   // useEffect(() => {
@@ -149,11 +151,12 @@ export const PasswordValidationInput = (props: IconTextInputProps) => {
       try {
         const result = await validateStrength(field.value);
         if (result.invalid) {
-          // if (error.invalid) {
           setShake(true);
           setTimeout(() => setShake(false), 500);
-          setError(source, { type: "async", message: result.message }); // Error message is already translated in validateStrength
-          // }
+          setError(source, {
+            type: "validate",
+            message: result.message,
+          }); // Error message is already translated in validateStrength
         } else {
           clearErrors(source);
         }
@@ -161,17 +164,25 @@ export const PasswordValidationInput = (props: IconTextInputProps) => {
         setPasswordStrength(result.score);
         setPasswordFeedback(result.feedbackMsg);
       } catch (err) {
-        setError(source, { type: "async", message: "Validation failed" });
+        setError(source, { type: "validate", message: "Validation failed" });
       } finally {
         setIsValidating(false); // End validation
       }
     };
 
     if (!strengthMeter) {
-      const result = passwordValue !== value && value !== "";
+      // const result = passwordValue !== value && value !== "";
+      const result = passwordValue && value && passwordValue !== value;
+      console.log(result);
       if (result) {
+        setError(source, {
+          type: "validate",
+          message: "razeth.validation.notmatch",
+        });
         setShake(true);
         setTimeout(() => setShake(false), 500);
+      } else {
+        clearErrors(source);
       }
       return;
     }
@@ -236,15 +247,8 @@ export const PasswordValidationInput = (props: IconTextInputProps) => {
 
   // Combine sync and async errors
   const isError = invalid || !!asyncError;
-  const errMsg = translate(error?.message || asyncError || "");
-
-  console.log("Translated message:", errMsg); // Debugging
-  console.log("Validation error:", error); // Debugging
-  console.log(
-    "Hardcoded translation:",
-    translate("razeth.validation.notmatch"),
-  ); // Debugging
-
+  const errMsg = error?.message || asyncError || "";
+  const renderHelperText = helperText !== false || invalid;
   const handleClick = () => setVisible(!visible);
 
   const handlePasswordChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -260,6 +264,8 @@ export const PasswordValidationInput = (props: IconTextInputProps) => {
     field.onBlur(); // Ensure React Admin's onBlur is called
     // console.log(isRequired);
     if (isError || (isRequired && value == "")) {
+      console.log(invalid);
+      // if (invalid || (isRequired && value == "")) {
       setShake(true);
       setTimeout(() => setShake(false), 500);
     }
@@ -289,7 +295,12 @@ export const PasswordValidationInput = (props: IconTextInputProps) => {
         fullWidth={true}
         className={clsx("ra-input", `ra-input-${source}`, className)}
         error={isError}
-        helperText={isError ? errMsg : ""}
+        // helperText={isError ? errMsg : ""}
+        helperText={
+          renderHelperText ? (
+            <InputHelper error={errMsg} helperText={helperText} />
+          ) : null
+        }
         slotProps={{
           input: {
             startAdornment: iconStart ? (
