@@ -6,9 +6,22 @@ import {
   ValidationErrorMessage,
 } from "react-admin";
 
+// export type FieldError = {
+//   error?: boolean;
+//   message?: string;
+// };
+export type MsgObj = {
+  message: string;
+  args?: object;
+};
+
 export type FieldError = {
-  error?: boolean;
-  message?: string;
+  invalid: boolean;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  message: MsgObj | any;
+  feedbackMsg?: string;
+  score?: number;
+  args?: object;
 };
 
 export type Memoize = <T extends (...args: any[]) => any>(

@@ -12,6 +12,7 @@ const messages: { [key: string]: any } = {
         required: "%{field} is required!",
         notmatch: "The password do not match!",
         unique: "%{field} %{value} is already existed!",
+        async: "An error occurred while validating the %{field}!",
       },
     },
     // "razeth.validation.required": "%{field} is required!",

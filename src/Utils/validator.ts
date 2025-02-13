@@ -59,11 +59,8 @@ import zxcvbn from "./lazyZxcvbn";
 import {
   InputProps,
   isEmpty,
-  useRecordContext,
   useResourceContext,
-  useTranslate,
   useTranslateLabel,
-  UseUniqueOptions,
 } from "react-admin";
 import {
   FieldError,
@@ -71,8 +68,9 @@ import {
   MessageFunc,
   UseFieldOptions,
 } from "../Types/types";
+
 import lodashMemoize from "lodash/memoize";
-import { merge } from "lodash";
+import MsgUtils from "./MsgUtils";
 
 // If we define validation functions directly in JSX, it will
 // result in a new function at every render, and then trigger infinite re-render.
@@ -87,29 +85,91 @@ const zxcvbnAsync = await zxcvbn.loadZxcvbn();
 export const serverValidator = async (
   value: string | undefined,
   resource: string,
-): Promise<FieldError | null> => {
+  message = "razeth.validation.async",
+): Promise<FieldError> => {
   // if (!value) return null;
+  const field = StringUtils.capitalize(StringUtils.getLastSegment(resource));
   if (!value) {
-    const field = StringUtils.getLastSegment(resource);
+    // return {
+    //   error: true,
+    //   message: `${StringUtils.capitalize(field)} is required!`,
+    // };
     return {
-      error: true,
-      message: `${StringUtils.capitalize(field)} is required!`,
+      invalid: true,
+      // message: `${StringUtils.capitalize(field)} is required!`,
+      message: MsgUtils.setMsg("razeth.validation.required", {
+        value,
+        field: field,
+      }),
+      // message: {
+      //   message: "razeth.validation.required",
+      //   args: {
+      //     value,
+      //     field: StringUtils.capitalize(field),
+      //   },
+      // },
     };
+
+    // const getMessage = (
+    //   message: string | MessageFunc,
+    //   messageArgs: any,
+    //   value: any,
+    //   values: any,
+    // ) =>
+    //   typeof message === "function"
+    //     ? message({
+    //         args: messageArgs,
+    //         value,
+    //         values,
+    //       })
+    //     : messageArgs
+    //       ? {
+    //           message,
+    //           args: messageArgs,
+    //         }
+    //       : message;
+
+    // return Object.assign(
+    //   (value: any, values: any, props: InputProps) =>
+    //     getMessage(
+    //       message,
+    //       {
+    //         source: props.source,
+    //         value,
+    //         field,
+    //       },
+    //       value,
+    //       values,
+    //     ), // Return undefined if the value is not empty
+    //   { invalid: true },
+    // );
   }
 
   try {
     const response = await axios.get<any>(`${API_URL}/${resource}/${value}`);
     const data = response.data;
-
+    const status = statusCode.getStatusCode(data.status);
     return {
-      error: statusCode.getStatusCode(data.status) !== statusCode.OK,
-      message: data.message || null,
+      invalid: status !== statusCode.OK,
+      // message: data.message || message,
+      // args: {
+      //   value,
+      //   endPoint: resource,
+      //   status: status,
+      // },
+      message: MsgUtils.setMsg(data.message || message, {
+        value,
+        endPoint: resource,
+        status: status,
+      }),
     };
   } catch (error) {
     console.error(error);
     return {
-      error: true,
-      message: "An error occurred while validating the field!",
+      invalid: true,
+      message: MsgUtils.setMsg("razeth.validation.async", { error, field }),
+      // message: "An error occurred while validating the field!",
+      // args: { error },
     };
   }
 };
@@ -128,7 +188,10 @@ export const serverValidator = async (
 //   };
 // };
 
-export const validateStrength = async (value: string) => {
+export const validateStrength = async (
+  value: string,
+  message = "razeth.validation.notmatch",
+) => {
   if (!value)
     return {
       message: "Required",
@@ -153,7 +216,7 @@ export const validateStrength = async (value: string) => {
   if (invalid) {
     // Adjust threshold as needed
     return {
-      message: warningMsg || "",
+      message: warningMsg || message,
       feedbackMsg: (warningMsg ?? "").concat(` ${suggestMsg}`),
       score: score,
       invalid: invalid,
@@ -181,7 +244,7 @@ export const matchPassword = memoize(
   (passwordValue: string, message = "razeth.validation.notmatch") =>
     (value: string, values: any) =>
       value !== passwordValue
-        ? getMessage(message, { passwordValue }, value, values)
+        ? MsgUtils.getMessage(message, { passwordValue }, value, values)
         : undefined,
 );
 
@@ -295,7 +358,7 @@ export const useRequired = (
     return Object.assign(
       (value: any, values: any, props: InputProps) =>
         isEmpty(value)
-          ? getMessage(
+          ? MsgUtils.getMessage(
               message,
               {
                 source: props.source,
@@ -347,24 +410,5 @@ export const useRequired = (
 // ) => {
 //   return translate(message, messageArgs); // Always translate
 // };
-
-const getMessage = (
-  message: string | MessageFunc,
-  messageArgs: any,
-  value: any,
-  values: any,
-) =>
-  typeof message === "function"
-    ? message({
-        args: messageArgs,
-        value,
-        values,
-      })
-    : messageArgs
-      ? {
-          message,
-          args: messageArgs,
-        }
-      : message;
 
 export default { serverValidator, validateStrength, matchPassword };

@@ -143,8 +143,10 @@ const customBaseTheme = createTheme({
       styleOverrides: {
         root: {
           marginTop: "0.75em",
+          marginBottom: "-0.5em",
           // "&.Mui-error": { color: (theme: Theme) => theme.palette.error.main },
           // Apply styles when the helper text is in an error state
+          "&.helper": { lineHeight: "0", marginTop: "0", marginBottom: "0" },
           "&.Mui-error": {
             marginBottom: "-0.5em", // Negative margin adjustment
           },

@@ -235,21 +235,22 @@
 
 // export default ValidationInput;
 
-import React, { useEffect, useState } from "react";
-import { useInput } from "react-admin";
+import React, { useEffect, useMemo, useState } from "react";
+import { useInput, useTranslate } from "react-admin";
 import { FieldError, IconTextInputProps } from "../Types/types";
 import clsx from "clsx";
 import { styled } from "@mui/material/styles";
-import { serverValidator } from "../Utils/validator";
+import { serverValidator, useRequired } from "../Utils/validator";
 import {
   ResettableTextField,
   FieldTitle,
-  InputHelperText,
   sanitizeInputRestProps,
 } from "react-admin";
 import "../Styles/style.css";
 import InputAdornment from "@mui/material/InputAdornment";
-import StringUtils from "../Utils/StringUtils";
+import { CircularProgress } from "@mui/material";
+import { InputHelper } from "../CustomComponents/InputHelper";
+import { useFormContext } from "react-hook-form";
 // export interface IconTextInputProps extends PasswordInputProps {
 //   iconStart?: React.ReactNode;
 //   iconEnd?: React.ReactNode;
@@ -269,11 +270,24 @@ const ValidationInput = (props: IconTextInputProps) => {
     parse,
     resource,
     source,
-    validate,
+    validate = [],
     iconStart,
     iconEnd,
     ...rest
   } = props;
+
+  const { setError, clearErrors } = useFormContext();
+  // const translate = useTranslate();
+  // Get required validator
+  const require = useRequired();
+
+  // Compute validators with normalization
+  const validators = useMemo(() => {
+    const normalizedValidate = Array.isArray(validate) ? validate : [validate];
+    const baseValidators = [...normalizedValidate];
+    baseValidators.push(require());
+    return baseValidators;
+  }, [validate, require]);
 
   const {
     field,
@@ -287,7 +301,7 @@ const ValidationInput = (props: IconTextInputProps) => {
     resource,
     source,
     type: "text",
-    validate,
+    validate: validators,
     onBlur,
     onChange,
     ...rest,
@@ -297,45 +311,90 @@ const ValidationInput = (props: IconTextInputProps) => {
   const [value, setValue] = useState(field.value || "");
   const [typing, setTyping] = useState(false);
   const [shake, setShake] = useState(false);
-  const [validateError, setValidateError] = useState<FieldError | null>(null);
+  // const [validateError, setValidateError] = useState<FieldError | null>(null);
   const [focused, setFocused] = useState(false);
+  // const [asyncError, setAsyncError] = useState<string | undefined>();
+  const [validMessage, setValidMessage] = useState<string | undefined>();
+  const [isValidating, setIsValidating] = useState(false);
+
+  const validteResult = () => {
+    const isInvalid = isRequired && !value;
+    // setValidateError(isInvalid);
+    if (isInvalid) {
+      setShake(true);
+      setTimeout(() => setShake(false), 500);
+      // const displayLabel = label ? label : StringUtils.capitalize(source);
+      // setErrMessage(`${displayLabel} is required`);
+    }
+    // if (isError || (isRequired && value == "")) {
+    //   setShake(true);
+    //   setTimeout(() => setShake(false), 500);
+    // }
+  };
 
   const handleFocus = () => setFocused(true);
   const handleBlur = () => {
     setFocused(false);
-    if (value === "") {
-      // const displayLabel = label ? label : StringUtils.capitalize(source);
-      // const fieldError = {
-      //   error: true,
-      //   message: `${displayLabel} is required`,
-      // };
-      // setValidateError(fieldError);
-      setShake(true);
-      setTimeout(() => setShake(false), 500);
-    }
+    field.onBlur();
+    validteResult();
+    // if (value === "") {
+    //   const displayLabel = label ? label : StringUtils.capitalize(source);
+    //   const fieldError = {
+    //     error: true,
+    //     message: `${displayLabel} is required`,
+    //   };
+    //   setValidateError(fieldError);
+    //   setShake(true);
+    //   setTimeout(() => setShake(false), 500);
+    // }
   };
 
   const typingInterval = import.meta.env.VITE_DELAY_CALL || 2500; // Time in milliseconds
 
   useEffect(() => {
-    const validateInput = async () => {
-      const result = await serverValidator(value, `validate/${source}`);
-      setValidateError(result);
-      if (result?.error) {
-        // notify(result.message, { type: "warning" });
-        setShake(true);
-        setTimeout(() => setShake(false), 500);
+    // const validateInput = async () => {
+    //   const result = await serverValidator(value, `validate/${source}`);
+    //   setValidateError(result);
+    //   if (result?.invalid) {
+    //     // notify(result.message, { type: "warning" });
+    //     setShake(true);
+    //     setTimeout(() => setShake(false), 500);
+    //   }
+    // };
+
+    const validateAsync = async () => {
+      setIsValidating(true); // Start validation
+      setValidMessage("");
+      try {
+        const result = await serverValidator(value, `validate/${source}`);
+        if (result.invalid) {
+          setShake(true);
+          setTimeout(() => setShake(false), 500);
+          setError(source, {
+            type: "validate",
+            message: result.message,
+          }); // Error message is already translated in validateStrength
+        } else {
+          clearErrors(source);
+          setValidMessage(result.message || "");
+        }
+        console.log(result);
+      } catch (err) {
+        setError(source, { type: "validate", message: "Validation failed" });
+      } finally {
+        setIsValidating(false); // End validation
       }
     };
 
     if (typing) {
       const timer = setTimeout(() => {
         setTyping(false);
-        validateInput();
+        // validateInput();
+        validateAsync();
       }, typingInterval);
       return () => clearTimeout(timer);
     }
-  }, [typing, value, source, /*notify*,*/ typingInterval]);
+  }, [typing, value, source, typingInterval, setError, clearErrors]);
 
   // const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
   //   setValue(e?.target?.value ?? e);
@@ -345,15 +404,18 @@ const ValidationInput = (props: IconTextInputProps) => {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e?.target?.value ?? e;
     setValue(newValue); // Ensure value state is updated
-    // console.log("New Input Value: ", newValue); // Track input change
-
     field.onChange(newValue); // Ensure form data is in sync
     setTyping(true);
   };
 
+  // Combine sync and async errors
+  // const isError = invalid || !!asyncError;
+  const errMsg = error?.message || validMessage || "";
   const renderHelperText = helperText !== false || invalid;
-  const isError = validateError?.error || invalid;
-  const errMsg = validateError?.message || error?.message;
+  const helper = !!(helperText || errMsg);
+  console.log("hepler :", helper);
+  // const isError = validateError?.invalid || invalid;
+  // const errMsg = validateError?.message || error?.message;
   // console.log("Error: ", error?.message);
 
   return (
@@ -365,17 +427,36 @@ const ValidationInput = (props: IconTextInputProps) => {
       onFocus={handleFocus}
       onBlur={handleBlur}
       className={clsx("ra-input", `ra-input-${source}`, className)}
-      InputProps={{
-        startAdornment: iconStart ? (
-          <InputAdornment position="start">{iconStart}</InputAdornment>
-        ) : null,
-        endAdornment: iconEnd ? (
-          <InputAdornment position="end">{iconEnd}</InputAdornment>
-        ) : null,
-      }}
-      InputLabelProps={{
-        shrink: focused || value !== "",
-        className: clsx({ shake: shake }),
+      // InputProps={{
+      //   startAdornment: iconStart ? (
+      //     <InputAdornment position="start">{iconStart}</InputAdornment>
+      //   ) : null,
+      //   endAdornment: iconEnd ? (
+      //     <InputAdornment position="end">{iconEnd}</InputAdornment>
+      //   ) : null,
+      // }}
+      // InputLabelProps={{
+      //   shrink: focused || value !== "",
+      //   className: clsx({ shake: shake }),
+      // }}
+      slotProps={{
+        input: {
+          startAdornment: iconStart ? (
+            <InputAdornment position="start">{iconStart}</InputAdornment>
+          ) : null,
+          endAdornment: isValidating ? (
+            <CircularProgress size={20} /> // Show loading spinner
+          ) : iconEnd ? (
+            <InputAdornment position="end">{iconEnd}</InputAdornment>
+          ) : null,
+        },
+        inputLabel: {
+          shrink: focused || value !== "",
+          className: clsx({ shake: shake }),
+        },
+        formHelperText: {
+          className: clsx({ helper: !helper }),
+        },
       }}
       label={
         label !== "" && label !== false ? (
@@ -383,9 +464,9 @@ const ValidationInput = (props: IconTextInputProps) => {
         ) : null
       }
       resource={resource}
-      error={validateError?.error || invalid}
+      error={invalid}
       // helperText={isError ? errMsg : ""}
-      helperText={validateError?.message || error?.message}
+      // helperText={validateError?.message || error?.message}
       // helperText={
       //   renderHelperText ? (
       //     <InputHelperText
@@ -394,35 +475,19 @@ const ValidationInput = (props: IconTextInputProps) => {
       //     />
       //   ) : null
       // }
+      // FormHelperTextProps={{
+      //   className: "my-custom-helper-text", // Your custom class
+      //   // Optional: Additional MUI props like 'sx'
+      //   sx: { fontSize: "0.875rem" },
+      // }}
+      helperText={
+        renderHelperText ? (
+          <InputHelper error={errMsg} helperText={helperText} />
+        ) : null
+      }
       {...sanitizeInputRestProps(rest)}
     />
   );
 };
 
 export default ValidationInput;
-
-export const StyledTextField = styled(ResettableTextField)(
-  ({ theme, error }) => ({
-    "& .MuiInputBase-root": {
-      borderColor: error ? theme.palette.error.main : "inherit",
-    },
-    "& .MuiInputBase-input::placeholder": {
-      color: error ? theme.palette.error.main : "inherit",
-      transition: "color 0.5s",
-    },
-    "& .MuiOutlinedInput-root": {
-      "&.Mui-focused .MuiSvgIcon-root": {
-        color: theme.palette.primary.main, //theme.palette.primary.main,
-      },
-    },
-    "& .MuiInputLabel-outlined": {
-      marginLeft: "2em", // Adjust label position when start icon is present
-      "&.MuiInputLabel-shrink": { marginLeft: "0" },
-    },
-  }),
-);
-
-// export type IconTextInputProps = PasswordInputProps & {
-//   iconStart?: React.ReactNode;
-//   iconEnd?: React.ReactNode;
-// };
