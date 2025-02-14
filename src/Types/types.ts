@@ -41,6 +41,11 @@ export type UseFieldOptions = {
   message?: string;
   debounce?: number;
 };
+
+export type ValidationResult =
+  | string
+  | { message: string; args?: Record<string, any> }
+  | undefined;
 export interface IconTextInputProps extends PasswordInputProps {
   iconStart?: ReactNode;
   iconEnd?: ReactNode;

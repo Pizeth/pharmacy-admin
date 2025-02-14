@@ -236,11 +236,16 @@
 // export default ValidationInput;
 
 import React, { useEffect, useMemo, useState } from "react";
-import { useInput, useTranslate } from "react-admin";
+import { useInput, useTranslate, useUnique } from "react-admin";
 import { FieldError, IconTextInputProps } from "../Types/types";
 import clsx from "clsx";
 import { styled } from "@mui/material/styles";
-import { serverValidator, useRequired } from "../Utils/validator";
+import {
+  serverValidator,
+  useAsync,
+  useAsyncValidator,
+  useRequired,
+} from "../Utils/validator";
 import {
   ResettableTextField,
   FieldTitle,
@@ -280,14 +285,17 @@ const ValidationInput = (props: IconTextInputProps) => {
   // const translate = useTranslate();
   // Get required validator
   const require = useRequired();
+  const asyncValidate = useAsync();
+  const asyncValidator = useAsyncValidator();
+  const unique = useUnique();
 
   // Compute validators with normalization
   const validators = useMemo(() => {
     const normalizedValidate = Array.isArray(validate) ? validate : [validate];
     const baseValidators = [...normalizedValidate];
-    baseValidators.push(require());
+    baseValidators.push(asyncValidate());
     return baseValidators;
-  }, [validate, require]);
+  }, [validate, asyncValidate]);
 
   const {
     field,
@@ -382,7 +390,7 @@ const ValidationInput = (props: IconTextInputProps) => {
       const timer = setTimeout(() => {
         setTyping(false);
         // validateInput();
-        validateAsync();
+        // validateAsync();
       }, typingInterval);
       return () => clearTimeout(timer);
     }
@@ -449,8 +457,8 @@ const ValidationInput = (props: IconTextInputProps) => {
   // const renderHelperText = helperText !== false || invalid;
   const renderHelperText = !!(helperText || errMsg || invalid);
   const helper = !!(helperText || errMsg);
-  console.log("hepler :", renderHelperText);
-  console.log("invalid :", invalid);
+  // console.log("hepler :", renderHelperText);
+  // console.log("invalid :", invalid);
   // const isError = validateError?.invalid || invalid;
   // const errMsg = validateError?.message || error?.message;
   // console.log("Error: ", error?.message);

@@ -5,7 +5,7 @@ export class MsgUtils {
   static setMsg(
     message: string | MsgObj | any,
     args?: object,
-  ): MsgObj | undefined {
+  ): string | MsgObj | undefined {
     if (!message) return undefined;
     return {
       message: message?.message || message,

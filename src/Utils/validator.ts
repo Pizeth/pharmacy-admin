@@ -66,12 +66,19 @@ import {
   useTranslate,
   useTranslateLabel,
 } from "react-admin";
-import { FieldError, Memoize, UseFieldOptions } from "../Types/types";
+import {
+  FieldError,
+  Memoize,
+  UseFieldOptions,
+  ValidationResult,
+} from "../Types/types";
 
 import lodashMemoize from "lodash/memoize";
 import MsgUtils from "./MsgUtils";
-import { useCallback, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { merge, set } from "lodash";
+// import { AxiosRequestConfig } from "axios";
+// import type { AxiosRequestConfig } from '@types/axios';
 
 // If we define validation functions directly in JSX, it will
 // result in a new function at every render, and then trigger infinite re-render.
@@ -84,90 +91,320 @@ const DEFAULT_DEBOUNCE = import.meta.env.VITE_DELAY_CALL || 2500; // Time in mil
 
 const zxcvbnAsync = await zxcvbn.loadZxcvbn();
 
-// validate: async (resource: string, param: string) => {
-//   const response = await fetchUtils.fetchJson(
-//     `${API_URL}/validate/${resource}/${param}`,
-//   );
-//   return {
-//     data: response.json.data,
-//   };
-// },
-
-const validate = async (value: string, resource: string) => {
-  const response = await axios.get<any>(`${API_URL}/${resource}/${value}`);
-  return response;
-};
-
-export const useAsync = (options?: UseFieldOptions) => {
+export const useAsyncValidator = (options?: UseFieldOptions) => {
   const resource = useResourceContext(options);
+  const translateLabel = useTranslateLabel();
   if (!resource) {
     throw new Error("useAsync: missing resource prop or context");
   }
+  const translate = useTranslate();
+  const abortController = useRef<AbortController | null>(null);
 
-  const debouncedResult = useRef(
-    // The initial value is here to set the correct type on useRef
-    asyncDebounce(validate, options?.debounce ?? DEFAULT_DEBOUNCE),
+  // Stable debounced validate function
+  const debouncedValidate = useRef(
+    asyncDebounce(
+      async (
+        value: string,
+        source: string,
+        resolve: (result: ValidationResult) => void,
+      ) => {
+        try {
+          // Cancel previous request
+          if (abortController.current) {
+            abortController.current.abort();
+          }
+
+          abortController.current = new AbortController();
+
+          const response = await axios.get(
+            `${API_URL}/validate/${source}/${value}`,
+            {
+              signal: abortController.current.signal,
+            },
+          );
+
+          if (response.data.status !== 200) {
+            resolve({
+              message: "razeth.validation.error",
+              args: { details: response.data.message },
+            });
+          } else {
+            resolve(undefined);
+          }
+        } catch (error) {
+          if (!axios.isCancel(error)) {
+            resolve(translate("ra.notification.http_error"));
+          }
+        }
+      },
+      options?.debounce ?? DEFAULT_DEBOUNCE,
+    ),
+  );
+
+  // Cleanup
+  useEffect(
+    () => () => {
+      if (abortController.current) {
+        abortController.current.abort();
+      }
+    },
+    [],
+  );
+
+  return useCallback(
+    (
+      value: string,
+      allValues: any,
+      props: InputProps,
+    ): Promise<ValidationResult> => {
+      return new Promise((resolve) => {
+        if (!value) {
+          return resolve({
+            message: "razeth.validation.required",
+            args: { field: props.source },
+          });
+        }
+
+        debouncedValidate.current(value, props.source, resolve);
+      });
+    },
+    [],
   );
 
   const validateAsync = useCallback(
     (callTimeOptions?: UseFieldOptions) => {
       const { message, debounce: interval } = merge<UseFieldOptions, any, any>(
         {
-          message: "ra.validation.unique",
+          message: "razeth.validation.unique",
           debounce: DEFAULT_DEBOUNCE,
         },
         options,
         callTimeOptions,
       );
 
-      debouncedResult.current = asyncDebounce(validate, interval);
-      return async (value: any) => {
-        const field = StringUtils.capitalize(
-          StringUtils.getLastSegment(resource),
-        );
+      debouncedResult.current = asyncDebounce(asyncValidate, interval);
+      return async (value: any, allValues: any, props: InputProps) => {
+        const source = props.source;
         if (isEmpty(value)) {
           return {
-            invalid: true,
-            // message: `${StringUtils.capitalize(field)} is required!`,
-            message: MsgUtils.setMsg("razeth.validation.required", {
+            message: "razeth.validation.required",
+            args: {
+              source: source,
               value,
-              field: field,
-            }),
+              field: translateLabel({
+                label: props.label,
+                source: source,
+                resource,
+              }),
+            },
+            isRequired: true,
           };
         }
+        debouncedValidate.current(value, props.source, resolve);
 
         try {
-          const response = await debouncedResult.current(value, resource);
-          // const response = await axios.get<any>(
-          //   `${API_URL}/${resource}/${value}`,
-          // );
-          if (response) {
-            const data = response.data;
-            const status = statusCode.getStatusCode(data.status);
+          const response = await debouncedResult.current(value, source);
+
+          const data = response.data;
+          const status = statusCode.getStatusCode(data.status);
+          if (status !== statusCode.OK)
             return {
-              invalid: status !== statusCode.OK,
-              message: MsgUtils.setMsg(data.message || message, {
+              message: data.message,
+              args: {
+                source: source,
                 value,
-                endPoint: resource,
-                status: status,
-              }),
+                field: translateLabel({
+                  label: props.label,
+                  source: source,
+                  resource,
+                }),
+              },
             };
-          }
         } catch (error) {
           console.error(error);
-          return {
-            invalid: true,
-            message: MsgUtils.setMsg("razeth.validation.async", {
-              error,
-              field,
-            }),
-          };
+          return translate("ra.notification.http_error");
         }
 
         return undefined;
       };
     },
-    [options, resource],
+    [options, resource, translate, translateLabel],
+  );
+
+  return validateAsync;
+};
+
+export const useAsyncValidator1 = (options?: UseFieldOptions) => {
+  const resource = useResourceContext(options);
+  const translateLabel = useTranslateLabel();
+  if (!resource) {
+    throw new Error("useAsync: missing resource prop or context");
+  }
+  const translate = useTranslate();
+  const abortController = useRef<AbortController | null>(null);
+
+  // Create stable debounced validate function
+  const debouncedValidate = useRef(
+    asyncDebounce(
+      async (
+        value: string,
+        source: string,
+        onValidate: (result: any) => void,
+      ) => {
+        try {
+          // Cancel previous request if it exists
+          if (abortController.current) {
+            abortController.current.abort("New request initiated");
+          }
+
+          // Create new AbortController for the current request
+          abortController.current = new AbortController();
+
+          const response = await axios.get(
+            `${API_URL}/validate/${source}/${value}`,
+            {
+              signal: abortController.current.signal, // Pass the AbortController signal
+            },
+          );
+
+          onValidate(response.data);
+        } catch (error) {
+          if (!axios.isCancel(error)) {
+            onValidate({
+              error: true,
+              message: translate("ra.notification.http_error"),
+            });
+          }
+        }
+      },
+      options?.debounce ?? DEFAULT_DEBOUNCE,
+    ),
+  );
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (abortController.current) {
+        abortController.current.abort("Component unmounted");
+      }
+    };
+  }, []);
+
+  return useCallback(
+    (value: string, allValues: any, props: InputProps) => {
+      return new Promise((resolve) => {
+        // if (!value) {
+        //   return resolve(translate("ra.validation.required"));
+        // }
+        const source = props.source;
+        if (isEmpty(value)) {
+          return {
+            message: "razeth.validation.required",
+            args: {
+              source: source,
+              value,
+              field: translateLabel({
+                label: props.label,
+                source: source,
+                resource,
+              }),
+            },
+            isRequired: true,
+          };
+        }
+
+        debouncedValidate.current(value, props.source, (result) => {
+          if (result.error) {
+            resolve(result.message);
+          } else if (result.status !== 200) {
+            resolve(result.message || translate("ra.validation.error"));
+          } else {
+            resolve(undefined); // Validation passed
+          }
+        });
+      });
+    },
+    [resource, translate, translateLabel],
+  );
+};
+
+const asyncValidate = async (value: string, source: string) => {
+  const response = await axios.get<any>(
+    `${API_URL}/validate/${source}/${value}`,
+  );
+  return response;
+};
+
+export const useAsync = (options?: UseFieldOptions) => {
+  const resource = useResourceContext(options);
+  const translateLabel = useTranslateLabel();
+  if (!resource) {
+    throw new Error("useAsync: missing resource prop or context");
+  }
+  const translate = useTranslate();
+
+  const debouncedResult = useRef(
+    // The initial value is here to set the correct type on useRef
+    asyncDebounce(asyncValidate, options?.debounce ?? DEFAULT_DEBOUNCE),
+  );
+
+  const validateAsync = useCallback(
+    (callTimeOptions?: UseFieldOptions) => {
+      const { message, debounce: interval } = merge<UseFieldOptions, any, any>(
+        {
+          message: "razeth.validation.unique",
+          debounce: DEFAULT_DEBOUNCE,
+        },
+        options,
+        callTimeOptions,
+      );
+
+      debouncedResult.current = asyncDebounce(asyncValidate, interval);
+      return async (value: any, allValues: any, props: InputProps) => {
+        const source = props.source;
+        if (isEmpty(value)) {
+          return {
+            message: "razeth.validation.required",
+            args: {
+              source: source,
+              value,
+              field: translateLabel({
+                label: props.label,
+                source: source,
+                resource,
+              }),
+            },
+            isRequired: true,
+          };
+        }
+
+        try {
+          const response = await debouncedResult.current(value, source);
+
+          const data = response.data;
+          const status = statusCode.getStatusCode(data.status);
+          if (status !== statusCode.OK)
+            return {
+              message: data.message,
+              args: {
+                source: source,
+                value,
+                field: translateLabel({
+                  label: props.label,
+                  source: source,
+                  resource,
+                }),
+              },
+            };
+        } catch (error) {
+          console.error(error);
+          return translate("ra.notification.http_error");
+        }
+
+        return undefined;
+      };
+    },
+    [options, resource, translate, translateLabel],
   );
 
   return validateAsync;
