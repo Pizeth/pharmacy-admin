@@ -39,6 +39,7 @@ interface MessageFuncParams {
 export type UseFieldOptions = {
   resource?: string;
   message?: string;
+  debounce?: number;
 };
 export interface IconTextInputProps extends PasswordInputProps {
   iconStart?: ReactNode;

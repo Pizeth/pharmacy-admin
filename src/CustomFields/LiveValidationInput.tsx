@@ -316,40 +316,31 @@ const ValidationInput = (props: IconTextInputProps) => {
   // const [asyncError, setAsyncError] = useState<string | undefined>();
   const [validMessage, setValidMessage] = useState<string | undefined>();
   const [isValidating, setIsValidating] = useState(false);
-
-  const validteResult = () => {
-    const isInvalid = isRequired && !value;
-    // setValidateError(isInvalid);
-    if (isInvalid) {
-      setShake(true);
-      setTimeout(() => setShake(false), 500);
-      // const displayLabel = label ? label : StringUtils.capitalize(source);
-      // setErrMessage(`${displayLabel} is required`);
-    }
-    // if (isError || (isRequired && value == "")) {
-    //   setShake(true);
-    //   setTimeout(() => setShake(false), 500);
-    // }
-  };
-
-  const handleFocus = () => setFocused(true);
-  const handleBlur = () => {
-    setFocused(false);
-    field.onBlur();
-    validteResult();
-    // if (value === "") {
-    //   const displayLabel = label ? label : StringUtils.capitalize(source);
-    //   const fieldError = {
-    //     error: true,
-    //     message: `${displayLabel} is required`,
-    //   };
-    //   setValidateError(fieldError);
-    //   setShake(true);
-    //   setTimeout(() => setShake(false), 500);
-    // }
-  };
-
   const typingInterval = import.meta.env.VITE_DELAY_CALL || 2500; // Time in milliseconds
+
+  const validateAsync = React.useCallback(async () => {
+    setIsValidating(true); // Start validation
+    setValidMessage("");
+    try {
+      const result = await serverValidator(value, `validate/${source}`);
+      if (result.invalid) {
+        setShake(true);
+        setTimeout(() => setShake(false), 500);
+        setError(source, {
+          type: "validate",
+          message: result.message,
+        }); // Error message is already translated in validateStrength
+      } else {
+        clearErrors(source);
+        setValidMessage(result.message || "");
+      }
+      console.log(result);
+    } catch (err) {
+      setError(source, { type: "validate", message: "Validation failed" });
+    } finally {
+      setIsValidating(false); // End validation
+    }
+  }, [value, source, setError, clearErrors]);
 
   useEffect(() => {
     // const validateInput = async () => {
@@ -362,29 +353,30 @@ const ValidationInput = (props: IconTextInputProps) => {
     //   }
     // };
 
-    const validateAsync = async () => {
-      setIsValidating(true); // Start validation
-      setValidMessage("");
-      try {
-        const result = await serverValidator(value, `validate/${source}`);
-        if (result.invalid) {
-          setShake(true);
-          setTimeout(() => setShake(false), 500);
-          setError(source, {
-            type: "validate",
-            message: result.message,
-          }); // Error message is already translated in validateStrength
-        } else {
-          clearErrors(source);
-          setValidMessage(result.message || "");
-        }
-        console.log(result);
-      } catch (err) {
-        setError(source, { type: "validate", message: "Validation failed" });
-      } finally {
-        setIsValidating(false); // End validation
-      }
-    };
+    // const validateAsync = async () => {
+    //   setIsValidating(true); // Start validation
+    //   setValidMessage("");
+    //   try {
+    //     const result = await serverValidator(value, `validate/${source}`);
+    //     if (result.invalid) {
+    //       setShake(true);
+    //       setTimeout(() => setShake(false), 500);
+    //       setError(source, {
+    //         type: "validate",
+    //         message: result.message,
+    //       }); // Error message is already translated in validateStrength
+    //     } else {
+    //       console.log("why jol here?");
+    //       clearErrors(source);
+    //       setValidMessage(result.message || "");
+    //     }
+    //     console.log(result);
+    //   } catch (err) {
+    //     setError(source, { type: "validate", message: "Validation failed" });
+    //   } finally {
+    //     setIsValidating(false); // End validation
+    //   }
+    // };
 
     if (typing) {
       const timer = setTimeout(() => {
@@ -394,7 +386,15 @@ const ValidationInput = (props: IconTextInputProps) => {
       }, typingInterval);
       return () => clearTimeout(timer);
     }
-  }, [typing, value, source, typingInterval, setError, clearErrors]);
+  }, [
+    typing,
+    value,
+    source,
+    typingInterval,
+    setError,
+    clearErrors,
+    validateAsync,
+  ]);
 
   // const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
   //   setValue(e?.target?.value ?? e);
@@ -408,12 +408,49 @@ const ValidationInput = (props: IconTextInputProps) => {
     setTyping(true);
   };
 
+  const reValidate = () => {
+    // validateAsync();
+    const isInvalid = (isRequired && !value) || invalid;
+    // setValidateError(isInvalid);
+    if (isInvalid) {
+      setShake(true);
+      setTimeout(() => setShake(false), 500);
+      // const displayLabel = label ? label : StringUtils.capitalize(source);
+      // setErrMessage(`${displayLabel} is required`);
+    }
+
+    // if (isError || (isRequired && value == "")) {
+    //   setShake(true);
+    //   setTimeout(() => setShake(false), 500);
+    // }
+  };
+
+  const handleFocus = () => setFocused(true);
+  const handleBlur = () => {
+    setFocused(false);
+    reValidate();
+    field.onBlur();
+
+    // if (value === "") {
+    //   const displayLabel = label ? label : StringUtils.capitalize(source);
+    //   const fieldError = {
+    //     error: true,
+    //     message: `${displayLabel} is required`,
+    //   };
+    //   setValidateError(fieldError);
+    //   setShake(true);
+    //   setTimeout(() => setShake(false), 500);
+    // }
+  };
+
   // Combine sync and async errors
   // const isError = invalid || !!asyncError;
   const errMsg = error?.message || validMessage || "";
-  const renderHelperText = helperText !== false || invalid;
+  // const renderHelperText = helperText !== false || invalid;
+  const renderHelperText = !!(helperText || errMsg || invalid);
   const helper = !!(helperText || errMsg);
-  console.log("hepler :", helper);
+  console.log("hepler :", renderHelperText);
+  console.log("invalid :", invalid);
   // const isError = validateError?.invalid || invalid;
   // const errMsg = validateError?.message || error?.message;
   // console.log("Error: ", error?.message);
