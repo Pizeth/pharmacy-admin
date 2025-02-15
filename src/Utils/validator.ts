@@ -99,6 +99,114 @@ export const useAsyncValidator = (options?: UseFieldOptions) => {
   }
   const translate = useTranslate();
   const abortController = useRef<AbortController | null>(null);
+  const debouncedResult = useRef<ReturnType<typeof asyncDebounce>>();
+
+  useEffect(() => {
+    return () => {
+      // Cleanup on unmount
+      if (abortController.current) {
+        abortController.current.abort();
+      }
+    };
+  }, []);
+
+  const validateAsync = useCallback(
+    (callTimeOptions?: UseFieldOptions) => {
+      const { message, debounce: interval } = merge<UseFieldOptions, any, any>(
+        {
+          message: "razeth.validation.unique",
+          debounce: DEFAULT_DEBOUNCE,
+        },
+        options,
+        callTimeOptions,
+      );
+
+      // Initialize debounced validator
+      debouncedResult.current = asyncDebounce(
+        async (value: string, source: string) => {
+          try {
+            if (abortController.current) {
+              abortController.current.abort();
+            }
+            abortController.current = new AbortController();
+
+            const response = await axios.get(
+              `${API_URL}/validate/${source}/${value}`,
+              {
+                signal: abortController.current.signal,
+              },
+            );
+            return response;
+          } catch (error) {
+            if (!axios.isCancel(error)) {
+              throw error;
+            }
+          }
+        },
+        interval,
+      );
+
+      return async (value: any, allValues: any, props: InputProps) => {
+        const source = props.source;
+        if (isEmpty(value)) {
+          return {
+            message: "razeth.validation.required",
+            args: {
+              source: source,
+              value,
+              field: translateLabel({
+                label: props.label,
+                source: source,
+                resource,
+              }),
+            },
+            isRequired: true,
+          };
+        }
+
+        try {
+          const response = await debouncedResult.current?.(value, source);
+          if (!response) return undefined;
+
+          const data = response.data;
+          const status = statusCode.getStatusCode(data.status);
+
+          if (status !== statusCode.OK) {
+            return {
+              message: data.message || message,
+              args: {
+                source: source,
+                value,
+                field: translateLabel({
+                  label: props.label,
+                  source: source,
+                  resource,
+                }),
+              },
+            };
+          }
+        } catch (error) {
+          console.error(error);
+          return translate("ra.notification.http_error");
+        }
+
+        return undefined;
+      };
+    },
+    [options, resource, translate, translateLabel],
+  );
+
+  return validateAsync;
+};
+
+export const useAsyncValidator2 = (options?: UseFieldOptions) => {
+  const resource = useResourceContext(options);
+  const translateLabel = useTranslateLabel();
+  if (!resource) {
+    throw new Error("useAsync: missing resource prop or context");
+  }
+  const translate = useTranslate();
+  const abortController = useRef<AbortController | null>(null);
 
   // Stable debounced validate function
   const debouncedValidate = useRef(
@@ -106,7 +214,9 @@ export const useAsyncValidator = (options?: UseFieldOptions) => {
       async (
         value: string,
         source: string,
-        resolve: (result: ValidationResult) => void,
+        resolve: (
+          result: string | { message: string; args: object } | undefined,
+        ) => void,
       ) => {
         try {
           // Cancel previous request
@@ -156,7 +266,7 @@ export const useAsyncValidator = (options?: UseFieldOptions) => {
       value: string,
       allValues: any,
       props: InputProps,
-    ): Promise<ValidationResult> => {
+    ): Promise<string | { message: string; args: object } | undefined> => {
       return new Promise((resolve) => {
         if (!value) {
           return resolve({
@@ -170,68 +280,6 @@ export const useAsyncValidator = (options?: UseFieldOptions) => {
     },
     [],
   );
-
-  const validateAsync = useCallback(
-    (callTimeOptions?: UseFieldOptions) => {
-      const { message, debounce: interval } = merge<UseFieldOptions, any, any>(
-        {
-          message: "razeth.validation.unique",
-          debounce: DEFAULT_DEBOUNCE,
-        },
-        options,
-        callTimeOptions,
-      );
-
-      debouncedResult.current = asyncDebounce(asyncValidate, interval);
-      return async (value: any, allValues: any, props: InputProps) => {
-        const source = props.source;
-        if (isEmpty(value)) {
-          return {
-            message: "razeth.validation.required",
-            args: {
-              source: source,
-              value,
-              field: translateLabel({
-                label: props.label,
-                source: source,
-                resource,
-              }),
-            },
-            isRequired: true,
-          };
-        }
-        debouncedValidate.current(value, props.source, resolve);
-
-        try {
-          const response = await debouncedResult.current(value, source);
-
-          const data = response.data;
-          const status = statusCode.getStatusCode(data.status);
-          if (status !== statusCode.OK)
-            return {
-              message: data.message,
-              args: {
-                source: source,
-                value,
-                field: translateLabel({
-                  label: props.label,
-                  source: source,
-                  resource,
-                }),
-              },
-            };
-        } catch (error) {
-          console.error(error);
-          return translate("ra.notification.http_error");
-        }
-
-        return undefined;
-      };
-    },
-    [options, resource, translate, translateLabel],
-  );
-
-  return validateAsync;
 };
 
 export const useAsyncValidator1 = (options?: UseFieldOptions) => {

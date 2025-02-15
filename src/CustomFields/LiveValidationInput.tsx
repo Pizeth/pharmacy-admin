@@ -293,9 +293,9 @@ const ValidationInput = (props: IconTextInputProps) => {
   const validators = useMemo(() => {
     const normalizedValidate = Array.isArray(validate) ? validate : [validate];
     const baseValidators = [...normalizedValidate];
-    baseValidators.push(asyncValidate());
+    baseValidators.push(asyncValidator());
     return baseValidators;
-  }, [validate, asyncValidate]);
+  }, [validate, asyncValidator]);
 
   const {
     field,
@@ -361,48 +361,40 @@ const ValidationInput = (props: IconTextInputProps) => {
     //   }
     // };
 
-    // const validateAsync = async () => {
-    //   setIsValidating(true); // Start validation
-    //   setValidMessage("");
-    //   try {
-    //     const result = await serverValidator(value, `validate/${source}`);
-    //     if (result.invalid) {
-    //       setShake(true);
-    //       setTimeout(() => setShake(false), 500);
-    //       setError(source, {
-    //         type: "validate",
-    //         message: result.message,
-    //       }); // Error message is already translated in validateStrength
-    //     } else {
-    //       console.log("why jol here?");
-    //       clearErrors(source);
-    //       setValidMessage(result.message || "");
-    //     }
-    //     console.log(result);
-    //   } catch (err) {
-    //     setError(source, { type: "validate", message: "Validation failed" });
-    //   } finally {
-    //     setIsValidating(false); // End validation
-    //   }
-    // };
+    const validateAsync = async () => {
+      setIsValidating(true); // Start validation
+      setValidMessage("");
+      try {
+        const result = await serverValidator(value, `validate/${source}`);
+        if (result.invalid) {
+          setShake(true);
+          setTimeout(() => setShake(false), 500);
+          setError(source, {
+            type: "validate",
+            message: result.message,
+          }); // Error message is already translated in validateStrength
+        } else {
+          console.log("why jol here?");
+          clearErrors(source);
+          setValidMessage(result.message || "");
+        }
+        console.log(result);
+      } catch (err) {
+        setError(source, { type: "validate", message: "Validation failed" });
+      } finally {
+        setIsValidating(false); // End validation
+      }
+    };
 
     if (typing) {
       const timer = setTimeout(() => {
         setTyping(false);
         // validateInput();
-        // validateAsync();
+        validateAsync();
       }, typingInterval);
       return () => clearTimeout(timer);
     }
-  }, [
-    typing,
-    value,
-    source,
-    typingInterval,
-    setError,
-    clearErrors,
-    validateAsync,
-  ]);
+  }, [typing, value, source, typingInterval, setError, clearErrors]);
 
   // const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
   //   setValue(e?.target?.value ?? e);
