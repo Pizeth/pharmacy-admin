@@ -1,5 +1,5 @@
 // types.ts
-import { ChangeEvent, ReactNode } from "react";
+import { ChangeEvent, MutableRefObject, ReactNode } from "react";
 import {
   LinearProgressProps,
   PasswordInputProps,
@@ -40,12 +40,19 @@ export type UseFieldOptions = {
   resource?: string;
   message?: string;
   debounce?: number;
+  timeOut?: MutableRefObject<NodeJS.Timeout | undefined>;
+  abortController?: MutableRefObject<AbortController | null>;
+  options?: { endpoint?: string; successMessage?: string };
 };
 
 export type ValidationResult =
   | string
   | { message: string; args?: Record<string, any> }
   | undefined;
+export type ValidationResult1 = {
+  status: "success" | "error" | "pending";
+  message?: string;
+};
 export interface IconTextInputProps extends PasswordInputProps {
   iconStart?: ReactNode;
   iconEnd?: ReactNode;

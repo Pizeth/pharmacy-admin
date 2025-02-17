@@ -53,7 +53,7 @@
 // export default ServerValidator;
 
 // import { useEffect, useState } from "react";
-import axios from "axios";
+import axios, { CancelTokenSource } from "axios";
 import statusCode from "http-status-codes";
 import StringUtils from "./StringUtils";
 import zxcvbn from "./lazyZxcvbn";
@@ -68,15 +68,18 @@ import {
 } from "react-admin";
 import {
   FieldError,
+  IconTextInputProps,
   Memoize,
   UseFieldOptions,
   ValidationResult,
+  ValidationResult1,
 } from "../Types/types";
 
 import lodashMemoize from "lodash/memoize";
 import MsgUtils from "./MsgUtils";
 import { useCallback, useEffect, useRef } from "react";
 import { merge, set } from "lodash";
+import { resolve } from "path";
 // import { AxiosRequestConfig } from "axios";
 // import type { AxiosRequestConfig } from '@types/axios';
 
@@ -91,7 +94,190 @@ const DEFAULT_DEBOUNCE = import.meta.env.VITE_DELAY_CALL || 2500; // Time in mil
 
 const zxcvbnAsync = await zxcvbn.loadZxcvbn();
 
+export const createAsyncValidator = (source: string) => {
+  let cancelTokenSource: CancelTokenSource | null = null;
+  let currentValue = "";
+
+  // Create debounced validation function
+  const debouncedValidate = asyncDebounce(
+    async (value: string, callback: (result: ValidationResult1) => void) => {
+      try {
+        // Cancel previous request
+        if (cancelTokenSource) {
+          cancelTokenSource.cancel("Operation canceled by new request");
+        }
+
+        // console.log(value);
+
+        cancelTokenSource = axios.CancelToken.source();
+
+        const response = await axios.get(
+          `${API_URL}/validate/${source}/${value}`,
+          {
+            cancelToken: cancelTokenSource.token,
+          },
+        );
+
+        console.log(response);
+
+        if (response.status === 200) {
+          callback({ status: "success", message: `${value} is available!` });
+        } else {
+          callback({ status: "error", message: response.data.message });
+        }
+      } catch (error) {
+        if (!axios.isCancel(error)) {
+          callback({ status: "error", message: "Validation error" });
+        }
+      }
+    },
+    DEFAULT_DEBOUNCE,
+  );
+
+  return {
+    validate: (value: string): Promise<ValidationResult1> => {
+      currentValue = value;
+
+      return new Promise((resolve) => {
+        if (!value) {
+          return resolve({ status: "pending" });
+        }
+
+        debouncedValidate(value, (result) => {
+          // Only resolve if the value hasn't changed during validation
+          if (value === currentValue) {
+            resolve(result);
+          }
+        });
+      });
+    },
+    cancel: () => {
+      if (cancelTokenSource) {
+        cancelTokenSource.cancel("Validation canceled");
+      }
+    },
+  };
+};
+
 export const useAsyncValidator = (options?: UseFieldOptions) => {
+  const resource = useResourceContext(options);
+  const translateLabel = useTranslateLabel();
+  if (!resource) {
+    throw new Error("useAsync: missing resource prop or context");
+  }
+  const translate = useTranslate();
+  // let abortController: AbortController | null = null;
+
+  const validateAsync = useCallback(
+    (callTimeOptions?: UseFieldOptions) => {
+      const { timeOut, abortController } = merge<UseFieldOptions, any, any>(
+        {
+          message: "razeth.validation.unique",
+          debounce: DEFAULT_DEBOUNCE,
+        },
+        options,
+        callTimeOptions,
+      );
+      return async (
+        value: string,
+        source: string,
+        props: IconTextInputProps,
+      ) => {
+        // if (!value) return undefined;
+        if (isEmpty(value))
+          return {
+            status: statusCode.ACCEPTED,
+            message: "razeth.validation.required",
+            args: {
+              source: source,
+              value,
+              field: translateLabel({
+                label: props.label,
+                source: source,
+                resource,
+              }),
+            },
+            isRequired: true,
+          };
+
+        // Clear previous timeout
+        if (timeOut.current) {
+          clearTimeout(timeOut.current);
+        }
+
+        // Cancel previous request
+        if (abortController.current) {
+          abortController.current.abort();
+        }
+
+        // return new Promise((resolve) => {
+        timeOut.current = setTimeout(async () => {
+          console.log("jol");
+          abortController.current = new AbortController();
+          try {
+            const response = await axios.get(
+              `${API_URL}/validate/${source}/${value}`,
+              {
+                signal: abortController.current.signal,
+              },
+            );
+
+            const data = response.data;
+            console.log(data);
+            const status = statusCode.getStatusCode(data.status);
+            if (status === statusCode.OK) {
+              // return { status: "success", message: `${value} is available!` };
+              return {
+                status: status,
+                message: data.message,
+                args: {
+                  source: source,
+                  value,
+                  field: translateLabel({
+                    label: props.label,
+                    source: source,
+                    resource,
+                  }),
+                },
+              };
+            }
+
+            // return {
+            //   status: "error",
+            //   message: response.data.message || "Validation failed",
+            // };
+            return {
+              status: status,
+              message: data.message,
+              args: {
+                source: source,
+                value,
+                field: translateLabel({
+                  label: props.label,
+                  source: source,
+                  resource,
+                }),
+              },
+            };
+          } catch (error) {
+            // if (!axios.isCancel(error)) {
+            //   return { status: "error", message: "Validation error" };
+            // }
+            if (!axios.isCancel(error)) {
+              return { message: "ra.notification.http_error", args: {} };
+            }
+            // return undefined;
+          }
+        });
+        // });
+      };
+    },
+    [options, resource, translateLabel],
+  );
+  return validateAsync;
+};
+
+export const useAsyncValidator3 = (options?: UseFieldOptions) => {
   const resource = useResourceContext(options);
   const translateLabel = useTranslateLabel();
   if (!resource) {

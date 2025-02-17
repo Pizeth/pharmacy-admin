@@ -234,13 +234,26 @@
 // };
 
 // export default ValidationInput;
-
-import React, { useEffect, useMemo, useState } from "react";
-import { useInput, useTranslate, useUnique } from "react-admin";
-import { FieldError, IconTextInputProps } from "../Types/types";
+import axios from "axios";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import {
+  asyncDebounce,
+  isEmpty,
+  useInput,
+  useTranslate,
+  useTranslateLabel,
+  useUnique,
+} from "react-admin";
+import {
+  FieldError,
+  IconTextInputProps,
+  ValidationResult,
+  ValidationResult1,
+} from "../Types/types";
 import clsx from "clsx";
 import { styled } from "@mui/material/styles";
 import {
+  createAsyncValidator,
   serverValidator,
   useAsync,
   useAsyncValidator,
@@ -262,7 +275,7 @@ import { useFormContext } from "react-hook-form";
 //   strengthMeter?: boolean;
 //   passwordValue?: string; // Props for RepasswordInput to receive the password field value
 // }
-
+const API_URL = import.meta.env.VITE_API_URL;
 const ValidationInput = (props: IconTextInputProps) => {
   const {
     className,
@@ -286,16 +299,27 @@ const ValidationInput = (props: IconTextInputProps) => {
   // Get required validator
   const require = useRequired();
   const asyncValidate = useAsync();
-  const asyncValidator = useAsyncValidator();
+  // const asyncValidator = useAsyncValidator();
   const unique = useUnique();
+  const translateLabel = useTranslateLabel();
 
   // Compute validators with normalization
   const validators = useMemo(() => {
     const normalizedValidate = Array.isArray(validate) ? validate : [validate];
     const baseValidators = [...normalizedValidate];
-    baseValidators.push(asyncValidator());
+    // baseValidators.push(asyncValidator());
     return baseValidators;
-  }, [validate, asyncValidator]);
+  }, [validate]);
+
+  const abortController = useRef<AbortController | null>(null);
+  const debouncedValidate = useRef<ReturnType<typeof asyncDebounce>>();
+  const typingTimeout = useRef<NodeJS.Timeout>();
+  const [statusMessage, setStatusMessage] = useState("");
+  const asyncValidator = useAsyncValidator();
+  const [status, setStatus] = useState<ValidationResult1>({
+    status: "pending",
+  });
+  const validator = createAsyncValidator(source);
 
   const {
     field,
@@ -309,11 +333,130 @@ const ValidationInput = (props: IconTextInputProps) => {
     resource,
     source,
     type: "text",
-    validate: validators,
+    // validate: validators,
+    validate: [
+      ...validators,
+      // Your other validators
+      // async (value, allValues: any, props: IconTextInputProps) => {
+      //   if (isEmpty(value))
+      //     return {
+      //       message: "razeth.validation.required",
+      //       args: {
+      //         source: source,
+      //         value,
+      //         field: translateLabel({
+      //           label: props.label,
+      //           source: source,
+      //           resource,
+      //         }),
+      //       },
+      //       isRequired: true,
+      //     };
+
+      //   // Clear previous timeout
+      //   if (typingTimeout.current) {
+      //     clearTimeout(typingTimeout.current);
+      //   }
+
+      //   // Cancel previous request
+      //   if (abortController.current) {
+      //     abortController.current.abort();
+      //   }
+
+      //   return new Promise((resolve) => {
+      //     typingTimeout.current = setTimeout(async () => {
+      //       abortController.current = new AbortController();
+
+      //       try {
+      //         const response = await axios.get(
+      //           `${API_URL}/validate/${source}/${value}`,
+      //           { signal: abortController.current.signal },
+      //         );
+
+      //         const data = response.data;
+      //         console.log(data.status);
+
+      //         if (data.status !== "OK") {
+      //           resolve({
+      //             message: data.message,
+      //             args: {
+      //               source: source,
+      //               value,
+      //               field: translateLabel({
+      //                 label: props.label,
+      //                 source: source,
+      //                 resource,
+      //               }),
+      //             },
+      //           });
+      //         } else {
+      //           resolve(undefined);
+      //         }
+      //       } catch (error) {
+      //         if (!axios.isCancel(error)) {
+      //           resolve({ message: "ra.notification.http_error", args: {} });
+      //         }
+      //       }
+      //     }, typingInterval); // Your VITE_DELAY_CALL value
+      //   });
+      // },
+
+      async (value) => {
+        // const result = await asyncValidator(value);
+        // if (result?.status === "success") {
+        //   setStatusMessage(result.message);
+        //   return undefined; // No error
+        // }
+        // if (result?.status === "error") {
+        //   setStatusMessage(""); // Clear success message
+        //   return result.message;
+        // }
+        // return undefined;
+
+        const result = await asyncValidator({
+          timeOut: typingTimeout,
+          abortController: abortController,
+        });
+        if (!result) return undefined;
+
+        const validationResult = await result(value, source, props);
+        if (validationResult && validationResult.status === 200) {
+          setStatusMessage(validationResult.message);
+          return undefined;
+        }
+        setStatusMessage("");
+        return validationResult?.message;
+      },
+
+      // async (value) => {
+      //   const result = await validator.validate(value);
+      //   setStatus(result);
+
+      //   if (result.status === "error") {
+      //     return result.message;
+      //   }
+      //   return undefined;
+      // },
+    ],
     onBlur,
     onChange,
     ...rest,
   });
+
+  // Cleanup
+  // useEffect(() => {
+  //   return () => {
+  //     if (typingTimeout.current) clearTimeout(typingTimeout.current);
+  //     if (abortController.current) abortController.current.abort();
+  //   };
+  // }, []);
+
+  // Cleanup
+  useEffect(() => {
+    return () => {
+      validator.cancel();
+    };
+  }, []);
 
   // const notify = useNotify();
   const [value, setValue] = useState(field.value || "");
@@ -361,36 +504,36 @@ const ValidationInput = (props: IconTextInputProps) => {
     //   }
     // };
 
-    const validateAsync = async () => {
-      setIsValidating(true); // Start validation
-      setValidMessage("");
-      try {
-        const result = await serverValidator(value, `validate/${source}`);
-        if (result.invalid) {
-          setShake(true);
-          setTimeout(() => setShake(false), 500);
-          setError(source, {
-            type: "validate",
-            message: result.message,
-          }); // Error message is already translated in validateStrength
-        } else {
-          console.log("why jol here?");
-          clearErrors(source);
-          setValidMessage(result.message || "");
-        }
-        console.log(result);
-      } catch (err) {
-        setError(source, { type: "validate", message: "Validation failed" });
-      } finally {
-        setIsValidating(false); // End validation
-      }
-    };
+    // const validateAsync = async () => {
+    //   setIsValidating(true); // Start validation
+    //   setValidMessage("");
+    //   try {
+    //     const result = await serverValidator(value, `validate/${source}`);
+    //     if (result.invalid) {
+    //       setShake(true);
+    //       setTimeout(() => setShake(false), 500);
+    //       setError(source, {
+    //         type: "validate",
+    //         message: result.message,
+    //       }); // Error message is already translated in validateStrength
+    //     } else {
+    //       console.log("why jol here?");
+    //       clearErrors(source);
+    //       setValidMessage(result.message || "");
+    //     }
+    //     console.log(result);
+    //   } catch (err) {
+    //     setError(source, { type: "validate", message: "Validation failed" });
+    //   } finally {
+    //     setIsValidating(false); // End validation
+    //   }
+    // };
 
     if (typing) {
       const timer = setTimeout(() => {
         setTyping(false);
         // validateInput();
-        validateAsync();
+        // validateAsync();
       }, typingInterval);
       return () => clearTimeout(timer);
     }
@@ -445,10 +588,15 @@ const ValidationInput = (props: IconTextInputProps) => {
 
   // Combine sync and async errors
   // const isError = invalid || !!asyncError;
-  const errMsg = error?.message || validMessage || "";
+  const errMsg = error?.message || validMessage || status.message || "";
   // const renderHelperText = helperText !== false || invalid;
-  const renderHelperText = !!(helperText || errMsg || invalid);
-  const helper = !!(helperText || errMsg);
+  const renderHelperText = !!(
+    helperText ||
+    errMsg ||
+    status.message ||
+    invalid
+  );
+  const helper = !!(helperText || errMsg || status.message);
   // console.log("hepler :", renderHelperText);
   // console.log("invalid :", invalid);
   // const isError = validateError?.invalid || invalid;
