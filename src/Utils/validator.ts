@@ -65,8 +65,10 @@ import {
   useResourceContext,
   useTranslate,
   useTranslateLabel,
+  Validator,
 } from "react-admin";
 import {
+  DEFAULT_DEBOUNCE,
   FieldError,
   IconTextInputProps,
   Memoize,
@@ -77,7 +79,7 @@ import {
 
 import lodashMemoize from "lodash/memoize";
 import MsgUtils from "./MsgUtils";
-import { useCallback, useEffect, useRef } from "react";
+import { ReactElement, useCallback, useEffect, useRef } from "react";
 import { merge, set } from "lodash";
 import { resolve } from "path";
 // import { AxiosRequestConfig } from "axios";
@@ -90,11 +92,296 @@ const memoize: Memoize = (fn: any) =>
   lodashMemoize(fn, (...args) => JSON.stringify(args));
 
 const API_URL = import.meta.env.VITE_API_URL;
-const DEFAULT_DEBOUNCE = import.meta.env.VITE_DELAY_CALL || 2500; // Time in milliseconds
 
 const zxcvbnAsync = await zxcvbn.loadZxcvbn();
 
-export const createAsyncValidator = (source: string) => {
+// export const useAsyncValidator = (
+//   source: string,
+//   // translateLabel: (options: {
+//   //   label?: string;
+//   //   source: string;
+//   //   resource?: string;
+//   // }) => string,
+//   // resource?: string,
+//   // delay: number = 2500,
+//   options?: UseFieldOptions,
+// ): Validator => {
+//   const resource = useResourceContext(options);
+//   const translateLabel = useTranslateLabel();
+//   if (!resource) {
+//     throw new Error("useAsync: missing resource prop or context");
+//   }
+//   const translate = useTranslate();
+//   // Store these in closure to maintain state between validations
+//   let timeoutId: NodeJS.Timeout | null = null;
+//   let abortController: AbortController | null = null;
+//   let lastValue = "";
+
+//   return (value: any, values: any, props: InputProps) => {
+//     // Clear previous timeout and abort controller
+//     if (timeoutId) clearTimeout(timeoutId);
+//     if (abortController) abortController.abort();
+
+//     // Store current value to compare later
+//     const currentValue = value;
+
+//     // if (isEmpty(currentValue)) {
+//     //   return Object.assign(
+//     //     MsgUtils.getMessage(
+//     //       "razeth.validation.required",
+//     //       {
+//     //         source: source,
+//     //         value,
+//     //         field: translateLabel({
+//     //           label: props.label,
+//     //           source: source,
+//     //           resource,
+//     //         }),
+//     //       },
+//     //       value,
+//     //       values,
+//     //     ),
+//     //     // Return undefined if the value is not empty
+//     //     { isRequired: true },
+//     //   );
+//     // }
+
+//     return new Promise((resolve) => {
+//       timeoutId = setTimeout(async () => {
+//         // Only proceed if value hasn't changed during wait
+//         if (currentValue !== lastValue) {
+//           lastValue = currentValue;
+//           console.log(await lastValue);
+
+//           try {
+//             abortController = new AbortController();
+
+//             const response = await axios.get(
+//               `${API_URL}/validate/${source}/${currentValue}`,
+//               { signal: abortController.signal },
+//             );
+
+//             const data = response.data;
+//             if (data.status !== statusCode.OK) {
+//               resolve({
+//                 message: data.message,
+//                 args: {
+//                   source,
+//                   value: currentValue,
+//                   field: translateLabel({
+//                     label: props.label,
+//                     source,
+//                     resource,
+//                   }),
+//                 },
+//               });
+//             } else {
+//               resolve(undefined);
+//             }
+//           } catch (error) {
+//             if (!axios.isCancel(error)) {
+//               resolve({ message: "ra.notification.http_error", args: {} });
+//             }
+//           }
+//         }
+//         // }, options?.debounce ?? DEFAULT_DEBOUNCE);
+//       }, 2500);
+//     });
+//   };
+// };
+
+export const useAsyncValidator6 = (
+  source: string,
+  options?: UseFieldOptions,
+): Validator => {
+  const resource = useResourceContext(options);
+  const translateLabel = useTranslateLabel();
+  if (!resource) {
+    throw new Error("useAsync: missing resource prop or context");
+  }
+  const translate = useTranslate();
+  let timeoutId: NodeJS.Timeout | null = null;
+  let abortController: AbortController | null = null;
+
+  return async (value: any, values: any, props: IconTextInputProps) => {
+    // Clear previous timeout and request
+    if (timeoutId) clearTimeout(timeoutId);
+    if (abortController) abortController.abort();
+
+    if (isEmpty(value)) {
+      //   return {
+      //     message: "razeth.validation.required",
+      //     args: {
+      //       source,
+      //       value,
+      //       field: translateLabel({
+      //         label: props.label,
+      //         source,
+      //         resource,
+      //       }),
+      //     },
+      //   };
+
+      return Object.assign(
+        MsgUtils.getMessage(
+          "razeth.validation.required",
+          {
+            source: source,
+            value,
+            field: translateLabel({
+              label: props.label,
+              source: source,
+              resource,
+            }),
+          },
+          value,
+          values,
+        ),
+        // Return undefined if the value is not empty
+        { isRequired: true },
+      );
+    }
+
+    return new Promise((resolve) => {
+      timeoutId = setTimeout(async () => {
+        try {
+          abortController = new AbortController();
+
+          const response = await axios.get(
+            `${API_URL}/validate/${source}/${value}`,
+            { signal: abortController.signal },
+          );
+
+          const data = response.data;
+          if (data.status !== "OK") {
+            resolve({
+              message: data.message,
+              args: {
+                source,
+                value,
+                field: translateLabel({
+                  label: props.label,
+                  source,
+                  resource,
+                }),
+              },
+            });
+          } else {
+            resolve(undefined); // Validation passed
+          }
+        } catch (error) {
+          if (!axios.isCancel(error)) {
+            resolve({ message: "ra.notification.http_error", args: {} });
+          }
+        }
+      }, options?.debounce ?? DEFAULT_DEBOUNCE);
+      // }, 2500);
+    });
+  };
+};
+
+export const useAsyncValidatorz = (
+  source: string,
+  // translateLabel: unknown, resource: string | undefined, p0: number,
+  options?: UseFieldOptions, // translateLabel: (options: {
+  //   label?: string | ReactElement | false;
+  //   source: string;
+  //   resource?: string;
+  // }) => string,
+  // resource?: string,
+  // debounce: number = DEFAULT_DEBOUNCE,
+) => {
+  const resource = useResourceContext(options);
+  const translateLabel = useTranslateLabel();
+  if (!resource) {
+    throw new Error("useAsync: missing resource prop or context");
+  }
+  const translate = useTranslate();
+  let timeoutId: NodeJS.Timeout | null = null;
+  let abortController: AbortController | null = null;
+
+  return async (
+    value: any,
+    // source: string,
+    allValues: any,
+    props: IconTextInputProps,
+  ): Promise<ValidationResult> => {
+    // Clear previous timeout and request
+    if (timeoutId) clearTimeout(timeoutId);
+    if (abortController) abortController.abort();
+
+    if (isEmpty(value)) {
+      // return {
+      //   message: "razeth.validation.required",
+      //   args: {
+      //     source,
+      //     value,
+      //     field: translateLabel({
+      //       label: props.label,
+      //       source,
+      //       resource,
+      //     }),
+      //   },
+      //   isRequired: true,
+      // };
+      return Object.assign(
+        MsgUtils.getMessage(
+          "razeth.validation.required",
+          {
+            source: props.source,
+            value,
+            field: translateLabel({
+              label: props.label,
+              source: props.source,
+              resource,
+            }),
+          },
+          value,
+          allValues,
+        ),
+        // Return undefined if the value is not empty
+        { isRequired: true },
+      );
+    }
+
+    return new Promise((resolve) => {
+      timeoutId = setTimeout(async () => {
+        try {
+          abortController = new AbortController();
+
+          const response = await axios.get(
+            `${API_URL}/validate/${source}/${value}`,
+            { signal: abortController.signal },
+          );
+
+          const data = response.data;
+          if (data.status !== "OK") {
+            resolve({
+              message: data.message,
+              args: {
+                source,
+                value,
+                field: translateLabel({
+                  label: props.label,
+                  source,
+                  resource,
+                }),
+              },
+            });
+          } else {
+            resolve(undefined);
+          }
+        } catch (error) {
+          if (!axios.isCancel(error)) {
+            resolve({ message: "ra.notification.http_error", args: {} });
+          }
+        }
+      }, options?.debounce ?? DEFAULT_DEBOUNCE);
+    });
+  };
+};
+
+export const createAsyncValidator1 = (source: string) => {
   let cancelTokenSource: CancelTokenSource | null = null;
   let currentValue = "";
 
@@ -159,7 +446,7 @@ export const createAsyncValidator = (source: string) => {
   };
 };
 
-export const useAsyncValidator = (options?: UseFieldOptions) => {
+export const useAsyncValidator5 = (options?: UseFieldOptions) => {
   const resource = useResourceContext(options);
   const translateLabel = useTranslateLabel();
   if (!resource) {

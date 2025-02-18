@@ -6,6 +6,7 @@ import {
   ValidationErrorMessage,
 } from "react-admin";
 
+export const DEFAULT_DEBOUNCE = import.meta.env.VITE_DELAY_CALL || 2500; // Time in milliseconds
 // export type FieldError = {
 //   error?: boolean;
 //   message?: string;
@@ -44,6 +45,15 @@ export type UseFieldOptions = {
   abortController?: MutableRefObject<AbortController | null>;
   options?: { endpoint?: string; successMessage?: string };
 };
+
+// export type Validator = (
+//   value: any,
+//   values: any,
+//   props: IconTextInputProps,
+// ) =>
+//   | ValidationErrorMessage
+//   | Promise<ValidationErrorMessage | undefined>
+//   | undefined;
 
 export type ValidationResult =
   | string

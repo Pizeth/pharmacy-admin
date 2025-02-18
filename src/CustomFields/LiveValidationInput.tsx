@@ -243,8 +243,11 @@ import {
   useTranslate,
   useTranslateLabel,
   useUnique,
+  ValidationErrorMessage,
+  Validator,
 } from "react-admin";
 import {
+  DEFAULT_DEBOUNCE,
   FieldError,
   IconTextInputProps,
   ValidationResult,
@@ -253,10 +256,9 @@ import {
 import clsx from "clsx";
 import { styled } from "@mui/material/styles";
 import {
-  createAsyncValidator,
   serverValidator,
   useAsync,
-  useAsyncValidator,
+  // useAsyncValidator,
   useRequired,
 } from "../Utils/validator";
 import {
@@ -315,11 +317,67 @@ const ValidationInput = (props: IconTextInputProps) => {
   const debouncedValidate = useRef<ReturnType<typeof asyncDebounce>>();
   const typingTimeout = useRef<NodeJS.Timeout>();
   const [statusMessage, setStatusMessage] = useState("");
-  const asyncValidator = useAsyncValidator();
+  // const asyncValidator = useAsyncValidator(source, {
+  //   debounce: DEFAULT_DEBOUNCE,
+  // });
   const [status, setStatus] = useState<ValidationResult1>({
     status: "pending",
   });
-  const validator = createAsyncValidator(source);
+  // const validator = createAsyncValidator(source);
+
+  /***** */
+  // Persistent refs for debounce tracking
+  const timeoutRef = useRef<NodeJS.Timeout>();
+  const abortRef = useRef<AbortController>();
+  const lastValueRef = useRef<string>("");
+
+  const asyncValidator = useMemo(
+    () => async (value: string) => {
+      // Clear previous timeout and request
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      if (abortRef.current) abortRef.current.abort();
+
+      return new Promise((resolve) => {
+        timeoutRef.current = setTimeout(
+          async () => {
+            try {
+              abortRef.current = new AbortController();
+              lastValueRef.current = value;
+
+              const response = await axios.get(
+                `${API_URL}/validate/${source}/${value}`,
+                { signal: abortRef.current.signal },
+              );
+
+              const data = response.data;
+              if (data.status !== "OK") {
+                resolve({
+                  message: data.message,
+                  args: {
+                    source,
+                    value,
+                    field: translateLabel({
+                      label: props.label,
+                      source,
+                      resource,
+                    }),
+                  },
+                });
+              } else {
+                resolve(undefined);
+              }
+            } catch (error) {
+              if (!axios.isCancel(error)) {
+                resolve({ message: "ra.notification.http_error" });
+              }
+            }
+          },
+          Number(import.meta.env.VITE_DELAY_CALL) || 2500,
+        );
+      });
+    },
+    [source, resource, translateLabel, props.label],
+  );
 
   const {
     field,
@@ -335,7 +393,12 @@ const ValidationInput = (props: IconTextInputProps) => {
     type: "text",
     // validate: validators,
     validate: [
-      ...validators,
+      // ...validators,
+      async (value): Promise<ValidationErrorMessage | null | undefined> => {
+        if (!value) return { message: "razeth.validation.required", args: {} };
+        const result = await asyncValidator(value);
+        return result as ValidationErrorMessage | undefined;
+      },
       // Your other validators
       // async (value, allValues: any, props: IconTextInputProps) => {
       //   if (isEmpty(value))
@@ -352,30 +415,24 @@ const ValidationInput = (props: IconTextInputProps) => {
       //       },
       //       isRequired: true,
       //     };
-
       //   // Clear previous timeout
       //   if (typingTimeout.current) {
       //     clearTimeout(typingTimeout.current);
       //   }
-
       //   // Cancel previous request
       //   if (abortController.current) {
       //     abortController.current.abort();
       //   }
-
       //   return new Promise((resolve) => {
       //     typingTimeout.current = setTimeout(async () => {
       //       abortController.current = new AbortController();
-
       //       try {
       //         const response = await axios.get(
       //           `${API_URL}/validate/${source}/${value}`,
       //           { signal: abortController.current.signal },
       //         );
-
       //         const data = response.data;
       //         console.log(data.status);
-
       //         if (data.status !== "OK") {
       //           resolve({
       //             message: data.message,
@@ -400,48 +457,55 @@ const ValidationInput = (props: IconTextInputProps) => {
       //     }, typingInterval); // Your VITE_DELAY_CALL value
       //   });
       // },
-
-      async (value) => {
-        // const result = await asyncValidator(value);
-        // if (result?.status === "success") {
-        //   setStatusMessage(result.message);
-        //   return undefined; // No error
-        // }
-        // if (result?.status === "error") {
-        //   setStatusMessage(""); // Clear success message
-        //   return result.message;
-        // }
-        // return undefined;
-
-        const result = await asyncValidator({
-          timeOut: typingTimeout,
-          abortController: abortController,
-        });
-        if (!result) return undefined;
-
-        const validationResult = await result(value, source, props);
-        if (validationResult && validationResult.status === 200) {
-          setStatusMessage(validationResult.message);
-          return undefined;
-        }
-        setStatusMessage("");
-        return validationResult?.message;
-      },
-
+      // async (value) => {
+      // const result = await asyncValidator(value);
+      // if (result?.status === "success") {
+      //   setStatusMessage(result.message);
+      //   return undefined; // No error
+      // }
+      // if (result?.status === "error") {
+      //   setStatusMessage(""); // Clear success message
+      //   return result.message;
+      // }
+      // return undefined;
+      // const result = await asyncValidator({
+      //   timeOut: typingTimeout,
+      //   abortController: abortController,
+      // });
+      // if (!result) return undefined;
+      // const validationResult = await result(value, source, props);
+      // if (validationResult && validationResult.status === 200) {
+      //   setStatusMessage(validationResult.message);
+      //   return undefined;
+      // }
+      // setStatusMessage("");
+      // return validationResult?.message;
+      // },
       // async (value) => {
       //   const result = await validator.validate(value);
       //   setStatus(result);
-
       //   if (result.status === "error") {
       //     return result.message;
       //   }
       //   return undefined;
       // },
+      // asyncValidator,
+      // useAsyncValidator(source, {
+      //   debounce: DEFAULT_DEBOUNCE,
+      // }),
     ],
     onBlur,
     onChange,
     ...rest,
   });
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      if (abortRef.current) abortRef.current.abort();
+    };
+  }, []);
 
   // Cleanup
   // useEffect(() => {
@@ -452,11 +516,11 @@ const ValidationInput = (props: IconTextInputProps) => {
   // }, []);
 
   // Cleanup
-  useEffect(() => {
-    return () => {
-      validator.cancel();
-    };
-  }, []);
+  // useEffect(() => {
+  //   return () => {
+  //     validator.cancel();
+  //   };
+  // }, []);
 
   // const notify = useNotify();
   const [value, setValue] = useState(field.value || "");
