@@ -258,6 +258,9 @@ import { styled } from "@mui/material/styles";
 import {
   serverValidator,
   useAsync,
+  useAsyncValidator3,
+  useAsyncValidator5,
+  useDebouncedValidator,
   // useAsyncValidator,
   useRequired,
 } from "../Utils/validator";
@@ -320,64 +323,68 @@ const ValidationInput = (props: IconTextInputProps) => {
   // const asyncValidator = useAsyncValidator(source, {
   //   debounce: DEFAULT_DEBOUNCE,
   // });
+  // const asyncValidator = useAsyncValidator3();
   const [status, setStatus] = useState<ValidationResult1>({
     status: "pending",
   });
   // const validator = createAsyncValidator(source);
 
   /***** */
+  const validator = useDebouncedValidator(source, {
+    debounce: DEFAULT_DEBOUNCE,
+  });
   // Persistent refs for debounce tracking
   const timeoutRef = useRef<NodeJS.Timeout>();
   const abortRef = useRef<AbortController>();
   const lastValueRef = useRef<string>("");
 
-  const asyncValidator = useMemo(
-    () => async (value: string) => {
-      // Clear previous timeout and request
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
-      if (abortRef.current) abortRef.current.abort();
+  // const asyncValidator = useMemo(
+  //   () => async (value: string) => {
+  //     // Clear previous timeout and request
+  //     if (timeoutRef.current) clearTimeout(timeoutRef.current);
+  //     if (abortRef.current) abortRef.current.abort();
 
-      return new Promise((resolve) => {
-        timeoutRef.current = setTimeout(
-          async () => {
-            try {
-              abortRef.current = new AbortController();
-              lastValueRef.current = value;
+  //     return new Promise((resolve) => {
+  //       timeoutRef.current = setTimeout(
+  //         async () => {
+  //           try {
+  //             abortRef.current = new AbortController();
+  //             lastValueRef.current = value;
 
-              const response = await axios.get(
-                `${API_URL}/validate/${source}/${value}`,
-                { signal: abortRef.current.signal },
-              );
+  //             const response = await axios.get(
+  //               `${API_URL}/validate/${source}/${value}`,
+  //               { signal: abortRef.current.signal },
+  //             );
 
-              const data = response.data;
-              if (data.status !== "OK") {
-                resolve({
-                  message: data.message,
-                  args: {
-                    source,
-                    value,
-                    field: translateLabel({
-                      label: props.label,
-                      source,
-                      resource,
-                    }),
-                  },
-                });
-              } else {
-                resolve(undefined);
-              }
-            } catch (error) {
-              if (!axios.isCancel(error)) {
-                resolve({ message: "ra.notification.http_error" });
-              }
-            }
-          },
-          Number(import.meta.env.VITE_DELAY_CALL) || 2500,
-        );
-      });
-    },
-    [source, resource, translateLabel, props.label],
-  );
+  //             const data = response.data;
+  //             if (data.status !== "OK") {
+  //               resolve({
+  //                 message: data.message,
+  //                 args: {
+  //                   source,
+  //                   value,
+  //                   field: translateLabel({
+  //                     label: props.label,
+  //                     source,
+  //                     resource,
+  //                   }),
+  //                 },
+  //               });
+  //             } else {
+  //               resolve(undefined);
+  //             }
+  //           } catch (error) {
+  //             if (!axios.isCancel(error)) {
+  //               resolve({ message: "ra.notification.http_error" });
+  //             }
+  //           }
+  //         },
+  //         Number(import.meta.env.VITE_DELAY_CALL) || 2500,
+  //       );
+  //     });
+  //   },
+  //   [source, resource, translateLabel, props.label],
+  // );
 
   const {
     field,
@@ -394,11 +401,22 @@ const ValidationInput = (props: IconTextInputProps) => {
     // validate: validators,
     validate: [
       // ...validators,
-      async (value): Promise<ValidationErrorMessage | null | undefined> => {
-        if (!value) return { message: "razeth.validation.required", args: {} };
-        const result = await asyncValidator(value);
-        return result as ValidationErrorMessage | undefined;
+      async (value, values, props) => {
+        // console.log(value);
+        // if (!value) return { message: "validation.required" };
+        const result = await validator(value, values, props);
+        // console.log(await result);
+        return result;
       },
+      // async (
+      //   value,
+      //   values,
+      //   props,
+      // ): Promise<ValidationErrorMessage | undefined> => {
+      //   // if (!value) return { message: "validation.required" };
+      //   return validator(value, values, props);
+      // },
+      // asyncValidator,
       // Your other validators
       // async (value, allValues: any, props: IconTextInputProps) => {
       //   if (isEmpty(value))
@@ -500,12 +518,12 @@ const ValidationInput = (props: IconTextInputProps) => {
   });
 
   // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
-      if (abortRef.current) abortRef.current.abort();
-    };
-  }, []);
+  // useEffect(() => {
+  //   return () => {
+  //     if (timeoutRef.current) clearTimeout(timeoutRef.current);
+  //     if (abortRef.current) abortRef.current.abort();
+  //   };
+  // }, []);
 
   // Cleanup
   // useEffect(() => {
@@ -652,15 +670,15 @@ const ValidationInput = (props: IconTextInputProps) => {
 
   // Combine sync and async errors
   // const isError = invalid || !!asyncError;
-  const errMsg = error?.message || validMessage || status.message || "";
+  const errMsg = error?.message || validMessage || /*status.message ||*/ "";
   // const renderHelperText = helperText !== false || invalid;
   const renderHelperText = !!(
     helperText ||
     errMsg ||
-    status.message ||
+    // status.message ||
     invalid
   );
-  const helper = !!(helperText || errMsg || status.message);
+  const helper = !!((helperText || errMsg) /*|| status.message*/);
   // console.log("hepler :", renderHelperText);
   // console.log("invalid :", invalid);
   // const isError = validateError?.invalid || invalid;

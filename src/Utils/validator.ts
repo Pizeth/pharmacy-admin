@@ -65,6 +65,7 @@ import {
   useResourceContext,
   useTranslate,
   useTranslateLabel,
+  ValidationErrorMessage,
   Validator,
 } from "react-admin";
 import {
@@ -94,6 +95,146 @@ const memoize: Memoize = (fn: any) =>
 const API_URL = import.meta.env.VITE_API_URL;
 
 const zxcvbnAsync = await zxcvbn.loadZxcvbn();
+
+//  const {
+//     field,
+//     fieldState: { error, invalid },
+//     id,
+//     isRequired,
+//   } = useInput({
+//     defaultValue,
+//     format,
+//     parse,
+//     resource,
+//     source,
+//     type: "text",
+//     validate: [
+//       async (value, values, props) => {
+//         return validator(value, props);
+//       },
+//     ],
+//     onBlur,
+//     onChange,
+//     ...rest,
+//   });
+
+export const useDebouncedValidator = (
+  source: string,
+  options?: UseFieldOptions,
+) => {
+  const resource = useResourceContext(options);
+  const translateLabel = useTranslateLabel();
+  if (!resource) {
+    throw new Error("useAsync: missing resource prop or context");
+  }
+  const timeoutRef = useRef<NodeJS.Timeout>();
+  const cancelTokenRef = useRef<CancelTokenSource>();
+  const lastValueRef = useRef<string>("");
+
+  const validate = useCallback(
+    async (
+      value: string,
+      values: any,
+      props: IconTextInputProps,
+    ): Promise<ValidationErrorMessage | null | undefined> => {
+      // ): Promise<ValidationErrorMessage | undefined> => {
+      if (isEmpty(value)) {
+        return Object.assign(
+          // (value: any, values: any) =>
+          MsgUtils.getMessage(
+            "razeth.validation.required",
+            {
+              source: source,
+              value,
+              field: translateLabel({
+                label: props.label,
+                source: source,
+                resource,
+              }),
+            },
+            value,
+            values,
+          ),
+          // Return undefined if the value is not empty
+          { isRequired: true },
+        );
+      }
+
+      // Clear previous
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      if (cancelTokenRef.current) cancelTokenRef.current.cancel();
+
+      return new Promise((resolve) => {
+        timeoutRef.current = setTimeout(async () => {
+          if (value === lastValueRef.current) return undefined;
+          lastValueRef.current = value;
+
+          try {
+            cancelTokenRef.current = axios.CancelToken.source();
+
+            const response = await axios.get(
+              `${API_URL}/validate/${source}/${value}`,
+              {
+                cancelToken: cancelTokenRef.current.token,
+              },
+            );
+
+            const data = response.data;
+            console.log(value);
+            // console.log(statusCode.OK);
+            const status = statusCode.getStatusCode(data.status);
+            if (status !== statusCode.OK) {
+              resolve(
+                // (value: any, values: any) => (
+                {
+                  // status: data.status,
+                  message: data.message,
+                  args: {
+                    source,
+                    value,
+                    field: translateLabel({
+                      label: props.label,
+                      source,
+                      resource,
+                    }),
+                  },
+                },
+              );
+              // );
+            }
+            // return undefined;
+            console.log("no error");
+            resolve(undefined);
+          } catch (error) {
+            if (!axios.isCancel(error)) {
+              resolve(
+                // (value: any, values: any) => (
+                {
+                  // status: statusCode.OK,
+                  message: "razeth.validation.async",
+                  args: {
+                    source,
+                    value,
+                    // field: props.label || source,
+                    field: translateLabel({
+                      label: props.label,
+                      source,
+                      resource,
+                    }),
+                  },
+                },
+              );
+              // );
+            }
+          }
+        }, options?.debounce ?? DEFAULT_DEBOUNCE);
+      });
+    },
+    [options?.debounce, resource, source, translateLabel],
+  );
+
+  return validate;
+};
 
 // export const useAsyncValidator = (
 //   source: string,
