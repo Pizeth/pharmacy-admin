@@ -4,6 +4,7 @@ import {
   LinearProgressProps,
   PasswordInputProps,
   ValidationErrorMessage,
+  ValidationErrorMessageWithArgs,
 } from "react-admin";
 
 export const DEFAULT_DEBOUNCE = import.meta.env.VITE_DELAY_CALL || 2500; // Time in milliseconds
@@ -39,6 +40,7 @@ interface MessageFuncParams {
 
 export type UseFieldOptions = {
   resource?: string;
+  source?: string;
   message?: string;
   debounce?: number;
   timeOut?: MutableRefObject<NodeJS.Timeout | undefined>;
@@ -46,14 +48,11 @@ export type UseFieldOptions = {
   options?: { endpoint?: string; successMessage?: string };
 };
 
-// export type Validator = (
-//   value: any,
-//   values: any,
-//   props: IconTextInputProps,
-// ) =>
-//   | ValidationErrorMessage
-//   | Promise<ValidationErrorMessage | undefined>
-//   | undefined;
+// New type that includes isRequired
+export type AsyncValidationErrorMessage = ValidationErrorMessage & {
+  isRequired?: boolean;
+  status?: boolean | number;
+};
 
 export type ValidationResult =
   | string

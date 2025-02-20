@@ -69,6 +69,7 @@ import {
   Validator,
 } from "react-admin";
 import {
+  AsyncValidationErrorMessage,
   DEFAULT_DEBOUNCE,
   FieldError,
   IconTextInputProps,
@@ -118,77 +119,110 @@ const zxcvbnAsync = await zxcvbn.loadZxcvbn();
 //     ...rest,
 //   });
 
-export const useDebouncedValidator = (
-  source: string,
+export const useAsyncValidator = (
+  // source: string,
   options?: UseFieldOptions,
 ) => {
   const resource = useResourceContext(options);
   const translateLabel = useTranslateLabel();
+  const timeoutRef = useRef<NodeJS.Timeout>();
+  const cancelTokenRef = useRef<CancelTokenSource>();
+  // const lastValueRef = useRef<string>("");
+  const currentValidationId = useRef(0);
+
   if (!resource) {
     throw new Error("useAsync: missing resource prop or context");
   }
-  const timeoutRef = useRef<NodeJS.Timeout>();
-  const cancelTokenRef = useRef<CancelTokenSource>();
-  const lastValueRef = useRef<string>("");
 
   const validate = useCallback(
-    async (
-      value: string,
-      values: any,
-      props: IconTextInputProps,
-    ): Promise<ValidationErrorMessage | null | undefined> => {
-      // ): Promise<ValidationErrorMessage | undefined> => {
-      if (isEmpty(value)) {
-        return Object.assign(
-          // (value: any, values: any) =>
-          MsgUtils.getMessage(
-            "razeth.validation.required",
-            {
-              source: source,
-              value,
-              field: translateLabel({
-                label: props.label,
-                source: source,
-                resource,
-              }),
-            },
-            value,
-            values,
-          ),
-          // Return undefined if the value is not empty
-          { isRequired: true },
-        );
-      }
+    (callTimeOptions?: UseFieldOptions) => {
+      const { message, debounce: interval } = merge<UseFieldOptions, any, any>(
+        {
+          debounce: DEFAULT_DEBOUNCE,
+          message: "razeth.validation.required",
+        },
+        options,
+        callTimeOptions,
+      );
 
-      // Clear previous
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
-      if (cancelTokenRef.current) cancelTokenRef.current.cancel();
-
-      return new Promise((resolve) => {
-        timeoutRef.current = setTimeout(async () => {
-          if (value === lastValueRef.current) return undefined;
-          lastValueRef.current = value;
-
-          try {
-            cancelTokenRef.current = axios.CancelToken.source();
-
-            const response = await axios.get(
-              `${API_URL}/validate/${source}/${value}`,
+      return async (
+        value: any,
+        allValues: any,
+        props: IconTextInputProps,
+        // ): Promise<ValidationErrorMessage | null | undefined> => {
+      ) => {
+        const { source, label } = props;
+        if (isEmpty(value)) {
+          return Object.assign(
+            MsgUtils.getMessage(
+              message,
               {
-                cancelToken: cancelTokenRef.current.token,
+                source: source,
+                status: statusCode.ACCEPTED,
+                value,
+                field: translateLabel({
+                  label: label,
+                  source: source,
+                  resource,
+                }),
               },
-            );
+              value,
+              allValues,
+            ),
+            // Return undefined if the value is not empty
+            { isRequired: true },
+          );
+          // return undefined;
+        }
+        // Clear previous validation
+        if (timeoutRef.current) clearTimeout(timeoutRef.current);
+        if (cancelTokenRef.current) cancelTokenRef.current.cancel();
 
-            const data = response.data;
-            console.log(value);
-            // console.log(statusCode.OK);
-            const status = statusCode.getStatusCode(data.status);
-            if (status !== statusCode.OK) {
-              resolve(
-                // (value: any, values: any) => (
-                {
-                  // status: data.status,
+        // Generate new validation ID
+        const validationId = ++currentValidationId.current;
+
+        return new Promise<AsyncValidationErrorMessage | undefined>(
+          (resolve) => {
+            timeoutRef.current = setTimeout(async () => {
+              // Only process if still the latest validation
+              if (validationId !== currentValidationId.current) {
+                resolve(undefined);
+                return;
+              }
+              // if (value === lastValueRef.current) return;
+              // lastValueRef.current = value;
+
+              try {
+                cancelTokenRef.current = axios.CancelToken.source();
+                const response = await axios.get(
+                  `${API_URL}/validate/${source}/${value}`,
+                  {
+                    cancelToken: cancelTokenRef.current.token,
+                  },
+                );
+
+                const data = response.data;
+                const status = statusCode.getStatusCode(data.status);
+                // Proper success case handling
+                // if (status === statusCode.OK) {
+                //   resolve(undefined); // ✅ Clear errors automatically
+                // } else {
+                //   const validationError: ValidationErrorMessage = {
+                //     message: data.message,
+                //     args: {
+                //       source,
+                //       value,
+                //       field: translateLabel({
+                //         label: props.label,
+                //         source,
+                //         resource,
+                //       }),
+                //     },
+                //   };
+                // }
+                resolve({
                   message: data.message,
+                  status: status,
                   args: {
                     source,
                     value,
@@ -198,42 +232,151 @@ export const useDebouncedValidator = (
                       resource,
                     }),
                   },
-                },
-              );
-              // );
-            }
-            // return undefined;
-            console.log("no error");
-            resolve(undefined);
-          } catch (error) {
-            if (!axios.isCancel(error)) {
-              resolve(
-                // (value: any, values: any) => (
-                {
-                  // status: statusCode.OK,
-                  message: "razeth.validation.async",
-                  args: {
-                    source,
-                    value,
-                    // field: props.label || source,
-                    field: translateLabel({
-                      label: props.label,
+                });
+              } catch (error) {
+                if (!axios.isCancel(error)) {
+                  // resolve((value: any, values: any) => ({
+                  resolve({
+                    message: "razeth.validation.async",
+                    status: statusCode.INTERNAL_SERVER_ERROR,
+                    args: {
                       source,
-                      resource,
-                    }),
-                  },
-                },
-              );
-              // );
-            }
-          }
-        }, options?.debounce ?? DEFAULT_DEBOUNCE);
-      });
+                      value,
+                      field: translateLabel({
+                        label: props.label,
+                        source,
+                        resource,
+                      }),
+                    },
+                  });
+                  // );
+                }
+              }
+            }, interval ?? DEFAULT_DEBOUNCE);
+          },
+        );
+      };
     },
-    [options?.debounce, resource, source, translateLabel],
+    [options, resource, translateLabel],
   );
 
+  // async (
+  //   value: string,
+  //   values: any,
+  //   props: IconTextInputProps,
+  // ): Promise<ValidationErrorMessage | null | undefined> => {
+  //   const { source, label } = props;
+  //   // ): Promise<Validator | undefined> => {
+  //   if (isEmpty(value)) {
+  //     return Object.assign(
+  //       // (value: any, values: any) =>
+  //       MsgUtils.getMessage(
+  //         "razeth.validation.required",
+  //         {
+  //           source: source,
+  //           value,
+  //           field: translateLabel({
+  //             label: label,
+  //             source: source,
+  //             resource,
+  //           }),
+  //         },
+  //         value,
+  //         values,
+  //       ),
+  //       // Return undefined if the value is not empty
+  //       { isRequired: true },
+  //     );
+  //   }
+
+  //   // Handle empty value
+  //   // if (isEmpty(value)) {
+  //   //   return MsgUtils.getMessage1("razeth.validation.required", {
+  //   //     source,
+  //   //     value,
+  //   //     field: translateLabel({
+  //   //       label: props.label,
+  //   //       source,
+  //   //       resource,
+  //   //     }),
+  //   //   });
+  //   // }
+
+  //   // Clear previous
+  //   if (timeoutRef.current) clearTimeout(timeoutRef.current);
+  //   if (cancelTokenRef.current) cancelTokenRef.current.cancel();
+
+  //   return new Promise((resolve) => {
+  //     timeoutRef.current = setTimeout(async () => {
+  //       if (value === lastValueRef.current) return undefined;
+  //       lastValueRef.current = value;
+
+  //       try {
+  //         cancelTokenRef.current = axios.CancelToken.source();
+
+  //         const response = await axios.get(
+  //           `${API_URL}/validate/${source}/${value}`,
+  //           {
+  //             cancelToken: cancelTokenRef.current.token,
+  //           },
+  //         );
+
+  //         const data = response.data;
+  //         const status = statusCode.getStatusCode(data.status);
+  //         // Proper success case handling
+  //         if (status === statusCode.OK) {
+  //           console.log("jol and should clear error");
+  //           resolve(undefined); // ✅ Clear errors automatically
+  //         } else {
+  //           // resolve((value: any, values: any) => ({
+  //           resolve({
+  //             message: data.message,
+  //             args: {
+  //               source,
+  //               value,
+  //               field: translateLabel({
+  //                 label: props.label,
+  //                 source,
+  //                 resource,
+  //               }),
+  //             },
+  //           });
+  //           // );
+  //         }
+  //       } catch (error) {
+  //         if (!axios.isCancel(error)) {
+  //           // resolve((value: any, values: any) => ({
+  //           resolve({
+  //             message: "razeth.validation.async",
+  //             args: {
+  //               source,
+  //               value,
+  //               field: translateLabel({
+  //                 label: props.label,
+  //                 source,
+  //                 resource,
+  //               }),
+  //             },
+  //           });
+  //           // );
+  //         }
+  //       }
+  //     }, options?.debounce ?? DEFAULT_DEBOUNCE);
+  //   });
+  // },
+  // [options, resource, translateLabel],
+  // );
+  // console.log(validate);
   return validate;
+  // return (
+  //   value: string,
+  //   values: any,
+  //   props: IconTextInputProps,
+  // ): Promise<ValidationErrorMessage | null | undefined> => {
+  //   return validate(value, values, props) as Promise<
+  //     ValidationErrorMessage | null | undefined
+  //   >;
+  // };
 };
 
 // export const useAsyncValidator = (
