@@ -81,7 +81,7 @@ import {
 
 import lodashMemoize from "lodash/memoize";
 import MsgUtils from "./MsgUtils";
-import { ReactElement, useCallback, useEffect, useRef } from "react";
+import { ReactElement, useCallback, useEffect, useRef, useState } from "react";
 import { merge, set } from "lodash";
 import { resolve } from "path";
 // import { AxiosRequestConfig } from "axios";
@@ -127,6 +127,7 @@ export const useAsyncValidator = (
   const translateLabel = useTranslateLabel();
   const timeoutRef = useRef<NodeJS.Timeout>();
   const cancelTokenRef = useRef<CancelTokenSource>();
+  const [successMessage, setSuccessMessage] = useState("");
   // const lastValueRef = useRef<string>("");
   const currentValidationId = useRef(0);
 
@@ -147,18 +148,18 @@ export const useAsyncValidator = (
 
       return async (
         value: any,
-        allValues: any,
         props: IconTextInputProps,
+        allValues?: any,
         // ): Promise<ValidationErrorMessage | null | undefined> => {
       ) => {
         const { source, label } = props;
+        // console.log("le porprr", props);
         if (isEmpty(value)) {
           return Object.assign(
             MsgUtils.getMessage(
               message,
               {
                 source: source,
-                status: statusCode.ACCEPTED,
                 value,
                 field: translateLabel({
                   label: label,
@@ -171,12 +172,16 @@ export const useAsyncValidator = (
             ),
             // Return undefined if the value is not empty
             { isRequired: true },
+            { status: statusCode.ACCEPTED },
           );
           // return undefined;
         }
         // Clear previous validation
         if (timeoutRef.current) clearTimeout(timeoutRef.current);
         if (cancelTokenRef.current) cancelTokenRef.current.cancel();
+
+        // Reset success message immediately
+        setSuccessMessage("");
 
         // Generate new validation ID
         const validationId = ++currentValidationId.current;
@@ -204,38 +209,42 @@ export const useAsyncValidator = (
                 const data = response.data;
                 const status = statusCode.getStatusCode(data.status);
                 // Proper success case handling
-                // if (status === statusCode.OK) {
-                //   resolve(undefined); // ✅ Clear errors automatically
-                // } else {
-                //   const validationError: ValidationErrorMessage = {
-                //     message: data.message,
-                //     args: {
-                //       source,
-                //       value,
-                //       field: translateLabel({
-                //         label: props.label,
-                //         source,
-                //         resource,
-                //       }),
-                //     },
-                //   };
-                // }
-                resolve({
-                  message: data.message,
-                  status: status,
-                  args: {
-                    source,
-                    value,
-                    field: translateLabel({
-                      label: props.label,
+                if (status === statusCode.OK) {
+                  setSuccessMessage(data.message);
+                  resolve(undefined); // ✅ Clear errors automatically
+                } else {
+                  //   const validationError: ValidationErrorMessage = {
+                  //     message: data.message,
+                  //     args: {
+                  //       source,
+                  //       value,
+                  //       field: translateLabel({
+                  //         label: props.label,
+                  //         source,
+                  //         resource,
+                  //       }),
+                  //     },
+                  //   };
+                  // }
+                  setSuccessMessage("");
+                  resolve({
+                    message: data.message,
+                    status: status,
+                    args: {
                       source,
-                      resource,
-                    }),
-                  },
-                });
+                      value,
+                      field: translateLabel({
+                        label: props.label,
+                        source,
+                        resource,
+                      }),
+                    },
+                  });
+                }
               } catch (error) {
                 if (!axios.isCancel(error)) {
                   // resolve((value: any, values: any) => ({
+                  setSuccessMessage("");
                   resolve({
                     message: "razeth.validation.async",
                     status: statusCode.INTERNAL_SERVER_ERROR,
@@ -367,7 +376,7 @@ export const useAsyncValidator = (
   // [options, resource, translateLabel],
   // );
   // console.log(validate);
-  return validate;
+  return { validate, successMessage };
   // return (
   //   value: string,
   //   values: any,

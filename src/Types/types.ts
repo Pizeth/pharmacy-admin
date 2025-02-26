@@ -31,7 +31,9 @@ export type Memoize = <T extends (...args: any[]) => any>(
   resolver?: (...args: any[]) => any,
 ) => T;
 
-export type MessageFunc = (params: MessageFuncParams) => ValidationErrorMessage;
+export type MessageFunc = (
+  params: MessageFuncParams,
+) => AsyncValidationErrorMessage;
 interface MessageFuncParams {
   args: any;
   value: any;

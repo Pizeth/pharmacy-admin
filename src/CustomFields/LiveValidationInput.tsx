@@ -254,7 +254,7 @@ import {
 } from "../Types/types";
 import clsx from "clsx";
 import { styled } from "@mui/material/styles";
-import {
+import validator, {
   serverValidator,
   useAsync,
   useAsyncValidator,
@@ -269,7 +269,8 @@ import "../Styles/style.css";
 import InputAdornment from "@mui/material/InputAdornment";
 import { CircularProgress } from "@mui/material";
 import { InputHelper } from "../CustomComponents/InputHelper";
-import { useFormContext } from "react-hook-form";
+import { useFormContext, useFormState } from "react-hook-form";
+import { StatusCodes } from "http-status-codes";
 
 const ValidationInput = (props: IconTextInputProps) => {
   const {
@@ -290,10 +291,14 @@ const ValidationInput = (props: IconTextInputProps) => {
   } = props;
 
   const { setError, clearErrors } = useFormContext();
+  // const { setError, clearErrors, dirtyFields } = useFormState();
   // Get required validator
   const require = useRequired();
   // const asyncValidate = useAsync();
-  const validator = useAsyncValidator({
+  // const validator = useAsyncValidator({
+  //   debounce: DEFAULT_DEBOUNCE,
+  // });
+  const { validate: asyncValidate, successMessage } = useAsyncValidator({
     debounce: DEFAULT_DEBOUNCE,
   });
   const unique = useUnique();
@@ -303,7 +308,8 @@ const ValidationInput = (props: IconTextInputProps) => {
     const normalizedValidate = Array.isArray(validate) ? validate : [validate];
     const baseValidators = [...normalizedValidate];
     baseValidators.push(require());
-    baseValidators.push(validator({ debounce: 250 }));
+    // baseValidators.push(validator({ debounce: 250 }));
+    baseValidators.push(asyncValidate());
     // baseValidators.push(asyncValidator());
     // async (value, values, props) => {
     //     // console.log(value);
@@ -313,9 +319,9 @@ const ValidationInput = (props: IconTextInputProps) => {
     //     return result;
     //   },
     return baseValidators;
-  }, [require, validate, validator]);
+  }, [asyncValidate, require, validate]);
 
-  const [statusMessage, setStatusMessage] = useState("");
+  // const [statusMessage, setStatusMessage] = useState("");
 
   // const asyncValidator = useMemo(
   //   () => async (value: string) => {
@@ -368,6 +374,7 @@ const ValidationInput = (props: IconTextInputProps) => {
   const {
     field,
     fieldState: { error, invalid },
+    formState: { dirtyFields },
     id,
     isRequired,
   } = useInput({
@@ -379,6 +386,20 @@ const ValidationInput = (props: IconTextInputProps) => {
     type: "text",
     validate: validators,
     // asyncValidator,
+    // validate: [
+    //   ...validators,
+    //   async (value) => {
+    //     const result = await asyncValidate()(value, props);
+    //     if (!result) {
+    //       return undefined; // No error
+    //     }
+    //     if (result.status === StatusCodes.OK) {
+    //       return result;
+    //     }
+    //     return result;
+    //   },
+    // ],
+
     // Your other validators
     // async (value, allValues: any, props: IconTextInputProps) => {
     //   if (isEmpty(value))
@@ -559,6 +580,12 @@ const ValidationInput = (props: IconTextInputProps) => {
     }
   }, [typing, value, source, typingInterval, setError, clearErrors]);
 
+  // Optimize valid state updates
+  useEffect(() => {
+    if (!error && dirtyFields && !invalid) {
+      clearErrors(source);
+    }
+  }, [clearErrors, dirtyFields, error, invalid, source]);
   // const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
   //   setValue(e?.target?.value ?? e);
   //   setTyping(true);
@@ -606,12 +633,12 @@ const ValidationInput = (props: IconTextInputProps) => {
 
   // Combine sync and async errors
   // const isError = invalid || !!asyncError;
-  const errMsg = error?.message || validMessage || /*status.message ||*/ "";
+  const errMsg = error?.message || validMessage || successMessage;
   // const renderHelperText = helperText !== false || invalid;
   const renderHelperText = !!(
     helperText ||
     errMsg ||
-    // status.message ||
+    successMessage ||
     invalid
   );
   const helper = !!((helperText || errMsg) /*|| status.message*/);
