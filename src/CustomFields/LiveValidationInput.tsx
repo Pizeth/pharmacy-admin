@@ -234,29 +234,12 @@
 // };
 
 // export default ValidationInput;
-import React, { useEffect, useMemo, useRef, useState } from "react";
-import {
-  asyncDebounce,
-  isEmpty,
-  useInput,
-  useTranslate,
-  useTranslateLabel,
-  useUnique,
-  ValidationErrorMessage,
-  Validator,
-} from "react-admin";
-import {
-  DEFAULT_DEBOUNCE,
-  FieldError,
-  IconTextInputProps,
-  ValidationResult,
-  ValidationResult1,
-} from "../Types/types";
+import React, { useEffect, useMemo, useState } from "react";
+import { useInput } from "react-admin";
+import { DEFAULT_DEBOUNCE, IconTextInputProps } from "../Types/types";
 import clsx from "clsx";
-import { styled } from "@mui/material/styles";
-import validator, {
+import {
   serverValidator,
-  useAsync,
   useAsyncValidator,
   useRequired,
 } from "../Utils/validator";
@@ -269,8 +252,10 @@ import "../Styles/style.css";
 import InputAdornment from "@mui/material/InputAdornment";
 import { CircularProgress } from "@mui/material";
 import { InputHelper } from "../CustomComponents/InputHelper";
-import { useFormContext, useFormState } from "react-hook-form";
-import { StatusCodes } from "http-status-codes";
+import { useFormContext } from "react-hook-form";
+import { validationMessages } from "../Stores/signals";
+import { useAtomValue } from "jotai";
+import { validationMessagesAtom } from "../Stores/validationStore";
 
 const ValidationInput = (props: IconTextInputProps) => {
   const {
@@ -294,34 +279,21 @@ const ValidationInput = (props: IconTextInputProps) => {
   // const { setError, clearErrors, dirtyFields } = useFormState();
   // Get required validator
   const require = useRequired();
-  // const asyncValidate = useAsync();
-  // const validator = useAsyncValidator({
+  // const { validate: asyncValidate, successMessage } = useAsyncValidator({
   //   debounce: DEFAULT_DEBOUNCE,
   // });
-  const { validate: asyncValidate, successMessage } = useAsyncValidator({
+  const asyncValidate = useAsyncValidator({
     debounce: DEFAULT_DEBOUNCE,
   });
-  const unique = useUnique();
 
   // Compute validators with normalization
   const validators = useMemo(() => {
     const normalizedValidate = Array.isArray(validate) ? validate : [validate];
     const baseValidators = [...normalizedValidate];
     baseValidators.push(require());
-    // baseValidators.push(validator({ debounce: 250 }));
     baseValidators.push(asyncValidate());
-    // baseValidators.push(asyncValidator());
-    // async (value, values, props) => {
-    //     // console.log(value);
-    //     // if (!value) return { message: "validation.required" };
-    //     const result = await validator(value, values, props);
-    //     // console.log(await result);
-    //     return result;
-    //   },
     return baseValidators;
   }, [asyncValidate, require, validate]);
-
-  // const [statusMessage, setStatusMessage] = useState("");
 
   // const asyncValidator = useMemo(
   //   () => async (value: string) => {
@@ -373,7 +345,7 @@ const ValidationInput = (props: IconTextInputProps) => {
 
   const {
     field,
-    fieldState: { error, invalid },
+    fieldState: { error, invalid, isValidating },
     formState: { dirtyFields },
     id,
     isRequired,
@@ -507,11 +479,11 @@ const ValidationInput = (props: IconTextInputProps) => {
   const [focused, setFocused] = useState(false);
   // const [asyncError, setAsyncError] = useState<string | undefined>();
   const [validMessage, setValidMessage] = useState<string | undefined>();
-  const [isValidating, setIsValidating] = useState(false);
+  // const [isValidating, setIsValidating] = useState(false);
   const typingInterval = import.meta.env.VITE_DELAY_CALL || 2500; // Time in milliseconds
 
   const validateAsync = React.useCallback(async () => {
-    setIsValidating(true); // Start validation
+    // setIsValidating(true); // Start validation
     setValidMessage("");
     try {
       const result = await serverValidator(value, `validate/${source}`);
@@ -530,7 +502,7 @@ const ValidationInput = (props: IconTextInputProps) => {
     } catch (err) {
       setError(source, { type: "validate", message: "Validation failed" });
     } finally {
-      setIsValidating(false); // End validation
+      // setIsValidating(false); // End validation
     }
   }, [value, source, setError, clearErrors]);
 
@@ -582,10 +554,10 @@ const ValidationInput = (props: IconTextInputProps) => {
 
   // Optimize valid state updates
   useEffect(() => {
-    if (!error && dirtyFields && !invalid) {
+    if (!isValidating && !error && dirtyFields && !invalid) {
       clearErrors(source);
     }
-  }, [clearErrors, dirtyFields, error, invalid, source]);
+  }, [clearErrors, dirtyFields, error, invalid, isValidating, source]);
   // const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
   //   setValue(e?.target?.value ?? e);
   //   setTyping(true);
@@ -633,7 +605,9 @@ const ValidationInput = (props: IconTextInputProps) => {
 
   // Combine sync and async errors
   // const isError = invalid || !!asyncError;
-  const errMsg = error?.message || validMessage || successMessage;
+  // const successMessage = validationMessages.value[source];
+  const successMessage = useAtomValue(validationMessagesAtom);
+  const errMsg = error?.message || validMessage || successMessage[source];
   // const renderHelperText = helperText !== false || invalid;
   const renderHelperText = !!(
     helperText ||
@@ -686,6 +660,10 @@ const ValidationInput = (props: IconTextInputProps) => {
         },
         formHelperText: {
           className: clsx({ helper: !helper }),
+          sx: {
+            color: error ? "#F58700" : "#4CAF50",
+            fontWeight: successMessage ? "bold" : undefined,
+          },
         },
       }}
       label={

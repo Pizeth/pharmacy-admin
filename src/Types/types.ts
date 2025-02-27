@@ -4,7 +4,6 @@ import {
   LinearProgressProps,
   PasswordInputProps,
   ValidationErrorMessage,
-  ValidationErrorMessageWithArgs,
 } from "react-admin";
 
 export const DEFAULT_DEBOUNCE = import.meta.env.VITE_DELAY_CALL || 2500; // Time in milliseconds
@@ -12,15 +11,15 @@ export const DEFAULT_DEBOUNCE = import.meta.env.VITE_DELAY_CALL || 2500; // Time
 //   error?: boolean;
 //   message?: string;
 // };
-export type MsgObj = {
-  message: string;
-  args?: object;
-};
+// export type MsgObj = {
+//   message: string;
+//   args?: object;
+// };
 
 export type FieldError = {
   invalid: boolean;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  message: MsgObj | any;
+  message: ValidationErrorMessage | any;
   feedbackMsg?: string;
   score?: number;
   args?: object;

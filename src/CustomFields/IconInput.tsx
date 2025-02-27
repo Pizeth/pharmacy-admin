@@ -118,11 +118,14 @@ const ValidationInput = (props: IconTextInputProps) => {
           startAdornment: iconStart ? (
             <InputAdornment position="start">{iconStart}</InputAdornment>
           ) : null,
-          endAdornment: isValidating ? (
-            <CircularProgress size={20} /> // Show loading spinner
-          ) : iconEnd ? (
+          endAdornment: iconEnd ? (
             <InputAdornment position="end">{iconEnd}</InputAdornment>
           ) : null,
+          // endAdornment: isValidating ? (
+          //   <CircularProgress size={20} /> // Show loading spinner
+          // ) : iconEnd ? (
+          //   <InputAdornment position="end">{iconEnd}</InputAdornment>
+          // ) : null,
         },
         inputLabel: {
           shrink: focused || value !== "",

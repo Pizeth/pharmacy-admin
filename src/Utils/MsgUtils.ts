@@ -1,16 +1,28 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { ValidationErrorMessage } from "react-admin";
-import { MessageFunc, MsgObj } from "../Types/types";
+import { AsyncValidationErrorMessage, MessageFunc } from "../Types/types";
 
 export class MsgUtils {
+  // static setMsg(
+  //   message: string | MsgObj | any,
+  //   args?: object,
+  // ): string | MsgObj | undefined {
+  //   if (!message) return undefined;
+  //   return {
+  //     message: message?.message || message,
+  //     args: args || message?.args || null,
+  //   };
+  // }
+
   static setMsg(
-    message: string | MsgObj | any,
+    message: string | AsyncValidationErrorMessage | any,
     args?: object,
-  ): string | MsgObj | undefined {
-    if (!message) return undefined;
+    status?: boolean | number,
+  ): string | AsyncValidationErrorMessage | undefined {
     return {
       message: message?.message || message,
       args: args || message?.args || null,
+      status: status,
     };
   }
 
