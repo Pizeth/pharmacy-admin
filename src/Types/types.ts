@@ -3,6 +3,8 @@ import { ChangeEvent, MutableRefObject, ReactNode } from "react";
 import {
   LinearProgressProps,
   PasswordInputProps,
+  ResettableTextFieldClasses,
+  Translate,
   ValidationErrorMessage,
 } from "react-admin";
 
@@ -39,13 +41,28 @@ interface MessageFuncParams {
   values: any;
 }
 
+export interface GetEndAdornmentParams {
+  props: IconTextInputProps;
+  classess: {
+    clearIcon: string;
+    visibleClearIcon: string;
+    clearButton: string;
+    selectAdornment: string;
+    inputAdornedEnd: string;
+  };
+  endAdornment?: React.ReactNode;
+  translate: Translate;
+  handleClickClearButton: (e: React.MouseEvent<HTMLButtonElement>) => void;
+  handleMouseDownClearButton: (e: React.MouseEvent<HTMLButtonElement>) => void;
+}
+
 export type UseFieldOptions = {
-  resource?: string;
+  // resource?: string;
   source?: string;
   message?: string;
   debounce?: number;
-  timeOut?: MutableRefObject<NodeJS.Timeout | undefined>;
-  abortController?: MutableRefObject<AbortController | null>;
+  // timeOut?: MutableRefObject<NodeJS.Timeout | undefined>;
+  // abortController?: MutableRefObject<AbortController | null>;
   options?: { endpoint?: string; successMessage?: string };
 };
 
@@ -55,14 +72,14 @@ export type AsyncValidationErrorMessage = ValidationErrorMessage & {
   status?: boolean | number;
 };
 
-export type ValidationResult =
-  | string
-  | { message: string; args?: Record<string, any> }
-  | undefined;
-export type ValidationResult1 = {
-  status: "success" | "error" | "pending";
-  message?: string;
-};
+// export type ValidationResult =
+//   | string
+//   | { message: string; args?: Record<string, any> }
+//   | undefined;
+// export type ValidationResult1 = {
+//   status: "success" | "error" | "pending";
+//   message?: string;
+// };
 export interface IconTextInputProps extends PasswordInputProps {
   iconStart?: ReactNode;
   iconEnd?: ReactNode;

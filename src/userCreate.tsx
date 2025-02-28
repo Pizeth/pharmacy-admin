@@ -106,31 +106,14 @@ export const UserCreate = () => {
           resettable
           className="icon-input"
           iconStart={<PermIdentity />}
-          // validate={[asyncValidator("validate/username")]}
         />
-        {/* <TextInput
-          source="username"
-          validate={[
-            unique({
-              message: "ra.validation.unique",
-              debounce: 1000,
-            }),
-            matchPassword(password),
-            required("username"),
-            maxValue(5),
-          ]}
-        /> */}
-        {/* <PasswordInput source={""}/> */}
-        <ValidationInput
+        {/* <ValidationInput
           source="email"
           resettable
           className="icon-input"
           iconStart={<MailOutline />}
           type="email"
-          validate={[email()]}
-          // validate={[matchPassword(password)]}
-          // required
-        />
+        /> */}
         {/* <PasswordInputMeter
           source="password"
           iconStart={<Password />}
@@ -142,7 +125,7 @@ export const UserCreate = () => {
           // onChange={(e) => setPassword(e.target.value)}
           required
         /> */}
-        <PasswordValidationInput
+        {/* <PasswordValidationInput
           source="password"
           iconStart={<Password />}
           className="icon-input"
@@ -154,10 +137,8 @@ export const UserCreate = () => {
           passwordValue={password}
           iconStart={<Password />}
           className="icon-input"
-          // validate={[
-          //   matchPassword(password, translate, "razeth.validation.notmatch"),
-          // ]} // Add translate function to matchPassword and pass the translation key
-        />
+        /> */}
+        <TextInput source={""}></TextInput>
         <IconInput
           source="authMethod"
           className="icon-input"

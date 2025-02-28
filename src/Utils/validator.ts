@@ -59,6 +59,7 @@ import zxcvbn from "./lazyZxcvbn";
 import {
   InputProps,
   isEmpty,
+  Translate,
   useResourceContext,
   useTranslateLabel,
 } from "react-admin";
@@ -92,7 +93,7 @@ const API_URL = import.meta.env.VITE_API_URL;
 const zxcvbnAsync = await zxcvbn.loadZxcvbn();
 
 export const useAsyncValidator = memoize((options?: UseFieldOptions) => {
-  const resource = useResourceContext(options);
+  // const resource = useResourceContext(options);
   const translateLabel = useTranslateLabel();
   const timeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
   const cancelTokenRef = useRef<CancelTokenSource | undefined>(undefined);
@@ -102,9 +103,9 @@ export const useAsyncValidator = memoize((options?: UseFieldOptions) => {
   const [, clearMessage] = useAtom(clearValidationMessageAtom);
   const currentValidationId = useRef(0);
 
-  if (!resource) {
-    throw new Error("useAsync: missing resource prop or context");
-  }
+  // if (!resource) {
+  //   throw new Error("useAsync: missing resource prop or context");
+  // }
 
   const validate = useCallback(
     (callTimeOptions?: UseFieldOptions) => {
@@ -125,7 +126,7 @@ export const useAsyncValidator = memoize((options?: UseFieldOptions) => {
           field: translateLabel({
             label: label,
             source,
-            resource,
+            // resource,
           }),
         };
 
@@ -212,7 +213,7 @@ export const useAsyncValidator = memoize((options?: UseFieldOptions) => {
         );
       };
     },
-    [clearMessage, options, resource, setMessage, translateLabel],
+    [clearMessage, options, /*resource,*/ setMessage, translateLabel],
   );
 
   return validate;
@@ -385,14 +386,15 @@ export const matchPassword = memoize(
  * <TextInput name="title" validate={titleValidators} />
  */
 export const useRequired = (
-  options?: UseFieldOptions,
+  // options?: UseFieldOptions,
+  translate: Translate,
   message = "razeth.validation.required",
 ) => {
   const translateLabel = useTranslateLabel();
-  const resource = useResourceContext(options);
-  if (!resource) {
-    throw new Error("useField: missing resource prop or context");
-  }
+  // const resource = useResourceContext(options);
+  // if (!resource) {
+  //   throw new Error("useField: missing resource prop or context");
+  // }
 
   const validateField = (resource?: string) => {
     // return (value: any, allValues: any, props: InputProps) => {

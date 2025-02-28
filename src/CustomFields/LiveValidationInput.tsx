@@ -234,15 +234,15 @@
 // };
 
 // export default ValidationInput;
-import React, { useEffect, useMemo, useState } from "react";
-import { useInput } from "react-admin";
+import React, { forwardRef, useCallback, useEffect, useState } from "react";
+import {
+  ResettableTextFieldClasses,
+  useInput,
+  useTranslate,
+} from "react-admin";
 import { DEFAULT_DEBOUNCE, IconTextInputProps } from "../Types/types";
 import clsx from "clsx";
-import {
-  serverValidator,
-  useAsyncValidator,
-  useRequired,
-} from "../Utils/validator";
+import { useAsyncValidator, useRequired } from "../Utils/validator";
 import {
   ResettableTextField,
   FieldTitle,
@@ -250,18 +250,20 @@ import {
 } from "react-admin";
 import "../Styles/style.css";
 import InputAdornment from "@mui/material/InputAdornment";
-import { CircularProgress } from "@mui/material";
 import { InputHelper } from "../CustomComponents/InputHelper";
 import { useFormContext } from "react-hook-form";
-import { validationMessages } from "../Stores/signals";
 import { useAtomValue } from "jotai";
 import { validationMessagesAtom } from "../Stores/validationStore";
+import EndAdornment from "../CustomComponents/EndAdorment";
 
-const ValidationInput = (props: IconTextInputProps) => {
+const typingInterval = import.meta.env.VITE_DELAY_CALL || 2500; // Time in milliseconds
+
+const ValidationInput = forwardRef((props: IconTextInputProps, ref) => {
   const {
     className,
     defaultValue,
     label,
+    // value,
     format,
     helperText,
     onBlur,
@@ -269,31 +271,54 @@ const ValidationInput = (props: IconTextInputProps) => {
     parse,
     resource,
     source,
-    validate = [],
+    slotProps,
+    clearAlwaysVisible,
+    resettable,
+    disabled,
+    readOnly,
+    variant,
+    validate,
     iconStart,
     iconEnd,
     ...rest
   } = props;
 
+  const handleClickClearButton = useCallback(
+    (e: React.MouseEvent<HTMLButtonElement>) => {
+      e.preventDefault();
+      onChange && onChange("");
+    },
+    [onChange],
+  );
+
+  const translate = useTranslate();
   const { setError, clearErrors } = useFormContext();
   // const { setError, clearErrors, dirtyFields } = useFormState();
   // Get required validator
-  const require = useRequired();
+  const require = useRequired(translate);
   // const { validate: asyncValidate, successMessage } = useAsyncValidator({
   //   debounce: DEFAULT_DEBOUNCE,
   // });
   const asyncValidate = useAsyncValidator({
     debounce: DEFAULT_DEBOUNCE,
   });
+  // const [value, setValue] = useState(field.value || "");
+  const [typing, setTyping] = useState(false);
+  const [shake, setShake] = useState(false);
+  // const [validateError, setValidateError] = useState<FieldError | null>(null);
+  const [focused, setFocused] = useState(false);
+  // const [asyncError, setAsyncError] = useState<string | undefined>();
+  // const [validMessage, setValidMessage] = useState<string | undefined>();
 
   // Compute validators with normalization
-  const validators = useMemo(() => {
-    const normalizedValidate = Array.isArray(validate) ? validate : [validate];
-    const baseValidators = [...normalizedValidate];
-    baseValidators.push(require());
-    baseValidators.push(asyncValidate());
-    return baseValidators;
-  }, [asyncValidate, require, validate]);
+  // const validators = useMemo(() => {
+  //   const normalizedValidate = Array.isArray(validate) ? validate : [validate];
+  //   const baseValidators = [...normalizedValidate];
+  //   baseValidators.push(require());
+  //   baseValidators.push(asyncValidate());
+  //   return baseValidators;
+  // }, [validate, require, asyncValidate]);
+  // }, [asyncValidate, require, validate]);
 
   // const asyncValidator = useMemo(
   //   () => async (value: string) => {
@@ -356,7 +381,7 @@ const ValidationInput = (props: IconTextInputProps) => {
     resource,
     source,
     type: "text",
-    validate: validators,
+    validate: [require(), asyncValidate()],
     // asyncValidator,
     // validate: [
     //   ...validators,
@@ -466,57 +491,36 @@ const ValidationInput = (props: IconTextInputProps) => {
     // useAsyncValidator(source, {
     //   debounce: DEFAULT_DEBOUNCE,
     // }),
-
     onBlur,
     onChange,
     ...rest,
   });
 
-  const [value, setValue] = useState(field.value || "");
-  const [typing, setTyping] = useState(false);
-  const [shake, setShake] = useState(false);
-  // const [validateError, setValidateError] = useState<FieldError | null>(null);
-  const [focused, setFocused] = useState(false);
-  // const [asyncError, setAsyncError] = useState<string | undefined>();
-  const [validMessage, setValidMessage] = useState<string | undefined>();
-  // const [isValidating, setIsValidating] = useState(false);
-  const typingInterval = import.meta.env.VITE_DELAY_CALL || 2500; // Time in milliseconds
-
-  const validateAsync = React.useCallback(async () => {
-    // setIsValidating(true); // Start validation
-    setValidMessage("");
-    try {
-      const result = await serverValidator(value, `validate/${source}`);
-      if (result.invalid) {
-        setShake(true);
-        setTimeout(() => setShake(false), 500);
-        setError(source, {
-          type: "validate",
-          message: result.message,
-        }); // Error message is already translated in validateStrength
-      } else {
-        clearErrors(source);
-        setValidMessage(result.message || "");
-      }
-      console.log(result);
-    } catch (err) {
-      setError(source, { type: "validate", message: "Validation failed" });
-    } finally {
-      // setIsValidating(false); // End validation
-    }
-  }, [value, source, setError, clearErrors]);
+  // const validateAsync = React.useCallback(async () => {
+  //   setIsValidating(true); // Start validation
+  //   // setValidMessage("");
+  //   try {
+  //     const result = await serverValidator(field.value, `validate/${source}`);
+  //     if (result.invalid) {
+  //       setShake(true);
+  //       setTimeout(() => setShake(false), 500);
+  //       setError(source, {
+  //         type: "validate",
+  //         message: result.message,
+  //       }); // Error message is already translated in validateStrength
+  //     } else {
+  //       clearErrors(source);
+  //       setValidMessage(result.message || "");
+  //     }
+  //     console.log(result);
+  //   } catch (err) {
+  //     setError(source, { type: "validate", message: "Validation failed" });
+  //   } finally {
+  //     // setIsValidating(false); // End validation
+  //   }
+  // }, [value, source, setError, clearErrors]);
 
   useEffect(() => {
-    // const validateInput = async () => {
-    //   const result = await serverValidator(value, `validate/${source}`);
-    //   setValidateError(result);
-    //   if (result?.invalid) {
-    //     // notify(result.message, { type: "warning" });
-    //     setShake(true);
-    //     setTimeout(() => setShake(false), 500);
-    //   }
-    // };
-
     // const validateAsync = async () => {
     //   setIsValidating(true); // Start validation
     //   setValidMessage("");
@@ -541,37 +545,38 @@ const ValidationInput = (props: IconTextInputProps) => {
     //     setIsValidating(false); // End validation
     //   }
     // };
+    if (!isValidating && !error && dirtyFields && !invalid) {
+      clearErrors(source);
+    }
 
     if (typing) {
       const timer = setTimeout(() => {
         setTyping(false);
-        // validateInput();
         // validateAsync();
       }, typingInterval);
       return () => clearTimeout(timer);
     }
-  }, [typing, value, source, typingInterval, setError, clearErrors]);
+  }, [typing, source, typingInterval, setError, clearErrors]);
 
   // Optimize valid state updates
-  useEffect(() => {
-    if (!isValidating && !error && dirtyFields && !invalid) {
-      clearErrors(source);
-    }
-  }, [clearErrors, dirtyFields, error, invalid, isValidating, source]);
-  // const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-  //   setValue(e?.target?.value ?? e);
-  //   setTyping(true);
-  // };
+  // useEffect(() => {}, [
+  //   clearErrors,
+  //   dirtyFields,
+  //   error,
+  //   invalid,
+  //   isValidating,
+  //   source,
+  // ]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e?.target?.value ?? e;
-    setValue(newValue); // Ensure value state is updated
+    // setValue(newValue); // Ensure value state is updated
     field.onChange(newValue); // Ensure form data is in sync
     setTyping(true);
   };
 
   const reValidate = () => {
-    const isInvalid = (isRequired && !value) || invalid;
+    const isInvalid = (isRequired && !field.value) || invalid;
     if (isInvalid) {
       setShake(true);
       setTimeout(() => setShake(false), 500);
@@ -603,11 +608,117 @@ const ValidationInput = (props: IconTextInputProps) => {
     // }
   };
 
+  const handleMouseDownClearButton = (
+    e: React.MouseEvent<HTMLButtonElement>,
+  ) => {
+    e.preventDefault();
+  };
+
+  const {
+    // clearButton,
+    // clearIcon,
+    inputAdornedEnd,
+    // selectAdornment,
+    // visibleClearIcon,
+  } = ResettableTextFieldClasses;
+  // const d = ResettableTextFieldClasses;
+
+  // const { input } = slotProps || {};
+  // const inputProps = typeof input === "function" ? {} : input || {};
+  // const { endAdornment, ...InputPropsWithoutEndAdornment } = inputProps;
+
+  const inputProps = (slotProps && slotProps.input) || {};
+  const { endAdornment, ...InputPropsWithoutEndAdornment } =
+    typeof inputProps === "function" ? {} : inputProps;
+
+  console.log("clearAlwaysVisible: ", clearAlwaysVisible);
+  if (clearAlwaysVisible && endAdornment) {
+    throw new Error(
+      "ResettableTextField cannot display both an endAdornment and a clear button always visible",
+    );
+  }
+  // const { endAdornment, ...InputPropsWithoutEndAdornment } =
+  //   (slotProps && slotProps.input) ||
+  //   (typeof slotProps?.input === "function" ? {} : slotProps?.input) ||
+  //   {};
+  const endAdornmentElement = EndAdornment({
+    props,
+    classess: ResettableTextFieldClasses,
+    endAdornment,
+    translate,
+    handleClickClearButton,
+    handleMouseDownClearButton,
+  });
+
+  // const getEndAdornment = () => {
+  //   if (!resettable) {
+  //     return endAdornment;
+  //   } else if (!value) {
+  //     if (clearAlwaysVisible) {
+  //       // show clear button, inactive
+  //       return (
+  //         <InputAdornment
+  //           position="end"
+  //           className={props.select ? selectAdornment : undefined}
+  //         >
+  //           <IconButton
+  //             className={clearButton}
+  //             aria-label={translate("ra.action.clear_input_value")}
+  //             title={translate("ra.action.clear_input_value")}
+  //             disabled={true}
+  //             size="large"
+  //           >
+  //             <ClearIcon className={clsx(clearIcon, visibleClearIcon)} />
+  //           </IconButton>
+  //         </InputAdornment>
+  //       );
+  //     } else {
+  //       if (endAdornment) {
+  //         return endAdornment;
+  //       } else {
+  //         // show spacer
+  //         return (
+  //           <InputAdornment
+  //             position="end"
+  //             className={props.select ? selectAdornment : undefined}
+  //           >
+  //             <span className={clearButton}>&nbsp;</span>
+  //           </InputAdornment>
+  //         );
+  //       }
+  //     }
+  //   } else {
+  //     // show clear
+  //     return (
+  //       <InputAdornment
+  //         position="end"
+  //         className={props.select ? selectAdornment : undefined}
+  //       >
+  //         <IconButton
+  //           className={clearButton}
+  //           aria-label={translate("ra.action.clear_input_value")}
+  //           title={translate("ra.action.clear_input_value")}
+  //           onClick={handleClickClearButton}
+  //           onMouseDown={handleMouseDownClearButton}
+  //           disabled={disabled || readOnly}
+  //           size="large"
+  //         >
+  //           <ClearIcon
+  //             className={clsx(clearIcon, {
+  //               [visibleClearIcon]: clearAlwaysVisible || value,
+  //             })}
+  //           />
+  //         </IconButton>
+  //       </InputAdornment>
+  //     );
+  //   }
+  // };
+
   // Combine sync and async errors
   // const isError = invalid || !!asyncError;
   // const successMessage = validationMessages.value[source];
   const successMessage = useAtomValue(validationMessagesAtom);
-  const errMsg = error?.message || validMessage || successMessage[source];
+  const errMsg = error?.message || successMessage[source];
   // const renderHelperText = helperText !== false || invalid;
   const renderHelperText = !!(
     helperText ||
@@ -616,17 +727,12 @@ const ValidationInput = (props: IconTextInputProps) => {
     invalid
   );
   const helper = !!((helperText || errMsg) /*|| status.message*/);
-  // console.log("hepler :", renderHelperText);
-  // console.log("invalid :", invalid);
-  // const isError = validateError?.invalid || invalid;
-  // const errMsg = validateError?.message || error?.message;
-  // console.log("Error: ", error?.message);
 
   return (
     <ResettableTextField
       id={id}
       {...field}
-      value={value}
+      // value={value}
       onChange={handleChange}
       onFocus={handleFocus}
       onBlur={handleBlur}
@@ -643,19 +749,36 @@ const ValidationInput = (props: IconTextInputProps) => {
       //   shrink: focused || value !== "",
       //   className: clsx({ shake: shake }),
       // }}
+      // InputProps={{
+      //   readOnly: readOnly,
+      //   classes:
+      //     props.select && variant === "filled"
+      //       ? { adornedEnd: inputAdornedEnd }
+      //       : {},
+      //   endAdornment: endAdornmentElement,
+      //   ...InputPropsWithoutEndAdornment,
+      // }}
       slotProps={{
         input: {
+          classes:
+            props.select && variant === "filled"
+              ? { adornedEnd: inputAdornedEnd }
+              : {},
           startAdornment: iconStart ? (
             <InputAdornment position="start">{iconStart}</InputAdornment>
           ) : null,
-          endAdornment: isValidating ? (
-            <CircularProgress size={20} /> // Show loading spinner
-          ) : iconEnd ? (
-            <InputAdornment position="end">{iconEnd}</InputAdornment>
-          ) : null,
+          // endAdornment: isValidating ? (
+          //   <CircularProgress size={20} /> // Show loading spinner
+          // ) : iconEnd ? (
+          //   <InputAdornment position="end">{iconEnd}</InputAdornment>
+          // ) : (
+          //   endAdornmentElement
+          // ),
+          endAdornment: endAdornmentElement,
+          ...InputPropsWithoutEndAdornment,
         },
         inputLabel: {
-          shrink: focused || value !== "",
+          shrink: focused || field.value !== "",
           className: clsx({ shake: shake }),
         },
         formHelperText: {
@@ -694,8 +817,9 @@ const ValidationInput = (props: IconTextInputProps) => {
         ) : null
       }
       {...sanitizeInputRestProps(rest)}
+      inputRef={ref}
     />
   );
-};
+});
 
 export default ValidationInput;
