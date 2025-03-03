@@ -92,9 +92,9 @@ const API_URL = import.meta.env.VITE_API_URL;
 
 const zxcvbnAsync = await zxcvbn.loadZxcvbn();
 
-export const useAsyncValidator = memoize((options?: UseFieldOptions) => {
+export const useAsyncValidator = /*memoize(*/ (options?: UseFieldOptions) => {
   // const resource = useResourceContext(options);
-  const translateLabel = useTranslateLabel();
+  // const translateLabel = useTranslateLabel();
   const timeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
   const cancelTokenRef = useRef<CancelTokenSource | undefined>(undefined);
   // const [successMessage, setSuccessMessage] = useState("");
@@ -123,11 +123,15 @@ export const useAsyncValidator = memoize((options?: UseFieldOptions) => {
         const args = {
           source,
           value,
-          field: translateLabel({
+          field: {
             label: label,
             source,
-            // resource,
-          }),
+          },
+          // field: translateLabel({
+          //   label: label,
+          //   source,
+          //   // resource,
+          // }),
         };
 
         if (isEmpty(value)) {
@@ -213,12 +217,12 @@ export const useAsyncValidator = memoize((options?: UseFieldOptions) => {
         );
       };
     },
-    [clearMessage, options, /*resource,*/ setMessage, translateLabel],
+    [clearMessage, options, /*resource,*/ setMessage /*translateLabel*/],
   );
 
   return validate;
   // return { validate, successMessage };
-});
+};
 
 export const asyncValidator = memoize(
   (resource: string, message = "razeth.validation.async") =>
@@ -387,7 +391,7 @@ export const matchPassword = memoize(
  */
 export const useRequired = (
   // options?: UseFieldOptions,
-  translate: Translate,
+  translate?: Translate,
   message = "razeth.validation.required",
 ) => {
   const translateLabel = useTranslateLabel();

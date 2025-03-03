@@ -7,7 +7,6 @@ import {
   SaveButton,
   SelectInput,
   SimpleForm,
-  TextInput,
   Toolbar,
   ToolbarProps,
   useNotify,
@@ -37,6 +36,9 @@ import {
   serverValidator,
   useRequired,
 } from "./Utils/validator";
+import { ValidationInput1 } from "./Utils/test2";
+import { ResettableTextField } from "./Utils/reset";
+import { TextInput } from "./Utils/text";
 // import { required } from "./Utils/validator";
 
 const choices = [
@@ -101,12 +103,12 @@ export const UserCreate = () => {
         reValidateMode="onBlur"
         sanitizeEmptyValues
       >
-        <ValidationInput
+        {/* <ValidationInput1
           source="username"
           resettable
           className="icon-input"
           iconStart={<PermIdentity />}
-        />
+        /> */}
         {/* <ValidationInput
           source="email"
           resettable
@@ -138,7 +140,8 @@ export const UserCreate = () => {
           iconStart={<Password />}
           className="icon-input"
         /> */}
-        <TextInput source={""}></TextInput>
+        <TextInput source={"email"} resettable></TextInput>
+        <ResettableTextField resettable />
         <IconInput
           source="authMethod"
           className="icon-input"

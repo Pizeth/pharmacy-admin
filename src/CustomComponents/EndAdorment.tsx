@@ -1,7 +1,6 @@
 import clsx from "clsx";
-import InputAdornment from "@mui/material/InputAdornment";
 import ClearIcon from "@mui/icons-material/Clear";
-import { IconButton } from "@mui/material";
+import { InputAdornment, IconButton } from "@mui/material";
 import { GetEndAdornmentParams } from "../Types/types";
 
 const EndAdornment = ({

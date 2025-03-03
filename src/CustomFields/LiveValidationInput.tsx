@@ -251,7 +251,7 @@ import {
 import "../Styles/style.css";
 import InputAdornment from "@mui/material/InputAdornment";
 import { InputHelper } from "../CustomComponents/InputHelper";
-import { useFormContext } from "react-hook-form";
+// import { useFormContext } from "react-hook-form";
 import { useAtomValue } from "jotai";
 import { validationMessagesAtom } from "../Stores/validationStore";
 import EndAdornment from "../CustomComponents/EndAdorment";
@@ -292,7 +292,7 @@ const ValidationInput = forwardRef((props: IconTextInputProps, ref) => {
   );
 
   const translate = useTranslate();
-  const { setError, clearErrors } = useFormContext();
+  // const { setError, clearErrors } = useFormContext();
   // const { setError, clearErrors, dirtyFields } = useFormState();
   // Get required validator
   const require = useRequired(translate);
@@ -303,7 +303,7 @@ const ValidationInput = forwardRef((props: IconTextInputProps, ref) => {
     debounce: DEFAULT_DEBOUNCE,
   });
   // const [value, setValue] = useState(field.value || "");
-  const [typing, setTyping] = useState(false);
+  // const [typing, setTyping] = useState(false);
   const [shake, setShake] = useState(false);
   // const [validateError, setValidateError] = useState<FieldError | null>(null);
   const [focused, setFocused] = useState(false);
@@ -520,43 +520,43 @@ const ValidationInput = forwardRef((props: IconTextInputProps, ref) => {
   //   }
   // }, [value, source, setError, clearErrors]);
 
-  useEffect(() => {
-    // const validateAsync = async () => {
-    //   setIsValidating(true); // Start validation
-    //   setValidMessage("");
-    //   try {
-    //     const result = await serverValidator(value, `validate/${source}`);
-    //     if (result.invalid) {
-    //       setShake(true);
-    //       setTimeout(() => setShake(false), 500);
-    //       setError(source, {
-    //         type: "validate",
-    //         message: result.message,
-    //       }); // Error message is already translated in validateStrength
-    //     } else {
-    //       console.log("why jol here?");
-    //       clearErrors(source);
-    //       setValidMessage(result.message || "");
-    //     }
-    //     console.log(result);
-    //   } catch (err) {
-    //     setError(source, { type: "validate", message: "Validation failed" });
-    //   } finally {
-    //     setIsValidating(false); // End validation
-    //   }
-    // };
-    if (!isValidating && !error && dirtyFields && !invalid) {
-      clearErrors(source);
-    }
+  // useEffect(() => {
+  //   // const validateAsync = async () => {
+  //   //   setIsValidating(true); // Start validation
+  //   //   setValidMessage("");
+  //   //   try {
+  //   //     const result = await serverValidator(value, `validate/${source}`);
+  //   //     if (result.invalid) {
+  //   //       setShake(true);
+  //   //       setTimeout(() => setShake(false), 500);
+  //   //       setError(source, {
+  //   //         type: "validate",
+  //   //         message: result.message,
+  //   //       }); // Error message is already translated in validateStrength
+  //   //     } else {
+  //   //       console.log("why jol here?");
+  //   //       clearErrors(source);
+  //   //       setValidMessage(result.message || "");
+  //   //     }
+  //   //     console.log(result);
+  //   //   } catch (err) {
+  //   //     setError(source, { type: "validate", message: "Validation failed" });
+  //   //   } finally {
+  //   //     setIsValidating(false); // End validation
+  //   //   }
+  //   // };
+  //   // if (!isValidating && !error && dirtyFields && !invalid) {
+  //   //   clearErrors(source);
+  //   // }
 
-    if (typing) {
-      const timer = setTimeout(() => {
-        setTyping(false);
-        // validateAsync();
-      }, typingInterval);
-      return () => clearTimeout(timer);
-    }
-  }, [typing, source, typingInterval, setError, clearErrors]);
+  //   if (typing) {
+  //     const timer = setTimeout(() => {
+  //       setTyping(false);
+  //       // validateAsync();
+  //     }, typingInterval);
+  //     return () => clearTimeout(timer);
+  //   }
+  // }, [typing, source, typingInterval /*setError, clearErrors*/]);
 
   // Optimize valid state updates
   // useEffect(() => {}, [
@@ -572,7 +572,7 @@ const ValidationInput = forwardRef((props: IconTextInputProps, ref) => {
     const newValue = e?.target?.value ?? e;
     // setValue(newValue); // Ensure value state is updated
     field.onChange(newValue); // Ensure form data is in sync
-    setTyping(true);
+    // setTyping(true);
   };
 
   const reValidate = () => {
@@ -592,7 +592,7 @@ const ValidationInput = forwardRef((props: IconTextInputProps, ref) => {
 
   const handleFocus = () => setFocused(true);
   const handleBlur = () => {
-    setFocused(false);
+    // setFocused(false);
     reValidate();
     field.onBlur();
 
