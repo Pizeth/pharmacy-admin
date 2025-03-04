@@ -11,16 +11,10 @@ const EndAdornment = ({
   handleClickClearButton,
   handleMouseDownClearButton,
 }: GetEndAdornmentParams) => {
-  console.log("EndAdornment: props", props);
-  console.log("EndAdornment: props.resettable is ", props.resettable);
-  console.log("EndAdornment: props.value is ", props.value);
   if (!props.resettable) {
-    // console.log("EndAdornment: props.resettable is false");
     return endAdornment;
   } else if (!props.value) {
-    console.log("EndAdornment: props.value is false");
     if (props.clearAlwaysVisible) {
-      console.log("EndAdornment: props.clearAlwaysVisible is true");
       // show clear button, inactive
       return (
         <InputAdornment
@@ -41,12 +35,9 @@ const EndAdornment = ({
         </InputAdornment>
       );
     } else {
-      console.log("EndAdornment: props.clearAlwaysVisible is false");
       if (endAdornment) {
-        console.log("EndAdornment: endAdornment is true");
         return endAdornment;
       } else {
-        console.log("EndAdornment: endAdornment is false");
         // show spacer
         return (
           <InputAdornment

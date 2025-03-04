@@ -19,7 +19,7 @@ import {
 } from "react-admin";
 import { useFormState, useFormContext } from "react-hook-form";
 import { InputAdornment } from "@mui/material";
-import ValidationInput from "./CustomFields/LiveValidationInput";
+// import ValidationInput from "./CustomFields/LiveValidationInput";
 import {
   PermIdentity,
   MailOutline,
@@ -30,15 +30,8 @@ import {
 import { useState } from "react";
 import PasswordValidationInput from "./fortest";
 import IconInput from "./CustomFields/IconInput";
-import {
-  asyncValidator,
-  matchPassword,
-  serverValidator,
-  useRequired,
-} from "./Utils/validator";
-import { ValidationInput1 } from "./Utils/test2";
-import { ResettableTextField } from "./Utils/reset";
-import { TextInput } from "./Utils/text";
+import { useRequired } from "./Utils/validator";
+import { ValidationInput } from "./Utils/test2";
 // import { required } from "./Utils/validator";
 
 const choices = [
@@ -103,19 +96,19 @@ export const UserCreate = () => {
         reValidateMode="onBlur"
         sanitizeEmptyValues
       >
-        {/* <ValidationInput1
+        <ValidationInput
           source="username"
           resettable
           className="icon-input"
           iconStart={<PermIdentity />}
-        /> */}
-        {/* <ValidationInput
+        />
+        <ValidationInput
           source="email"
           resettable
           className="icon-input"
           iconStart={<MailOutline />}
           type="email"
-        /> */}
+        />
         {/* <PasswordInputMeter
           source="password"
           iconStart={<Password />}
@@ -140,8 +133,8 @@ export const UserCreate = () => {
           iconStart={<Password />}
           className="icon-input"
         /> */}
-        <TextInput source={"email"} resettable></TextInput>
-        <ResettableTextField resettable />
+        {/* <TextInput source={"email"} resettable></TextInput> */}
+        {/* <ResettableTextField resettable /> */}
         <IconInput
           source="authMethod"
           className="icon-input"

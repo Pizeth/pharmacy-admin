@@ -4,6 +4,7 @@ import {
   LinearProgressProps,
   PasswordInputProps,
   ResettableTextFieldClasses,
+  ResettableTextFieldProps,
   Translate,
   ValidationErrorMessage,
 } from "react-admin";
@@ -42,7 +43,7 @@ interface MessageFuncParams {
 }
 
 export interface GetEndAdornmentParams {
-  props: IconTextInputProps;
+  props: ResettableTextFieldProps;
   classess: {
     clearIcon: string;
     visibleClearIcon: string;
@@ -83,6 +84,11 @@ export type AsyncValidationErrorMessage = ValidationErrorMessage & {
 export interface IconTextInputProps extends PasswordInputProps {
   iconStart?: ReactNode;
   iconEnd?: ReactNode;
+  isValidating?: boolean;
+  isSuccess?: boolean;
+  isFocused?: boolean;
+  isShake?: boolean;
+  helper?: boolean;
   strengthMeter?: boolean;
   passwordValue?: string; // Props for RepasswordInput to receive the password field value
 }

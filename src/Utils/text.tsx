@@ -1,11 +1,11 @@
 import clsx from "clsx";
 import { useInput, FieldTitle } from "ra-core";
-import { ResettableTextField, ResettableTextFieldProps } from "./reset";
 import {
-  CommonInputProps,
   InputHelperText,
   sanitizeInputRestProps,
+  TextInputProps,
 } from "react-admin";
+import ResettableIconInputField from "./ResettableIconInputField";
 
 /**
  * An Input component for a string
@@ -56,7 +56,7 @@ export const TextInput = (props: TextInputProps) => {
   const renderHelperText = helperText !== false || invalid;
 
   return (
-    <ResettableTextField
+    <ResettableIconInputField
       id={id}
       {...field}
       className={clsx("ra-input", `ra-input-${source}`, className)}
@@ -80,6 +80,3 @@ export const TextInput = (props: TextInputProps) => {
     />
   );
 };
-
-export type TextInputProps = CommonInputProps &
-  Omit<ResettableTextFieldProps, "label" | "helperText">;

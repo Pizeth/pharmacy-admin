@@ -234,27 +234,26 @@
 // };
 
 // export default ValidationInput;
-import React, { forwardRef, useCallback, useEffect, useState } from "react";
-import {
-  ResettableTextFieldClasses,
-  useInput,
-  useTranslate,
-} from "react-admin";
+// import { scan } from "react-scan";
+import React, { forwardRef, useState } from "react";
+import { useInput, useTranslate } from "react-admin";
 import { DEFAULT_DEBOUNCE, IconTextInputProps } from "../Types/types";
 import clsx from "clsx";
 import { useAsyncValidator, useRequired } from "../Utils/validator";
 import {
-  ResettableTextField,
+  // ResettableTextField,
   FieldTitle,
   sanitizeInputRestProps,
 } from "react-admin";
 import "../Styles/style.css";
-import InputAdornment from "@mui/material/InputAdornment";
 import { InputHelper } from "../CustomComponents/InputHelper";
-// import { useFormContext } from "react-hook-form";
 import { useAtomValue } from "jotai";
 import { validationMessagesAtom } from "../Stores/validationStore";
-import EndAdornment from "../CustomComponents/EndAdorment";
+import ResettableIconInputField from "../Utils/ResettableIconInputField";
+
+// scan({
+//   enabled: true,
+// });
 
 const typingInterval = import.meta.env.VITE_DELAY_CALL || 2500; // Time in milliseconds
 
@@ -263,7 +262,6 @@ const ValidationInput = forwardRef((props: IconTextInputProps, ref) => {
     className,
     defaultValue,
     label,
-    // value,
     format,
     helperText,
     onBlur,
@@ -271,25 +269,8 @@ const ValidationInput = forwardRef((props: IconTextInputProps, ref) => {
     parse,
     resource,
     source,
-    slotProps,
-    clearAlwaysVisible,
-    resettable,
-    disabled,
-    readOnly,
-    variant,
-    validate,
-    iconStart,
-    iconEnd,
     ...rest
   } = props;
-
-  const handleClickClearButton = useCallback(
-    (e: React.MouseEvent<HTMLButtonElement>) => {
-      e.preventDefault();
-      onChange && onChange("");
-    },
-    [onChange],
-  );
 
   const translate = useTranslate();
   // const { setError, clearErrors } = useFormContext();
@@ -570,7 +551,6 @@ const ValidationInput = forwardRef((props: IconTextInputProps, ref) => {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e?.target?.value ?? e;
-    // setValue(newValue); // Ensure value state is updated
     field.onChange(newValue); // Ensure form data is in sync
     // setTyping(true);
   };
@@ -592,7 +572,7 @@ const ValidationInput = forwardRef((props: IconTextInputProps, ref) => {
 
   const handleFocus = () => setFocused(true);
   const handleBlur = () => {
-    // setFocused(false);
+    setFocused(false);
     reValidate();
     field.onBlur();
 
@@ -608,49 +588,6 @@ const ValidationInput = forwardRef((props: IconTextInputProps, ref) => {
     // }
   };
 
-  const handleMouseDownClearButton = (
-    e: React.MouseEvent<HTMLButtonElement>,
-  ) => {
-    e.preventDefault();
-  };
-
-  const {
-    // clearButton,
-    // clearIcon,
-    inputAdornedEnd,
-    // selectAdornment,
-    // visibleClearIcon,
-  } = ResettableTextFieldClasses;
-  // const d = ResettableTextFieldClasses;
-
-  // const { input } = slotProps || {};
-  // const inputProps = typeof input === "function" ? {} : input || {};
-  // const { endAdornment, ...InputPropsWithoutEndAdornment } = inputProps;
-
-  const inputProps = (slotProps && slotProps.input) || {};
-  const { endAdornment, ...InputPropsWithoutEndAdornment } =
-    typeof inputProps === "function" ? {} : inputProps;
-
-  console.log("clearAlwaysVisible: ", clearAlwaysVisible);
-  if (clearAlwaysVisible && endAdornment) {
-    throw new Error(
-      "ResettableTextField cannot display both an endAdornment and a clear button always visible",
-    );
-  }
-  // const { endAdornment, ...InputPropsWithoutEndAdornment } =
-  //   (slotProps && slotProps.input) ||
-  //   (typeof slotProps?.input === "function" ? {} : slotProps?.input) ||
-  //   {};
-  const endAdornmentElement = EndAdornment({
-    props,
-    classess: ResettableTextFieldClasses,
-    endAdornment,
-    translate,
-    handleClickClearButton,
-    handleMouseDownClearButton,
-  });
-
-  // const getEndAdornment = () => {
   //   if (!resettable) {
   //     return endAdornment;
   //   } else if (!value) {
@@ -729,14 +666,17 @@ const ValidationInput = forwardRef((props: IconTextInputProps, ref) => {
   const helper = !!((helperText || errMsg) /*|| status.message*/);
 
   return (
-    <ResettableTextField
+    <ResettableIconInputField
       id={id}
       {...field}
-      // value={value}
       onChange={handleChange}
       onFocus={handleFocus}
       onBlur={handleBlur}
       className={clsx("ra-input", `ra-input-${source}`, className)}
+      isValidating={isValidating}
+      isFocused={focused}
+      isShake={shake}
+      helper={helper}
       // InputProps={{
       //   startAdornment: iconStart ? (
       //     <InputAdornment position="start">{iconStart}</InputAdornment>
@@ -758,37 +698,7 @@ const ValidationInput = forwardRef((props: IconTextInputProps, ref) => {
       //   endAdornment: endAdornmentElement,
       //   ...InputPropsWithoutEndAdornment,
       // }}
-      slotProps={{
-        input: {
-          classes:
-            props.select && variant === "filled"
-              ? { adornedEnd: inputAdornedEnd }
-              : {},
-          startAdornment: iconStart ? (
-            <InputAdornment position="start">{iconStart}</InputAdornment>
-          ) : null,
-          // endAdornment: isValidating ? (
-          //   <CircularProgress size={20} /> // Show loading spinner
-          // ) : iconEnd ? (
-          //   <InputAdornment position="end">{iconEnd}</InputAdornment>
-          // ) : (
-          //   endAdornmentElement
-          // ),
-          endAdornment: endAdornmentElement,
-          ...InputPropsWithoutEndAdornment,
-        },
-        inputLabel: {
-          shrink: focused || field.value !== "",
-          className: clsx({ shake: shake }),
-        },
-        formHelperText: {
-          className: clsx({ helper: !helper }),
-          sx: {
-            color: error ? "#F58700" : "#4CAF50",
-            fontWeight: successMessage ? "bold" : undefined,
-          },
-        },
-      }}
+
       label={
         label !== "" && label !== false ? (
           <FieldTitle label={label} source={source} isRequired={isRequired} />
@@ -796,21 +706,7 @@ const ValidationInput = forwardRef((props: IconTextInputProps, ref) => {
       }
       resource={resource}
       error={invalid}
-      // helperText={isError ? errMsg : ""}
-      // helperText={validateError?.message || error?.message}
-      // helperText={
-      //   renderHelperText ? (
-      //     <InputHelperText
-      //       error={validateError?.message || error?.message}
-      //       helperText={helperText}
-      //     />
-      //   ) : null
-      // }
-      // FormHelperTextProps={{
-      //   className: "my-custom-helper-text", // Your custom class
-      //   // Optional: Additional MUI props like 'sx'
-      //   sx: { fontSize: "0.875rem" },
-      // }}
+      isSuccess={Object.keys(successMessage).length !== 0}
       helperText={
         renderHelperText ? (
           <InputHelper error={errMsg} helperText={helperText} />

@@ -1,31 +1,19 @@
-import * as React from "react";
-import { forwardRef, useCallback, useState } from "react";
-import { styled } from "@mui/material/styles";
-import clsx from "clsx";
-import { InputAdornment, TextField as MuiTextField } from "@mui/material";
-import { useInput, useTranslate } from "ra-core";
+import React, { forwardRef, useEffect, useMemo, useState } from "react";
+import { useInput, useTranslate } from "react-admin";
 import { DEFAULT_DEBOUNCE, IconTextInputProps } from "../Types/types";
-import { useAsyncValidator, useRequired } from "./validator";
-import EndAdornment from "../CustomComponents/EndAdorment";
+import clsx from "clsx";
+import { useAsyncValidator, useRequired } from "../Utils/validator";
+import { FieldTitle, sanitizeInputRestProps } from "react-admin";
+import "../Styles/style.css";
+import { InputHelper } from "../CustomComponents/InputHelper";
 import { useAtomValue } from "jotai";
 import { validationMessagesAtom } from "../Stores/validationStore";
-import { FieldTitle, sanitizeInputRestProps } from "react-admin";
-import { InputHelper } from "../CustomComponents/InputHelper";
+import ResettableIconInputField from "../Utils/ResettableIconInputField";
 
 const typingInterval = import.meta.env.VITE_DELAY_CALL || 2500; // Time in milliseconds
-/**
- * An override of the default Material UI TextField which is resettable
- */
-export const ValidationInput1 = forwardRef((props: IconTextInputProps, ref) => {
+
+export const ValidationInput = forwardRef((props: IconTextInputProps, ref) => {
   const {
-    clearAlwaysVisible,
-    slotProps,
-    value,
-    resettable,
-    disabled,
-    readOnly,
-    variant,
-    margin,
     className,
     defaultValue,
     label,
@@ -36,28 +24,33 @@ export const ValidationInput1 = forwardRef((props: IconTextInputProps, ref) => {
     parse,
     resource,
     source,
-    validate,
-    iconStart,
-    iconEnd,
+    validate = [],
     ...rest
   } = props;
 
   const translate = useTranslate();
+
+  // Get required validator
   const require = useRequired(translate);
   const asyncValidate = useAsyncValidator({
     debounce: DEFAULT_DEBOUNCE,
   });
-  // const [value, setValue] = useState(field.value || "");
-  //   const [typing, setTyping] = useState(false);
   const [shake, setShake] = useState(false);
   const [focused, setFocused] = useState(false);
+  const [typing, setTyping] = useState(false);
 
   // Compute validators with normalization
+  const validators = useMemo(() => {
+    const normalizedValidate = Array.isArray(validate) ? validate : [validate];
+    const baseValidators = [...normalizedValidate];
+    baseValidators.push(require());
+    baseValidators.push(asyncValidate());
+    return baseValidators;
+  }, [validate, require, asyncValidate]);
 
   const {
     field,
     fieldState: { error, invalid, isValidating },
-    // formState: { dirtyFields },
     id,
     isRequired,
   } = useInput({
@@ -67,65 +60,86 @@ export const ValidationInput1 = forwardRef((props: IconTextInputProps, ref) => {
     resource,
     source,
     type: "text",
-    validate: [require(), asyncValidate()],
+    validate: validators,
     onBlur,
     onChange,
     ...rest,
   });
 
+  // useEffect(() => {
+  //   // const validateAsync = async () => {
+  //   //   setIsValidating(true); // Start validation
+  //   //   setValidMessage("");
+  //   //   try {
+  //   //     const result = await serverValidator(value, `validate/${source}`);
+  //   //     if (result.invalid) {
+  //   //       setShake(true);
+  //   //       setTimeout(() => setShake(false), 500);
+  //   //       setError(source, {
+  //   //         type: "validate",
+  //   //         message: result.message,
+  //   //       }); // Error message is already translated in validateStrength
+  //   //     } else {
+  //   //       console.log("why jol here?");
+  //   //       clearErrors(source);
+  //   //       setValidMessage(result.message || "");
+  //   //     }
+  //   //     console.log(result);
+  //   //   } catch (err) {
+  //   //     setError(source, { type: "validate", message: "Validation failed" });
+  //   //   } finally {
+  //   //     setIsValidating(false); // End validation
+  //   //   }
+  //   // };
+  //   // if (!isValidating && !error && dirtyFields && !invalid) {
+  //   //   clearErrors(source);
+  //   // }
+
+  //   if (typing) {
+  //     const timer = setTimeout(() => {
+  //       setTyping(false);
+  //       // validateAsync();
+  //     }, typingInterval);
+  //     return () => clearTimeout(timer);
+  //   }
+  // }, [typing, source, typingInterval /*setError, clearErrors*/]);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e?.target?.value ?? e;
     field.onChange(newValue); // Ensure form data is in sync
-    // setTyping(true);
+    setTyping(true);
   };
 
   const reValidate = () => {
     const isInvalid = (isRequired && !field.value) || invalid;
+    console.log("field.value", field.value);
+    console.log("isRequired", isRequired);
+    console.log("is invalid", isInvalid);
     if (isInvalid) {
       setShake(true);
       setTimeout(() => setShake(false), 500);
     }
   };
 
+  // Optimize valid state updates
+  useEffect(() => {
+    if (typing) {
+      const timer = setTimeout(() => {
+        setTyping(false);
+        reValidate();
+      }, typingInterval);
+      return () => clearTimeout(timer);
+    }
+  }, [typing, typingInterval]);
+
   const handleFocus = () => setFocused(true);
   const handleBlur = () => {
     setFocused(false);
-    reValidate();
+    // reValidate();
     field.onBlur();
   };
 
-  const handleClickClearButton = useCallback(
-    (event: React.MouseEvent) => {
-      event.preventDefault();
-      onChange && onChange("");
-    },
-    [onChange],
-  );
-
-  const { inputAdornedEnd } = ValidationInputFieldClasses;
-
-  //   const { endAdornment, ...InputPropsWithoutEndAdornment } = InputProps || {};
-
-  const inputProps = (slotProps && slotProps.input) || {};
-  const { endAdornment, ...InputPropsWithoutEndAdornment } =
-    typeof inputProps === "function" ? {} : inputProps;
-
-  console.log("clearAlwaysVisible: ", clearAlwaysVisible);
-  if (clearAlwaysVisible && endAdornment) {
-    throw new Error(
-      "ResettableTextField cannot display both an endAdornment and a clear button always visible",
-    );
-  }
-
-  const endAdornmentElement = EndAdornment({
-    props,
-    classess: ValidationInputFieldClasses,
-    endAdornment,
-    translate,
-    handleClickClearButton,
-    handleMouseDownClearButton,
-  });
-
+  // Combine sync and async errors
   const successMessage = useAtomValue(validationMessagesAtom);
   const errMsg = error?.message || successMessage[source];
   const renderHelperText = !!(
@@ -136,122 +150,18 @@ export const ValidationInput1 = forwardRef((props: IconTextInputProps, ref) => {
   );
   const helper = !!(helperText || errMsg);
 
-  //   const getEndAdornment = () => {
-  //     if (!resettable) {
-  //       return endAdornment;
-  //     } else if (!value) {
-  //       if (clearAlwaysVisible) {
-  //         // show clear button, inactive
-  //         return (
-  //           <InputAdornment
-  //             position="end"
-  //             className={props.select ? selectAdornment : undefined}
-  //           >
-  //             <IconButton
-  //               className={clearButton}
-  //               aria-label={translate("ra.action.clear_input_value")}
-  //               title={translate("ra.action.clear_input_value")}
-  //               disabled={true}
-  //               size="large"
-  //             >
-  //               <ClearIcon className={clsx(clearIcon, visibleClearIcon)} />
-  //             </IconButton>
-  //           </InputAdornment>
-  //         );
-  //       } else {
-  //         if (endAdornment) {
-  //           return endAdornment;
-  //         } else {
-  //           // show spacer
-  //           return (
-  //             <InputAdornment
-  //               position="end"
-  //               className={props.select ? selectAdornment : undefined}
-  //             >
-  //               <span className={clearButton}>&nbsp;</span>
-  //             </InputAdornment>
-  //           );
-  //         }
-  //       }
-  //     } else {
-  //       // show clear
-  //       return (
-  //         <InputAdornment
-  //           position="end"
-  //           className={props.select ? selectAdornment : undefined}
-  //         >
-  //           <IconButton
-  //             className={clearButton}
-  //             aria-label={translate("ra.action.clear_input_value")}
-  //             title={translate("ra.action.clear_input_value")}
-  //             onClick={handleClickClearButton}
-  //             onMouseDown={handleMouseDownClearButton}
-  //             disabled={disabled || readOnly}
-  //             size="large"
-  //           >
-  //             <ClearIcon
-  //               className={clsx(clearIcon, {
-  //                 [visibleClearIcon]: clearAlwaysVisible || value,
-  //               })}
-  //             />
-  //           </IconButton>
-  //         </InputAdornment>
-  //       );
-  //     }
-  //   };
-
   return (
-    <StyledTextField
-      value={value}
+    <ResettableIconInputField
       id={id}
-      disabled={disabled || readOnly}
-      variant={variant}
-      margin={margin}
+      {...field}
       onChange={handleChange}
       onFocus={handleFocus}
       onBlur={handleBlur}
       className={clsx("ra-input", `ra-input-${source}`, className)}
-      slotProps={{
-        input: {
-          readOnly: readOnly,
-          classes:
-            props.select && variant === "filled"
-              ? { adornedEnd: inputAdornedEnd }
-              : {},
-          startAdornment: iconStart ? (
-            <InputAdornment position="start">{iconStart}</InputAdornment>
-          ) : null,
-          // endAdornment: isValidating ? (
-          //   <CircularProgress size={20} /> // Show loading spinner
-          // ) : iconEnd ? (
-          //   <InputAdornment position="end">{iconEnd}</InputAdornment>
-          // ) : (
-          //   endAdornmentElement
-          // ),
-          endAdornment: endAdornmentElement,
-          ...InputPropsWithoutEndAdornment,
-        },
-        inputLabel: {
-          shrink: focused || field.value !== "",
-          className: clsx({ shake: shake }),
-        },
-        formHelperText: {
-          className: clsx({ helper: !helper }),
-          sx: {
-            color: error ? "#F58700" : "#4CAF50",
-            fontWeight: successMessage ? "bold" : undefined,
-          },
-        },
-      }}
-      //   InputProps={{
-      //     readOnly: readOnly,
-      //     classes:
-      //       props.select && variant === "filled"
-      //         ? { adornedEnd: inputAdornedEnd }
-      //         : {},
-      //     endAdornment: endAdornmentElement,
-      //     ...InputPropsWithoutEndAdornment,
-      //   }}
+      isValidating={isValidating}
+      isFocused={focused}
+      isShake={shake}
+      helper={helper}
       label={
         label !== "" && label !== false ? (
           <FieldTitle label={label} source={source} isRequired={isRequired} />
@@ -259,6 +169,7 @@ export const ValidationInput1 = forwardRef((props: IconTextInputProps, ref) => {
       }
       resource={resource}
       error={invalid}
+      isSuccess={Object.keys(successMessage).length !== 0}
       helperText={
         renderHelperText ? (
           <InputHelper error={errMsg} helperText={helperText} />
@@ -270,45 +181,4 @@ export const ValidationInput1 = forwardRef((props: IconTextInputProps, ref) => {
   );
 });
 
-ValidationInput1.displayName = "ValidationInputField";
-
-const handleMouseDownClearButton = (e: React.MouseEvent<HTMLButtonElement>) => {
-  e.preventDefault();
-};
-
-const PREFIX = "RazethValidationInputField";
-
-export const ValidationInputFieldClasses = {
-  clearIcon: `${PREFIX}-clearIcon`,
-  visibleClearIcon: `${PREFIX}-visibleClearIcon`,
-  clearButton: `${PREFIX}-clearButton`,
-  selectAdornment: `${PREFIX}-selectAdornment`,
-  inputAdornedEnd: `${PREFIX}-inputAdornedEnd`,
-};
-
-export const ValidationInputFieldStyles = {
-  [`& .${ValidationInputFieldClasses.clearIcon}`]: {
-    height: 16,
-    width: 0,
-  },
-  [`& .${ValidationInputFieldClasses.visibleClearIcon}`]: {
-    width: 16,
-  },
-  [`& .${ValidationInputFieldClasses.clearButton}`]: {
-    height: 24,
-    width: 24,
-    padding: 0,
-  },
-  [`& .${ValidationInputFieldClasses.selectAdornment}`]: {
-    position: "absolute",
-    right: 24,
-  },
-  [`& .${ValidationInputFieldClasses.inputAdornedEnd}`]: {
-    paddingRight: 0,
-  },
-};
-
-const StyledTextField = styled(MuiTextField, {
-  name: PREFIX,
-  overridesResolver: (props, styles) => styles.root,
-})(ValidationInputFieldStyles);
+export default ValidationInput;
