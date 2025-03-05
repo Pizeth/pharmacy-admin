@@ -60,10 +60,7 @@ export const ResettableIconInputField = forwardRef(
         "ResettableTextField cannot display both an endAdornment and a clear button always visible",
       );
     }
-    // const { endAdornment, ...InputPropsWithoutEndAdornment } =
-    //   (slotProps && slotProps.input) ||
-    //   (typeof slotProps?.input === "function" ? {} : slotProps?.input) ||
-    //   {};
+
     const endAdornmentElement = EndAdornment({
       props,
       classess: classes,

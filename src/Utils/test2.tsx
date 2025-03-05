@@ -66,71 +66,58 @@ export const ValidationInput = forwardRef((props: IconTextInputProps, ref) => {
     ...rest,
   });
 
-  // useEffect(() => {
-  //   // const validateAsync = async () => {
-  //   //   setIsValidating(true); // Start validation
-  //   //   setValidMessage("");
-  //   //   try {
-  //   //     const result = await serverValidator(value, `validate/${source}`);
-  //   //     if (result.invalid) {
-  //   //       setShake(true);
-  //   //       setTimeout(() => setShake(false), 500);
-  //   //       setError(source, {
-  //   //         type: "validate",
-  //   //         message: result.message,
-  //   //       }); // Error message is already translated in validateStrength
-  //   //     } else {
-  //   //       console.log("why jol here?");
-  //   //       clearErrors(source);
-  //   //       setValidMessage(result.message || "");
-  //   //     }
-  //   //     console.log(result);
-  //   //   } catch (err) {
-  //   //     setError(source, { type: "validate", message: "Validation failed" });
-  //   //   } finally {
-  //   //     setIsValidating(false); // End validation
-  //   //   }
-  //   // };
-  //   // if (!isValidating && !error && dirtyFields && !invalid) {
-  //   //   clearErrors(source);
-  //   // }
-
-  //   if (typing) {
-  //     const timer = setTimeout(() => {
-  //       setTyping(false);
-  //       // validateAsync();
-  //     }, typingInterval);
-  //     return () => clearTimeout(timer);
-  //   }
-  // }, [typing, source, typingInterval /*setError, clearErrors*/]);
-
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e?.target?.value ?? e;
     field.onChange(newValue); // Ensure form data is in sync
     setTyping(true);
   };
 
+  // Update the useEffect for handling validation after typing and async completion
+  useEffect(() => {
+    if (typing) {
+      const timer = setTimeout(() => {
+        setTyping(false);
+      }, typingInterval);
+      return () => clearTimeout(timer);
+    }
+  }, [typing, typingInterval]);
+
+  // New useEffect to handle validation completion
+  useEffect(() => {
+    if (!typing && !isValidating) {
+      reValidate();
+    }
+  }, [typing, isValidating]); // Trigger when either typing stops or validation completes
+
+  // Simplify reValidate to use current validation state
   const reValidate = () => {
-    const isInvalid = (isRequired && !field.value) || invalid;
-    console.log("field.value", field.value);
-    console.log("isRequired", isRequired);
-    console.log("is invalid", isInvalid);
-    if (isInvalid) {
+    if (invalid) {
       setShake(true);
       setTimeout(() => setShake(false), 500);
     }
   };
 
+  // const reValidate = () => {
+  //   const isInvalid = (isRequired && !field.value) || invalid;
+  //   console.log("field.value", field.value);
+  //   console.log("isRequired", isRequired);
+  //   console.log("is invalid", isInvalid);
+  //   if (isInvalid) {
+  //     setShake(true);
+  //     setTimeout(() => setShake(false), 500);
+  //   }
+  // };
+
   // Optimize valid state updates
-  useEffect(() => {
-    if (typing) {
-      const timer = setTimeout(() => {
-        setTyping(false);
-        reValidate();
-      }, typingInterval);
-      return () => clearTimeout(timer);
-    }
-  }, [typing, typingInterval]);
+  // useEffect(() => {
+  //   if (typing) {
+  //     const timer = setTimeout(() => {
+  //       setTyping(false);
+  //       reValidate();
+  //     }, typingInterval);
+  //     return () => clearTimeout(timer);
+  //   }
+  // }, [typing, typingInterval]);
 
   const handleFocus = () => setFocused(true);
   const handleBlur = () => {
@@ -142,6 +129,7 @@ export const ValidationInput = forwardRef((props: IconTextInputProps, ref) => {
   // Combine sync and async errors
   const successMessage = useAtomValue(validationMessagesAtom);
   const errMsg = error?.message || successMessage[source];
+  console.log(helperText);
   const renderHelperText = !!(
     helperText ||
     errMsg ||
@@ -170,10 +158,27 @@ export const ValidationInput = forwardRef((props: IconTextInputProps, ref) => {
       resource={resource}
       error={invalid}
       isSuccess={Object.keys(successMessage).length !== 0}
+      // helperText={
+      //   renderHelperText ? (
+      //     <InputHelper error={errMsg} helperText={helperText} />
+      //   ) : null
+      // }
+      // Show validation status in helper text
       helperText={
-        renderHelperText ? (
-          <InputHelper error={errMsg} helperText={helperText} />
-        ) : null
+        renderHelperText && (
+          <InputHelper
+            error={
+              // Show validation message only when NOT in validating state
+              isValidating ? undefined : errMsg
+            }
+            helperText={
+              // Show "Validating..." text during async validation
+              isValidating
+                ? translate("razeth.validation.validating")
+                : helperText
+            }
+          />
+        )
       }
       {...sanitizeInputRestProps(rest)}
       inputRef={ref}

@@ -88,9 +88,9 @@ import { useAtom } from "jotai";
 const memoize: Memoize = (fn: any) =>
   lodashMemoize(fn, (...args) => JSON.stringify(args));
 
-const API_URL = import.meta.env.VITE_API_URL;
-
 const zxcvbnAsync = await zxcvbn.loadZxcvbn();
+
+const API_URL = import.meta.env.VITE_API_URL;
 
 export const useAsyncValidator = /*memoize(*/ (options?: UseFieldOptions) => {
   // const resource = useResourceContext(options);
@@ -143,7 +143,10 @@ export const useAsyncValidator = /*memoize(*/ (options?: UseFieldOptions) => {
         }
         // Clear previous validation
         if (timeoutRef.current) clearTimeout(timeoutRef.current);
-        if (cancelTokenRef.current) cancelTokenRef.current.cancel();
+        // if (cancelTokenRef.current) cancelTokenRef.current.cancel();
+        if (cancelTokenRef.current) {
+          cancelTokenRef.current.cancel("New validation started");
+        }
 
         // Generate new validation ID
         const validationId = ++currentValidationId.current;

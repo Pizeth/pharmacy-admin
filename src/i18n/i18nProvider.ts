@@ -13,6 +13,7 @@ const messages: { [key: string]: any } = {
         notmatch: "The password do not match!",
         unique: "%{field} %{value} is already existed!",
         async: "An error occurred while validating the %{field}!",
+        validating: "Validating...",
         error: "",
       },
     },
