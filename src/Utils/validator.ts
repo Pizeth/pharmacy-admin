@@ -60,7 +60,7 @@ import {
   InputProps,
   isEmpty,
   Translate,
-  useResourceContext,
+  // useResourceContext,
   useTranslateLabel,
 } from "react-admin";
 import {
@@ -76,11 +76,6 @@ import lodashMemoize from "lodash/memoize";
 import MsgUtils from "./MsgUtils";
 import { useCallback, useRef } from "react";
 import { merge } from "lodash";
-import {
-  clearValidationMessageAtom,
-  setValidationMessageAtom,
-} from "../Stores/validationStore";
-import { useAtom } from "jotai";
 
 // If we define validation functions directly in JSX, it will
 // result in a new function at every render, and then trigger infinite re-render.
@@ -92,15 +87,17 @@ const zxcvbnAsync = await zxcvbn.loadZxcvbn();
 
 const API_URL = import.meta.env.VITE_API_URL;
 
-export const useAsyncValidator = /*memoize(*/ (options?: UseFieldOptions) => {
+export const useAsyncValidator = (
+  setMessage: (update: { source: string; message: string }) => void,
+  clearMessage: (source: string) => void,
+  options?: UseFieldOptions,
+) => {
   // const resource = useResourceContext(options);
-  // const translateLabel = useTranslateLabel();
+  const translateLabel = useTranslateLabel();
   const timeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
   const cancelTokenRef = useRef<CancelTokenSource | undefined>(undefined);
   // const [successMessage, setSuccessMessage] = useState("");
   // const lastValueRef = useRef<string>("");
-  const [, setMessage] = useAtom(setValidationMessageAtom);
-  const [, clearMessage] = useAtom(clearValidationMessageAtom);
   const currentValidationId = useRef(0);
 
   // if (!resource) {
@@ -123,15 +120,11 @@ export const useAsyncValidator = /*memoize(*/ (options?: UseFieldOptions) => {
         const args = {
           source,
           value,
-          field: {
+          // field: { label, source },
+          field: translateLabel({
             label: label,
             source,
-          },
-          // field: translateLabel({
-          //   label: label,
-          //   source,
-          //   // resource,
-          // }),
+          }),
         };
 
         if (isEmpty(value)) {
@@ -141,9 +134,25 @@ export const useAsyncValidator = /*memoize(*/ (options?: UseFieldOptions) => {
             { status: statusCode.ACCEPTED },
           );
         }
+
+        // const usernameRegex =
+        //   /^(?=.{5,50}$)[a-zA-Z](?!.*([_.])\1)[a-zA-Z0-9_.]*$/;
+
+        // if (!usernameRegex.test(value)) {
+        //   return Object.assign(
+        //     MsgUtils.getMessage(
+        //       "razeth.validation.username",
+        //       args,
+        //       value,
+        //       allValues,
+        //     ),
+        //     { isRequired: true },
+        //     { status: statusCode.ACCEPTED },
+        //   );
+        // }
+
         // Clear previous validation
         if (timeoutRef.current) clearTimeout(timeoutRef.current);
-        // if (cancelTokenRef.current) cancelTokenRef.current.cancel();
         if (cancelTokenRef.current) {
           cancelTokenRef.current.cancel("New validation started");
         }
@@ -156,10 +165,6 @@ export const useAsyncValidator = /*memoize(*/ (options?: UseFieldOptions) => {
             timeoutRef.current = setTimeout(async () => {
               // Only process if still the latest validation
               if (validationId !== currentValidationId.current) {
-                // validationMessages.value = {
-                //   ...validationMessages.value,
-                //   [source]: "",
-                // };
                 resolve(undefined);
                 return;
               }
@@ -180,31 +185,16 @@ export const useAsyncValidator = /*memoize(*/ (options?: UseFieldOptions) => {
 
                 // Proper success case handling
                 if (status === statusCode.OK) {
-                  // setSuccessMessage(`⭕ ${data.message} ✔️`);
-                  // validationMessages.value = {
-                  //   ...validationMessages.value,
-                  //   [source]: `⭕ ${data.message} ✔️`,
-                  // };
                   setMessage({ source, message: `⭕ ${data.message} ✔️` });
                   resolve(undefined); // ✅ Clear errors automatically
-                  return;
+                } else {
+                  clearMessage(source);
+                  resolve(
+                    MsgUtils.setMsg(`❌ ${data.message} ❗`, args, status),
+                  );
                 }
-
-                // Proper error case handling
-                // setSuccessMessage("");
-                // validationMessages.value = {
-                //   ...validationMessages.value,
-                //   [source]: "",
-                // };
-                clearMessage(source);
-                resolve(MsgUtils.setMsg(`❌ ${data.message} ❗`, args, status));
               } catch (error) {
                 if (!axios.isCancel(error)) {
-                  // setSuccessMessage("");
-                  // validationMessages.value = {
-                  //   ...validationMessages.value,
-                  //   [source]: "",
-                  // };
                   clearMessage(source);
                   resolve(
                     MsgUtils.setMsg(
@@ -213,6 +203,8 @@ export const useAsyncValidator = /*memoize(*/ (options?: UseFieldOptions) => {
                       statusCode.INTERNAL_SERVER_ERROR,
                     ),
                   );
+                } else {
+                  resolve(undefined); // Canceled request, no error
                 }
               }
             }, interval ?? DEFAULT_DEBOUNCE);
@@ -224,7 +216,6 @@ export const useAsyncValidator = /*memoize(*/ (options?: UseFieldOptions) => {
   );
 
   return validate;
-  // return { validate, successMessage };
 };
 
 export const asyncValidator = memoize(

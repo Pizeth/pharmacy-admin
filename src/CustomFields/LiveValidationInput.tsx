@@ -247,8 +247,12 @@ import {
 } from "react-admin";
 import "../Styles/style.css";
 import { InputHelper } from "../CustomComponents/InputHelper";
-import { useAtomValue } from "jotai";
-import { validationMessagesAtom } from "../Stores/validationStore";
+import { useAtom, useAtomValue } from "jotai";
+import {
+  clearValidationMessageAtom,
+  setValidationMessageAtom,
+  validationMessagesAtom,
+} from "../Stores/validationStore";
 import ResettableIconInputField from "../Utils/ResettableIconInputField";
 
 // scan({
@@ -273,16 +277,17 @@ const ValidationInput = forwardRef((props: IconTextInputProps, ref) => {
   } = props;
 
   const translate = useTranslate();
+  const [, setValidationMessage] = useAtom(setValidationMessageAtom);
+  const [, clearValidationMessage] = useAtom(clearValidationMessageAtom);
+
+  // Get required and async validators
+  const require = useRequired(translate);
+  const asyncValidate = useAsyncValidator(
+    setValidationMessage,
+    clearValidationMessage,
+  );
   // const { setError, clearErrors } = useFormContext();
   // const { setError, clearErrors, dirtyFields } = useFormState();
-  // Get required validator
-  const require = useRequired(translate);
-  // const { validate: asyncValidate, successMessage } = useAsyncValidator({
-  //   debounce: DEFAULT_DEBOUNCE,
-  // });
-  const asyncValidate = useAsyncValidator({
-    debounce: DEFAULT_DEBOUNCE,
-  });
   // const [value, setValue] = useState(field.value || "");
   // const [typing, setTyping] = useState(false);
   const [shake, setShake] = useState(false);

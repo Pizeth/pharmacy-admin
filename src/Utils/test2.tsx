@@ -1,16 +1,19 @@
-import React, { forwardRef, useEffect, useMemo, useState } from "react";
+import React, { forwardRef, useEffect, useMemo, useRef, useState } from "react";
 import { useInput, useTranslate } from "react-admin";
-import { DEFAULT_DEBOUNCE, IconTextInputProps } from "../Types/types";
+import { IconTextInputProps } from "../Types/types";
 import clsx from "clsx";
 import { useAsyncValidator, useRequired } from "../Utils/validator";
 import { FieldTitle, sanitizeInputRestProps } from "react-admin";
 import "../Styles/style.css";
 import { InputHelper } from "../CustomComponents/InputHelper";
-import { useAtomValue } from "jotai";
-import { validationMessagesAtom } from "../Stores/validationStore";
+import { useAtom, useAtomValue } from "jotai";
+import {
+  clearValidationMessageAtom,
+  setValidationMessageAtom,
+  validationMessagesAtom,
+} from "../Stores/validationStore";
 import ResettableIconInputField from "../Utils/ResettableIconInputField";
-
-const typingInterval = import.meta.env.VITE_DELAY_CALL || 2500; // Time in milliseconds
+import { useFormContext } from "react-hook-form";
 
 export const ValidationInput = forwardRef((props: IconTextInputProps, ref) => {
   const {
@@ -29,15 +32,21 @@ export const ValidationInput = forwardRef((props: IconTextInputProps, ref) => {
   } = props;
 
   const translate = useTranslate();
+  const [, setMessage] = useAtom(setValidationMessageAtom);
+  const [, clearMessage] = useAtom(clearValidationMessageAtom);
 
-  // Get required validator
+  // Use refs for transient UI states
+  const shakeRef = useRef<HTMLDivElement>(null); // Ref for shake effect
+
+  // const shakeTimeoutRef = useRef<NodeJS.Timeout>();
+  // const inputRef = useRef<HTMLDivElement>(null);
+
+  // Get required and async validators
   const require = useRequired(translate);
-  const asyncValidate = useAsyncValidator({
-    debounce: DEFAULT_DEBOUNCE,
-  });
+  const asyncValidate = useAsyncValidator(setMessage, clearMessage);
   const [shake, setShake] = useState(false);
   const [focused, setFocused] = useState(false);
-  const [typing, setTyping] = useState(false);
+  const { clearErrors } = useFormContext();
 
   // Compute validators with normalization
   const validators = useMemo(() => {
@@ -66,77 +75,51 @@ export const ValidationInput = forwardRef((props: IconTextInputProps, ref) => {
     ...rest,
   });
 
+  // Update the useEffect for handling async validation valid state and shake effect
+  useEffect(() => {
+    if (!isValidating && invalid) {
+      setShake(true);
+      setTimeout(() => setShake(false), 500);
+    } else {
+      clearErrors(source);
+    }
+  }, [isValidating, invalid, source, clearErrors]);
+
+  // Handle shake effect without useState
+  // useEffect(() => {
+  //   if (!isValidating && invalid && shakeRef.current) {
+  //     console.log("Shake effect");
+  //     shakeRef.current?.classList.add("shake");
+  //     setTimeout(() => {
+  //       if (shakeRef.current) {
+  //         shakeRef.current.classList.remove("shake");
+  //       }
+  //     }, 500); // Matches animation duration
+  //   } else {
+  //     // clearErrors(source);
+  //   }
+  // }, [isValidating, invalid, source, clearErrors]);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e?.target?.value ?? e;
     field.onChange(newValue); // Ensure form data is in sync
-    setTyping(true);
   };
-
-  // Update the useEffect for handling validation after typing and async completion
-  useEffect(() => {
-    if (typing) {
-      const timer = setTimeout(() => {
-        setTyping(false);
-      }, typingInterval);
-      return () => clearTimeout(timer);
-    }
-  }, [typing, typingInterval]);
-
-  // New useEffect to handle validation completion
-  useEffect(() => {
-    if (!typing && !isValidating) {
-      reValidate();
-    }
-  }, [typing, isValidating]); // Trigger when either typing stops or validation completes
-
-  // Simplify reValidate to use current validation state
-  const reValidate = () => {
-    if (invalid) {
-      setShake(true);
-      setTimeout(() => setShake(false), 500);
-    }
-  };
-
-  // const reValidate = () => {
-  //   const isInvalid = (isRequired && !field.value) || invalid;
-  //   console.log("field.value", field.value);
-  //   console.log("isRequired", isRequired);
-  //   console.log("is invalid", isInvalid);
-  //   if (isInvalid) {
-  //     setShake(true);
-  //     setTimeout(() => setShake(false), 500);
-  //   }
-  // };
-
-  // Optimize valid state updates
-  // useEffect(() => {
-  //   if (typing) {
-  //     const timer = setTimeout(() => {
-  //       setTyping(false);
-  //       reValidate();
-  //     }, typingInterval);
-  //     return () => clearTimeout(timer);
-  //   }
-  // }, [typing, typingInterval]);
-
   const handleFocus = () => setFocused(true);
   const handleBlur = () => {
     setFocused(false);
-    // reValidate();
     field.onBlur();
   };
 
   // Combine sync and async errors
   const successMessage = useAtomValue(validationMessagesAtom);
   const errMsg = error?.message || successMessage[source];
-  console.log(helperText);
   const renderHelperText = !!(
     helperText ||
     errMsg ||
     successMessage ||
     invalid
   );
-  const helper = !!(helperText || errMsg);
+  const helper = !!(helperText || errMsg || isValidating);
 
   return (
     <ResettableIconInputField
@@ -158,11 +141,6 @@ export const ValidationInput = forwardRef((props: IconTextInputProps, ref) => {
       resource={resource}
       error={invalid}
       isSuccess={Object.keys(successMessage).length !== 0}
-      // helperText={
-      //   renderHelperText ? (
-      //     <InputHelper error={errMsg} helperText={helperText} />
-      //   ) : null
-      // }
       // Show validation status in helper text
       helperText={
         renderHelperText && (
@@ -187,3 +165,39 @@ export const ValidationInput = forwardRef((props: IconTextInputProps, ref) => {
 });
 
 export default ValidationInput;
+
+// // Update the useEffect for handling validation after typing and async completion
+// useEffect(() => {
+//   if (typing) {
+//     const timer = setTimeout(() => {
+//       setTyping(false);
+//     }, typingInterval);
+//     return () => clearTimeout(timer);
+//   }
+// }, [typing, typingInterval]);
+
+// // New useEffect to handle validation completion
+// useEffect(() => {
+//   if (!typing && !isValidating) {
+//     reValidate();
+//   }
+// }, [typing, isValidating]); // Trigger when either typing stops or validation completes
+
+// // Simplify reValidate to use current validation state
+// const reValidate = () => {
+//   if (invalid) {
+//     setShake(true);
+//     setTimeout(() => setShake(false), 500);
+//   }
+// };
+
+// Optimize valid state updates
+// useEffect(() => {
+//   if (typing) {
+//     const timer = setTimeout(() => {
+//       setTyping(false);
+//       reValidate();
+//     }, typingInterval);
+//     return () => clearTimeout(timer);
+//   }
+// }, [typing, typingInterval]);

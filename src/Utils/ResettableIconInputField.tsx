@@ -102,10 +102,13 @@ export const ResettableIconInputField = forwardRef(
           formHelperText: {
             className: clsx({ helper: !helper }),
             sx: {
-              fontWeight: isSuccess && !error ? "bold" : undefined,
-              color: error
-                ? theme.palette.error.main
-                : theme.palette.success.main,
+              fontWeight:
+                isSuccess && !error && !isValidating ? "bold" : undefined,
+              color: isValidating
+                ? theme.palette.primary.main
+                : error
+                  ? theme.palette.error.main
+                  : theme.palette.success.main,
             },
           },
         }}

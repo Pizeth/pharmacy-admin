@@ -12,6 +12,8 @@ const messages: { [key: string]: any } = {
         required: "%{field} is required!",
         notmatch: "The password do not match!",
         unique: "%{field} %{value} is already existed!",
+        username:
+          "%{field} %{value} is not allowed! Ensure it Starts with a letter Is 5-50 characters long Only uses letters, numbers, _, or ., No consecutive __ or ..",
         async: "An error occurred while validating the %{field}!",
         validating: "Validating...",
         error: "",
