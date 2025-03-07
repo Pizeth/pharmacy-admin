@@ -35,7 +35,7 @@ export const ValidationInput = forwardRef((props: IconTextInputProps, ref) => {
   const [, setMessage] = useAtom(setValidationMessageAtom);
   const [, clearMessage] = useAtom(clearValidationMessageAtom);
   // Use refs for transient UI states
-  const inputContainerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLDivElement>(null);
   const shakeRef = useRef<HTMLLabelElement | null>(null); // Ref for shake effect
   // const shakeRef = useRef<HTMLDivElement>(null); // Ref for shake effect
   const { clearErrors } = useFormContext();
@@ -46,7 +46,7 @@ export const ValidationInput = forwardRef((props: IconTextInputProps, ref) => {
   // Get required and async validators
   const require = useRequired(translate);
   const asyncValidate = useAsyncValidator(setMessage, clearMessage);
-  const [shake, setShake] = useState(false);
+  // const [shake, setShake] = useState(false);
   const [focused, setFocused] = useState(false);
 
   // Compute validators with normalization
@@ -76,13 +76,10 @@ export const ValidationInput = forwardRef((props: IconTextInputProps, ref) => {
     ...rest,
   });
 
-  console.log("shakeRef.current", shakeRef.current);
   // Handle shake effect without useState
   useEffect(() => {
-    if (!isValidating && invalid && inputContainerRef.current) {
-      shakeRef.current = inputContainerRef.current.querySelector(
-        ".MuiInputLabel-root",
-      );
+    if (!isValidating && invalid && inputRef.current) {
+      shakeRef.current = inputRef.current.querySelector(".MuiInputLabel-root");
       if (shakeRef.current) {
         shakeRef.current.classList.add("shake");
         setTimeout(() => {
@@ -105,14 +102,19 @@ export const ValidationInput = forwardRef((props: IconTextInputProps, ref) => {
   //     clearErrors(source);
   //   }
   // }, [isValidating, invalid, source, clearErrors]);
+  console.log("rendering", source);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e?.target?.value ?? e;
     field.onChange(newValue); // Ensure form data is in sync
   };
-  const handleFocus = () => setFocused(true);
+  const handleFocus = () => {
+    setFocused(true);
+    // inputRef.current?.classList.add("focused");
+  };
   const handleBlur = () => {
     setFocused(false);
+    // inputRef.current?.classList.remove("focused");
     field.onBlur();
   };
 
@@ -131,7 +133,7 @@ export const ValidationInput = forwardRef((props: IconTextInputProps, ref) => {
     <ResettableIconInputField
       id={id}
       {...field}
-      ref={inputContainerRef}
+      ref={inputRef}
       // ref={(el: HTMLDivElement) => {
       //   shakeRef.current = el;
       //   if (typeof ref === "function") ref(el);
