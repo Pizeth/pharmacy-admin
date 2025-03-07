@@ -34,9 +34,11 @@ export const ValidationInput = forwardRef((props: IconTextInputProps, ref) => {
   const translate = useTranslate();
   const [, setMessage] = useAtom(setValidationMessageAtom);
   const [, clearMessage] = useAtom(clearValidationMessageAtom);
-
   // Use refs for transient UI states
-  const shakeRef = useRef<HTMLDivElement>(null); // Ref for shake effect
+  const inputContainerRef = useRef<HTMLDivElement>(null);
+  const shakeRef = useRef<HTMLLabelElement | null>(null); // Ref for shake effect
+  // const shakeRef = useRef<HTMLDivElement>(null); // Ref for shake effect
+  const { clearErrors } = useFormContext();
 
   // const shakeTimeoutRef = useRef<NodeJS.Timeout>();
   // const inputRef = useRef<HTMLDivElement>(null);
@@ -46,7 +48,6 @@ export const ValidationInput = forwardRef((props: IconTextInputProps, ref) => {
   const asyncValidate = useAsyncValidator(setMessage, clearMessage);
   const [shake, setShake] = useState(false);
   const [focused, setFocused] = useState(false);
-  const { clearErrors } = useFormContext();
 
   // Compute validators with normalization
   const validators = useMemo(() => {
@@ -75,28 +76,33 @@ export const ValidationInput = forwardRef((props: IconTextInputProps, ref) => {
     ...rest,
   });
 
-  // Update the useEffect for handling async validation valid state and shake effect
+  console.log("shakeRef.current", shakeRef.current);
+  // Handle shake effect without useState
   useEffect(() => {
-    if (!isValidating && invalid) {
-      setShake(true);
-      setTimeout(() => setShake(false), 500);
+    if (!isValidating && invalid && inputContainerRef.current) {
+      shakeRef.current = inputContainerRef.current.querySelector(
+        ".MuiInputLabel-root",
+      );
+      if (shakeRef.current) {
+        shakeRef.current.classList.add("shake");
+        setTimeout(() => {
+          if (shakeRef.current) {
+            shakeRef.current.classList.remove("shake");
+          }
+        }, 500); // Matches animation duration
+      }
     } else {
       clearErrors(source);
     }
   }, [isValidating, invalid, source, clearErrors]);
 
-  // Handle shake effect without useState
+  // Update the useEffect for handling async validation valid state and shake effect
   // useEffect(() => {
-  //   if (!isValidating && invalid && shakeRef.current) {
-  //     console.log("Shake effect");
-  //     shakeRef.current?.classList.add("shake");
-  //     setTimeout(() => {
-  //       if (shakeRef.current) {
-  //         shakeRef.current.classList.remove("shake");
-  //       }
-  //     }, 500); // Matches animation duration
+  //   if (!isValidating && invalid) {
+  //     setShake(true);
+  //     setTimeout(() => setShake(false), 500);
   //   } else {
-  //     // clearErrors(source);
+  //     clearErrors(source);
   //   }
   // }, [isValidating, invalid, source, clearErrors]);
 
@@ -125,13 +131,19 @@ export const ValidationInput = forwardRef((props: IconTextInputProps, ref) => {
     <ResettableIconInputField
       id={id}
       {...field}
+      ref={inputContainerRef}
+      // ref={(el: HTMLDivElement) => {
+      //   shakeRef.current = el;
+      //   if (typeof ref === "function") ref(el);
+      //   else if (ref) ref.current = el;
+      // }}
       onChange={handleChange}
       onFocus={handleFocus}
       onBlur={handleBlur}
       className={clsx("ra-input", `ra-input-${source}`, className)}
       isValidating={isValidating}
       isFocused={focused}
-      isShake={shake}
+      // isShake={shake}
       helper={helper}
       label={
         label !== "" && label !== false ? (

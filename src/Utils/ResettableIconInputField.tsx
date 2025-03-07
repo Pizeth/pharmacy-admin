@@ -14,114 +14,117 @@ import { IconTextInputProps } from "../Types/types";
 /**
  * An override of the default Material UI TextField which is resettable
  */
-export const ResettableIconInputField = forwardRef(
-  (props: IconTextInputProps, ref) => {
-    const {
-      clearAlwaysVisible,
-      slotProps,
-      value,
-      resettable,
-      disabled,
-      readOnly,
-      variant,
-      margin,
-      className,
-      iconStart,
-      iconEnd,
-      isValidating,
-      isSuccess,
-      isFocused,
-      isShake,
-      helper,
-      ...rest
-    } = props;
+export const ResettableIconInputField = forwardRef<
+  HTMLDivElement,
+  IconTextInputProps
+>((props: IconTextInputProps, ref) => {
+  const {
+    clearAlwaysVisible,
+    slotProps,
+    value,
+    resettable,
+    disabled,
+    readOnly,
+    variant,
+    margin,
+    className,
+    iconStart,
+    iconEnd,
+    isValidating,
+    isSuccess,
+    isFocused,
+    // isShake,
+    helper,
+    ...rest
+  } = props;
 
-    const translate = useTranslate();
-    const theme = useTheme();
+  const translate = useTranslate();
+  const theme = useTheme();
 
-    const { error, onChange } = props;
+  const { error, onChange } = props;
 
-    const handleClickClearButton = useCallback(
-      (e: React.MouseEvent<HTMLButtonElement>) => {
-        e.preventDefault();
-        onChange && onChange("");
-      },
-      [onChange],
+  const handleClickClearButton = useCallback(
+    (e: React.MouseEvent<HTMLButtonElement>) => {
+      e.preventDefault();
+      onChange && onChange("");
+    },
+    [onChange],
+  );
+
+  const classes = ResettableIconInputStylesClasses;
+
+  const inputProps = (slotProps && slotProps.input) || {};
+  const { endAdornment, ...InputPropsWithoutEndAdornment } =
+    typeof inputProps === "function" ? {} : inputProps;
+
+  if (clearAlwaysVisible && endAdornment) {
+    throw new Error(
+      "ResettableTextField cannot display both an endAdornment and a clear button always visible",
     );
+  }
 
-    const classes = ResettableIconInputStylesClasses;
+  const endAdornmentElement = EndAdornment({
+    props,
+    classess: classes,
+    endAdornment,
+    translate,
+    handleClickClearButton,
+    handleMouseDownClearButton,
+  });
 
-    const inputProps = (slotProps && slotProps.input) || {};
-    const { endAdornment, ...InputPropsWithoutEndAdornment } =
-      typeof inputProps === "function" ? {} : inputProps;
-
-    if (clearAlwaysVisible && endAdornment) {
-      throw new Error(
-        "ResettableTextField cannot display both an endAdornment and a clear button always visible",
-      );
-    }
-
-    const endAdornmentElement = EndAdornment({
-      props,
-      classess: classes,
-      endAdornment,
-      translate,
-      handleClickClearButton,
-      handleMouseDownClearButton,
-    });
-
-    return (
-      <StyledTextField
-        value={value}
-        slotProps={{
-          input: {
-            readOnly: readOnly,
-            classes:
-              props.select && variant === "outlined"
-                ? {
-                    adornedEnd: classes.inputAdornedEnd,
-                    adornedStart: classes.inputAdornedStart,
-                  }
-                : {},
-            startAdornment: iconStart ? (
-              <InputAdornment position="start">{iconStart}</InputAdornment>
-            ) : null,
-            endAdornment: isValidating ? (
-              <CircularProgress size={20} /> // Show loading spinner
-            ) : iconEnd ? (
-              <InputAdornment position="end">{iconEnd}</InputAdornment>
-            ) : (
-              endAdornmentElement
-            ),
-            ...InputPropsWithoutEndAdornment,
+  return (
+    // <StyledTextField  {...props} />
+    <StyledTextField
+      value={value}
+      ref={ref}
+      slotProps={{
+        input: {
+          readOnly: readOnly,
+          classes:
+            props.select && variant === "outlined"
+              ? {
+                  adornedEnd: classes.inputAdornedEnd,
+                  adornedStart: classes.inputAdornedStart,
+                }
+              : {},
+          startAdornment: iconStart ? (
+            <InputAdornment position="start">{iconStart}</InputAdornment>
+          ) : null,
+          endAdornment: isValidating ? (
+            <CircularProgress size={20} /> // Show loading spinner
+          ) : iconEnd ? (
+            <InputAdornment position="end">{iconEnd}</InputAdornment>
+          ) : (
+            endAdornmentElement
+          ),
+          ...InputPropsWithoutEndAdornment,
+        },
+        inputLabel: {
+          shrink: isFocused || value !== "",
+          // className: clsx({ shake: isShake }),
+        },
+        formHelperText: {
+          className: clsx({ helper: !helper }),
+          sx: {
+            fontWeight:
+              isSuccess && !error && !isValidating ? "bold" : undefined,
+            color: isValidating
+              ? theme.palette.primary.main
+              : error
+                ? theme.palette.error.main
+                : theme.palette.success.main,
           },
-          inputLabel: {
-            shrink: isFocused || value !== "",
-            className: clsx({ shake: isShake }),
-          },
-          formHelperText: {
-            className: clsx({ helper: !helper }),
-            sx: {
-              fontWeight:
-                isSuccess && !error && !isValidating ? "bold" : undefined,
-              color: isValidating
-                ? theme.palette.primary.main
-                : error
-                  ? theme.palette.error.main
-                  : theme.palette.success.main,
-            },
-          },
-        }}
-        disabled={disabled || readOnly}
-        variant={variant}
-        margin={margin}
-        className={className}
-        {...rest}
-        inputRef={ref}
-      />
-    );
-  },
-);
+        },
+      }}
+      disabled={disabled || readOnly}
+      variant={variant}
+      margin={margin}
+      className={className}
+      {...rest}
+      inputRef={ref}
+    />
+  );
+});
 
 ResettableIconInputField.displayName = "ResettableIconInputField";
 

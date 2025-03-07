@@ -185,13 +185,11 @@ export const useAsyncValidator = (
 
                 // Proper success case handling
                 if (status === statusCode.OK) {
-                  setMessage({ source, message: `⭕ ${data.message} ✔️` });
+                  setMessage({ source, message: data.message });
                   resolve(undefined); // ✅ Clear errors automatically
                 } else {
                   clearMessage(source);
-                  resolve(
-                    MsgUtils.setMsg(`❌ ${data.message} ❗`, args, status),
-                  );
+                  resolve(MsgUtils.setMsg(data.message, args, status));
                 }
               } catch (error) {
                 if (!axios.isCancel(error)) {
