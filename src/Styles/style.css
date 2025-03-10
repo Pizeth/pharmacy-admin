@@ -50,3 +50,13 @@
 /* .label-shake {
   animation: shake 0.5s ease-in-out;
 } */
+
+/* Fix label positioning if adornment causes issues 
+.MuiInputLabel-outlined {
+  transform: translate(14px, 20px) scale(1); /* Default position 
+}
+
+.MuiInputLabel-outlined.Mui-focused,
+.MuiInputLabel-outlined.MuiFormLabel-filled {
+  transform: translate(14px, -6px) scale(0.75); /* Shrunk position 
+}*/

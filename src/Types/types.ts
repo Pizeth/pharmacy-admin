@@ -87,7 +87,8 @@ export interface IconTextInputProps extends PasswordInputProps {
   isValidating?: boolean;
   isSuccess?: boolean;
   isFocused?: boolean;
-  isShake?: boolean;
+  // isShake?: boolean;
+  // labelRef?: React.RefObject<HTMLLabelElement>;
   helper?: boolean;
   strengthMeter?: boolean;
   passwordValue?: string; // Props for RepasswordInput to receive the password field value

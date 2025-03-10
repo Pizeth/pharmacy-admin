@@ -1,6 +1,5 @@
 import {
   Create,
-  email,
   ImageField,
   ImageInput,
   NumberInput,
@@ -9,26 +8,16 @@ import {
   SimpleForm,
   Toolbar,
   ToolbarProps,
-  useNotify,
-  useRecordContext,
-  useTranslate,
-  useUnique,
-  // required,
-  maxValue,
-  PasswordInput,
 } from "react-admin";
-import { useFormState, useFormContext } from "react-hook-form";
+import { useFormState } from "react-hook-form";
 import { InputAdornment } from "@mui/material";
 // import ValidationInput from "./CustomFields/LiveValidationInput";
 import {
   PermIdentity,
-  MailOutline,
-  Password,
   PeopleAltRounded,
   SwitchAccount,
 } from "@mui/icons-material";
 import { useState } from "react";
-import PasswordValidationInput from "./fortest";
 import IconInput from "./CustomFields/IconInput";
 import { useRequired } from "./Utils/validator";
 import { ValidationInput } from "./Utils/test2";
@@ -76,7 +65,7 @@ const CustomToolbar = (props: ToolbarProps) => {
 
 export const UserCreate = () => {
   type FocusedField = "rePassword" | "role" | null;
-  const [password, setPassword] = useState<string>("");
+  // const [password, setPassword] = useState<string>("");
   const [role, setRole] = useState("");
   // const [focused, setFocused] = useState(false);
   const [focused, setFocused] = useState<FocusedField>(null);
@@ -85,7 +74,7 @@ export const UserCreate = () => {
   const handleFocus = (field: FocusedField) => setFocused(field);
   // const handleBlur = () => setFocused(false);
   const handleBlur = () => setFocused(null);
-  const unique = useUnique();
+  // const unique = useUnique();
   const require = useRequired();
 
   return (
@@ -102,13 +91,13 @@ export const UserCreate = () => {
           className="icon-input"
           iconStart={<PermIdentity />}
         />
-        <ValidationInput
+        {/* <ValidationInput
           source="email"
           resettable
           className="icon-input"
           iconStart={<MailOutline />}
           type="email"
-        />
+        /> */}
         {/* <PasswordInputMeter
           source="password"
           iconStart={<Password />}

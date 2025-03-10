@@ -25,7 +25,7 @@ export const ResettableIconInputField = forwardRef<
     resettable,
     disabled,
     readOnly,
-    variant,
+    variant = "outlined",
     margin,
     className,
     iconStart,
@@ -34,6 +34,7 @@ export const ResettableIconInputField = forwardRef<
     isSuccess,
     isFocused,
     // isShake,
+    // labelRef,
     helper,
     ...rest
   } = props;
@@ -73,7 +74,6 @@ export const ResettableIconInputField = forwardRef<
   });
 
   return (
-    // <StyledTextField  {...props} />
     <StyledTextField
       value={value}
       ref={ref}
@@ -102,6 +102,7 @@ export const ResettableIconInputField = forwardRef<
         inputLabel: {
           shrink: isFocused || value !== "",
           // className: clsx({ shake: isShake }),
+          // ref: labelRef, // Attach ref for shake effect
         },
         formHelperText: {
           className: clsx({ helper: !helper }),

@@ -14,7 +14,7 @@ import {
 } from "../Stores/validationStore";
 import ResettableIconInputField from "../Utils/ResettableIconInputField";
 import { useFormContext } from "react-hook-form";
-
+import { isEmpty, values } from "lodash";
 export const ValidationInput = forwardRef((props: IconTextInputProps, ref) => {
   const {
     className,
@@ -35,13 +35,10 @@ export const ValidationInput = forwardRef((props: IconTextInputProps, ref) => {
   const [, setMessage] = useAtom(setValidationMessageAtom);
   const [, clearMessage] = useAtom(clearValidationMessageAtom);
   // Use refs for transient UI states
+  const initialValueRef = useRef("");
   const inputRef = useRef<HTMLDivElement>(null);
   const shakeRef = useRef<HTMLLabelElement | null>(null); // Ref for shake effect
-  // const shakeRef = useRef<HTMLDivElement>(null); // Ref for shake effect
   const { clearErrors } = useFormContext();
-
-  // const shakeTimeoutRef = useRef<NodeJS.Timeout>();
-  // const inputRef = useRef<HTMLDivElement>(null);
 
   // Get required and async validators
   const require = useRequired(translate);
@@ -93,6 +90,21 @@ export const ValidationInput = forwardRef((props: IconTextInputProps, ref) => {
     }
   }, [isValidating, invalid, source, clearErrors]);
 
+  // Handle shake effect without useState
+  // useEffect(() => {
+  //   console.log(shakeRef.current);
+  //   if (!isValidating && invalid && shakeRef.current) {
+  //     shakeRef.current.classList.add("shake");
+  //     setTimeout(() => {
+  //       if (shakeRef.current) {
+  //         shakeRef.current.classList.remove("shake");
+  //       }
+  //     }, 500); // Matches animation duration
+  //   } else {
+  //     clearErrors(source);
+  //   }
+  // }, [isValidating, invalid, source, clearErrors]);
+
   // Update the useEffect for handling async validation valid state and shake effect
   // useEffect(() => {
   //   if (!isValidating && invalid) {
@@ -102,20 +114,25 @@ export const ValidationInput = forwardRef((props: IconTextInputProps, ref) => {
   //     clearErrors(source);
   //   }
   // }, [isValidating, invalid, source, clearErrors]);
-  console.log("rendering", source);
+  // console.log("rendering", source);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e?.target?.value ?? e;
     field.onChange(newValue); // Ensure form data is in sync
   };
-  const handleFocus = () => {
+  const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
+    initialValueRef.current = e.target.value;
     setFocused(true);
-    // inputRef.current?.classList.add("focused");
   };
-  const handleBlur = () => {
+  const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
     setFocused(false);
-    // inputRef.current?.classList.remove("focused");
-    field.onBlur();
+    console.log(initialValueRef.current);
+    console.log("values", e.target.value);
+    // field.onBlur();
+    // Call field.onBlur() only if the value has changed
+    if (field.value !== initialValueRef.current || isEmpty(field.value)) {
+      field.onBlur(e);
+    }
   };
 
   // Combine sync and async errors
@@ -134,17 +151,13 @@ export const ValidationInput = forwardRef((props: IconTextInputProps, ref) => {
       id={id}
       {...field}
       ref={inputRef}
-      // ref={(el: HTMLDivElement) => {
-      //   shakeRef.current = el;
-      //   if (typeof ref === "function") ref(el);
-      //   else if (ref) ref.current = el;
-      // }}
       onChange={handleChange}
       onFocus={handleFocus}
       onBlur={handleBlur}
       className={clsx("ra-input", `ra-input-${source}`, className)}
       isValidating={isValidating}
       isFocused={focused}
+      // labelRef={shakeRef}
       // isShake={shake}
       helper={helper}
       label={
