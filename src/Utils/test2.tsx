@@ -1,5 +1,5 @@
 import React, { forwardRef, useEffect, useMemo, useRef, useState } from "react";
-import { useInput, useTranslate } from "react-admin";
+import { isEmpty, useInput, useTranslate } from "react-admin";
 import { IconTextInputProps } from "../Types/types";
 import clsx from "clsx";
 import { useAsyncValidator, useRequired } from "../Utils/validator";
@@ -14,14 +14,13 @@ import {
 } from "../Stores/validationStore";
 import ResettableIconInputField from "../Utils/ResettableIconInputField";
 import { useFormContext } from "react-hook-form";
-import { isEmpty, values } from "lodash";
 export const ValidationInput = forwardRef((props: IconTextInputProps, ref) => {
   const {
     className,
     defaultValue,
     label,
-    format,
     helperText,
+    format,
     onBlur,
     onChange,
     parse,
@@ -41,7 +40,7 @@ export const ValidationInput = forwardRef((props: IconTextInputProps, ref) => {
   const { clearErrors } = useFormContext();
 
   // Get required and async validators
-  const require = useRequired(translate);
+  const require = useRequired();
   const asyncValidate = useAsyncValidator(setMessage, clearMessage);
   // const [shake, setShake] = useState(false);
   const [focused, setFocused] = useState(false);
@@ -118,20 +117,21 @@ export const ValidationInput = forwardRef((props: IconTextInputProps, ref) => {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e?.target?.value ?? e;
+    initialValueRef.current = newValue;
     field.onChange(newValue); // Ensure form data is in sync
   };
-  const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
-    initialValueRef.current = e.target.value;
-    setFocused(true);
-  };
-  const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+  const handleFocus = () => setFocused(true);
+
+  const handleBlur = () => {
     setFocused(false);
-    console.log(initialValueRef.current);
-    console.log("values", e.target.value);
+
     // field.onBlur();
     // Call field.onBlur() only if the value has changed
-    if (field.value !== initialValueRef.current || isEmpty(field.value)) {
-      field.onBlur(e);
+    if (
+      field.value !== initialValueRef.current ||
+      (isRequired && isEmpty(field.value))
+    ) {
+      field.onBlur();
     }
   };
 

@@ -80,5 +80,3 @@ export const UserCreate = () => {
     </Create>
   );
 };
-
-export default UserCreate;

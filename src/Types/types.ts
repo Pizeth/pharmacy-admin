@@ -73,6 +73,12 @@ export type AsyncValidationErrorMessage = ValidationErrorMessage & {
   status?: boolean | number;
 };
 
+export type zxcvbnFeedBack = {
+  score: number;
+  feedbackMsg: string;
+  warning?: string;
+};
+
 // export type ValidationResult =
 //   | string
 //   | { message: string; args?: Record<string, any> }

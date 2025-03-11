@@ -2,6 +2,7 @@ import {
   Create,
   ImageField,
   ImageInput,
+  isRequired,
   NumberInput,
   SaveButton,
   SelectInput,
@@ -9,19 +10,21 @@ import {
   Toolbar,
   ToolbarProps,
 } from "react-admin";
-import { useFormState } from "react-hook-form";
+import { useFormContext, useFormState } from "react-hook-form";
 import { InputAdornment } from "@mui/material";
-// import ValidationInput from "./CustomFields/LiveValidationInput";
 import {
   PermIdentity,
   PeopleAltRounded,
   SwitchAccount,
+  Password,
+  MailOutline,
 } from "@mui/icons-material";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import IconInput from "./CustomFields/IconInput";
 import { useRequired } from "./Utils/validator";
 import { ValidationInput } from "./Utils/test2";
-// import { required } from "./Utils/validator";
+import PasswordValidationInput from "./fortest";
+import PasswordFields from "./CustomComponents/PasswordComponents";
 
 const choices = [
   { id: "SUPER_ADMIN", name: "Super Admin", disabled: true },
@@ -31,31 +34,10 @@ const choices = [
   { id: "USER", name: "User" },
 ];
 
-// const CustomToolbar = (props: ToolbarProps) => {
-//   const { errors, isValid, isDirty } = useFormState();
-//   console.log(errors);
-//   console.log(isValid);
-//   console.log(isDirty);
-//   console.log(useFormState());
-//   const hasErrors = Object.keys(errors).length > 0;
-
-//   return (
-//     <Toolbar {...props}>
-//       <SaveButton disabled={hasErrors || !isValid || !isDirty} />
-//     </Toolbar>
-//   );
-// };
-
 const CustomToolbar = (props: ToolbarProps) => {
-  // const {
-  //   formState: { errors, isValid, isDirty },
-  // } = useFormContext();
   const { errors, isValid, isDirty } = useFormState();
-  // console.log(errors);
   // const hasErrors = Object.keys(errors).length > 0;
   const hasErrors = Object.values(errors).some((error) => !!error);
-  // console.log(hasErrors);
-
   return (
     <Toolbar {...props}>
       <SaveButton disabled={hasErrors || !isValid || !isDirty} />
@@ -65,16 +47,12 @@ const CustomToolbar = (props: ToolbarProps) => {
 
 export const UserCreate = () => {
   type FocusedField = "rePassword" | "role" | null;
-  // const [password, setPassword] = useState<string>("");
+
   const [role, setRole] = useState("");
-  // const [focused, setFocused] = useState(false);
   const [focused, setFocused] = useState<FocusedField>(null);
 
-  // const handleFocus = () => setFocused(true);
   const handleFocus = (field: FocusedField) => setFocused(field);
-  // const handleBlur = () => setFocused(false);
   const handleBlur = () => setFocused(null);
-  // const unique = useUnique();
   const require = useRequired();
 
   return (
@@ -91,39 +69,28 @@ export const UserCreate = () => {
           className="icon-input"
           iconStart={<PermIdentity />}
         />
-        {/* <ValidationInput
+        <ValidationInput
           source="email"
           resettable
           className="icon-input"
           iconStart={<MailOutline />}
           type="email"
-        /> */}
-        {/* <PasswordInputMeter
-          source="password"
-          iconStart={<Password />}
-          className="icon-input"
-          // onChangeCapture={(e) =>
-          //   setPassword((e.target as HTMLInputElement).value)
-          // }
-          onInput={(e) => setPassword((e.target as HTMLInputElement).value)}
-          // onChange={(e) => setPassword(e.target.value)}
-          required
-        /> */}
+        />
+
         {/* <PasswordValidationInput
           source="password"
           iconStart={<Password />}
           className="icon-input"
           strengthMeter
-          onInput={(e) => setPassword((e.target as HTMLInputElement).value)}
+          // onInput={(e) => setPassword((e.target as HTMLInputElement).value)}
         />
         <PasswordValidationInput
           source="rePassword"
-          passwordValue={password}
           iconStart={<Password />}
           className="icon-input"
+          passwordValue={passwordValue}
         /> */}
-        {/* <TextInput source={"email"} resettable></TextInput> */}
-        {/* <ResettableTextField resettable /> */}
+        <PasswordFields />
         <IconInput
           source="authMethod"
           className="icon-input"
@@ -167,6 +134,20 @@ export const UserCreate = () => {
 };
 
 export default UserCreate;
+
+{
+  /* <PasswordInputMeter
+          source="password"
+          iconStart={<Password />}
+          className="icon-input"
+          // onChangeCapture={(e) =>
+          //   setPassword((e.target as HTMLInputElement).value)
+          // }
+          onInput={(e) => setPassword((e.target as HTMLInputElement).value)}
+          // onChange={(e) => setPassword(e.target.value)}
+          required
+        /> */
+}
 
 // src/components/RentalCreate.js
 // import React, { useState, useEffect } from 'react';

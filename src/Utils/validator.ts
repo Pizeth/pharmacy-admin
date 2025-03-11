@@ -70,11 +70,12 @@ import {
   IconTextInputProps,
   Memoize,
   UseFieldOptions,
+  zxcvbnFeedBack,
 } from "../Types/types";
 
 import lodashMemoize from "lodash/memoize";
 import MsgUtils from "./MsgUtils";
-import { useCallback, useRef } from "react";
+import { useCallback, useRef, useState } from "react";
 import { merge } from "lodash";
 
 // If we define validation functions directly in JSX, it will
@@ -134,22 +135,6 @@ export const useAsyncValidator = (
             { status: statusCode.ACCEPTED },
           );
         }
-
-        // const usernameRegex =
-        //   /^(?=.{5,50}$)[a-zA-Z](?!.*([_.])\1)[a-zA-Z0-9_.]*$/;
-
-        // if (!usernameRegex.test(value)) {
-        //   return Object.assign(
-        //     MsgUtils.getMessage(
-        //       "razeth.validation.username",
-        //       args,
-        //       value,
-        //       allValues,
-        //     ),
-        //     { isRequired: true },
-        //     { status: statusCode.ACCEPTED },
-        //   );
-        // }
 
         // Clear previous validation
         if (timeoutRef.current) clearTimeout(timeoutRef.current);
@@ -309,6 +294,105 @@ export const serverValidator = async (
 //   };
 // };
 
+export const usePasswordValidator = (options?: UseFieldOptions) => {
+  const translateLabel = useTranslateLabel();
+  const timeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
+  const cancelTokenRef = useRef<CancelTokenSource | undefined>(undefined);
+  const currentValidationId = useRef(0);
+
+  const [result, setResult] = useState<zxcvbnFeedBack>({
+    score: 0,
+    feedbackMsg: "",
+  });
+
+  const validator = useCallback(
+    (callTimeOptions?: UseFieldOptions) => {
+      const { message, debounce: interval } = merge<UseFieldOptions, any, any>(
+        {
+          debounce: DEFAULT_DEBOUNCE,
+          message: "razeth.validation.password",
+        },
+        options,
+        callTimeOptions,
+      );
+
+      return (value: any, allValues: any, props: IconTextInputProps) => {
+        const { source, label } = props;
+        const args = {
+          source,
+          value,
+          field: translateLabel({
+            label: label,
+            source,
+          }),
+        };
+
+        if (isEmpty(value)) {
+          return Object.assign(
+            MsgUtils.getMessage(message, args, value, allValues),
+            { isRequired: true },
+            { status: statusCode.ACCEPTED },
+          );
+        }
+
+        // Clear previous validation
+        if (timeoutRef.current) clearTimeout(timeoutRef.current);
+        if (cancelTokenRef.current) {
+          cancelTokenRef.current.cancel("New validation started");
+        }
+
+        // Generate new validation ID
+        const validationId = ++currentValidationId.current;
+
+        return new Promise<AsyncValidationErrorMessage | undefined>(
+          (resolve) => {
+            timeoutRef.current = setTimeout(async () => {
+              // Only process if still the latest validation
+              if (validationId !== currentValidationId.current) {
+                resolve(undefined);
+                return;
+              }
+
+              try {
+                cancelTokenRef.current = axios.CancelToken.source();
+                const result = await zxcvbnAsync(value);
+                const warningMsg = result.feedback.warning;
+                const suggestMsg = result.feedback.suggestions.join(" ");
+                const score = result.score;
+                const invalid = score <= 0;
+
+                // Adjust threshold as needed
+                if (invalid) {
+                  resolve(MsgUtils.setMsg(warningMsg || message, args));
+                } else {
+                  resolve(undefined);
+                }
+                setResult({
+                  score,
+                  feedbackMsg: invalid
+                    ? suggestMsg
+                    : (warningMsg ?? "").concat(` ${suggestMsg}`),
+                });
+              } catch (error) {
+                resolve(
+                  MsgUtils.setMsg(
+                    "razeth.validation.async",
+                    args,
+                    statusCode.INTERNAL_SERVER_ERROR,
+                  ),
+                );
+              }
+            }, interval ?? DEFAULT_DEBOUNCE);
+          },
+        );
+      };
+    },
+    [options, translateLabel],
+  );
+
+  return { validator, result };
+};
+
 export const validateStrength = async (
   value: string,
   message = "razeth.validation.notmatch",
@@ -325,17 +409,9 @@ export const validateStrength = async (
   const warningMsg = result.feedback.warning;
   const suggestMsg = result.feedback.suggestions.join(" ");
   const score = result.score;
-  const invalid = score <= 0;
-
-  // setValidateError(isValid);
-  // setErrMessage(warningMsg || "");
-  // setPasswordStrength(result.score);
-  // setPasswordFeedback(
-  //   result ? suggestMsg : (warningMsg ?? "").concat(` ${suggestMsg}`),
-  // );
+  const invalid = score <= 0; // Adjust threshold as needed
 
   if (invalid) {
-    // Adjust threshold as needed
     return {
       message: warningMsg || message,
       feedbackMsg: (warningMsg ?? "").concat(` ${suggestMsg}`),
@@ -361,6 +437,34 @@ export const validateStrength = async (
   }; // No error
 };
 
+// export const required = memoize((message = "ra.validation.required") =>
+//   Object.assign(
+//     (value, values) =>
+//       isEmpty(value)
+//         ? getMessage(message, undefined, value, values)
+//         : undefined,
+//     { isRequired: true },
+//   ),
+// );
+
+export const matchPassword1 = memoize(
+  (passwordValue: string, message = "razeth.validation.notmatch") =>
+    Object.assign(
+      (value: string, values: any) =>
+        isEmpty(value)
+          ? MsgUtils.getMessage(
+              "ra.validation.required",
+              undefined,
+              value,
+              values,
+            )
+          : value !== values.password
+            ? MsgUtils.getMessage(message, { passwordValue }, value, values)
+            : undefined,
+      { isRequired: true },
+    ),
+);
+
 export const matchPassword = memoize(
   (passwordValue: string, message = "razeth.validation.notmatch") =>
     (value: string, values: any) =>
@@ -383,7 +487,7 @@ export const matchPassword = memoize(
  */
 export const useRequired = (
   // options?: UseFieldOptions,
-  translate?: Translate,
+  // translate?: Translate,
   message = "razeth.validation.required",
 ) => {
   const translateLabel = useTranslateLabel();
