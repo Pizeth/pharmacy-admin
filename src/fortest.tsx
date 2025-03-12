@@ -14,7 +14,7 @@ import { clsx } from "clsx";
 import { IconTextInputProps } from "./Types/types";
 import PasswordStrengthMeter from "./CustomComponents/PasswordStrengthMeter";
 import {
-  matchPassword,
+  useMatchPassword,
   usePasswordValidator,
   useRequired,
 } from "./Utils/validator";
@@ -53,6 +53,8 @@ export const PasswordValidationInput = (props: IconTextInputProps) => {
 
   // Get required and password validators
   const require = useRequired();
+  const matchPassword = useMatchPassword(passwordValue);
+  // const pass = matchPassword();
   const { validator, result } = usePasswordValidator();
   const [focused, setFocused] = useState(false);
   const [visible, setVisible] = useState(initiallyVisible);
@@ -62,10 +64,10 @@ export const PasswordValidationInput = (props: IconTextInputProps) => {
     const normalizedValidate = Array.isArray(validate) ? validate : [validate];
     const baseValidators = [...normalizedValidate];
     if (passwordValue) {
-      baseValidators.push(matchPassword(passwordValue));
+      baseValidators.push(matchPassword());
     }
     if (strengthMeter) {
-      baseValidators.push(require());
+      // baseValidators.push(require());
       baseValidators.push(validator());
     }
     return baseValidators;

@@ -14,10 +14,11 @@ const PasswordFields = () => {
   // Trigger rePassword validation when password changes
   useEffect(() => {
     // if (!isEmpty(passwordValue)) {
-    if (passwordValue !== undefined && passwordValue !== "") {
-      console.log("revalidate");
-      trigger("rePassword");
-    }
+    //   // if (passwordValue !== undefined && passwordValue !== "") {
+    //   console.log("revalidate");
+    //   trigger("rePassword");
+    // }
+    trigger("rePassword");
   }, [passwordValue, trigger]);
 
   return (
@@ -27,6 +28,7 @@ const PasswordFields = () => {
         iconStart={<Password />}
         className="icon-input"
         strengthMeter
+        // onInput={() => trigger("rePassword")}
       />
       <PasswordValidationInput
         source="rePassword"
