@@ -34,7 +34,7 @@ const PasswordFields = () => {
         source="rePassword"
         iconStart={<Password />}
         className="icon-input"
-        passwordValue={passwordValue}
+        // passwordValue={passwordValue}
       />
     </>
   );

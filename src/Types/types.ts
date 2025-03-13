@@ -62,6 +62,7 @@ export type UseFieldOptions = {
   source?: string;
   message?: string;
   debounce?: number;
+  translate?: Translate;
   // timeOut?: MutableRefObject<NodeJS.Timeout | undefined>;
   // abortController?: MutableRefObject<AbortController | null>;
   options?: { endpoint?: string; successMessage?: string };
@@ -103,7 +104,7 @@ export interface IconTextInputProps extends PasswordInputProps {
 export interface PasswordStrengthMeterProps {
   passwordStrength: number;
   passwordFeedback: string;
-  value: string;
+  // value: string;
 }
 
 export interface LinearProgressWithLabelProps extends LinearProgressProps {

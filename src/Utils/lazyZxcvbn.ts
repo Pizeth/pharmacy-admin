@@ -25,43 +25,43 @@ export const loadZxcvbn = async () => {
   const matcherPwned = PwnedMatcher(fetch, zxcvbnOptions);
 
   // Initialize options and matcher once at the top level
-  const regexMatcher = {
-    Matching: class MatchRegex {
-      regex =
-        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{10,}$/;
+  // const regexMatcher = {
+  //   Matching: class MatchRegex {
+  //     regex =
+  //       /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{10,}$/;
 
-      match({ password }: { password: string }) {
-        const matches: any[] = [];
-        const result = this.regex.exec(password);
-        if (!result) {
-          matches.push({
-            pattern: "passRegex",
-            token: password,
-            i: 0,
-            j: password.length - 1,
-            length: password.length,
-          });
-        }
-        return matches;
-      }
-    },
-    feedback(match: any, isSoleMatch?: boolean) {
-      return {
-        warning: "Your password does not meet the required criteria.",
-        suggestions: [
-          "Password must be at least 10 characters,",
-          "include uppercase,",
-          "lowercase,",
-          "number,",
-          "and special character!",
-        ],
-      };
-    },
-    scoring(match: any) {
-      // Customize the scoring as per the match strength
-      return match.token.length * 5; // Example scoring
-    },
-  };
+  //     match({ password }: { password: string }) {
+  //       const matches: any[] = [];
+  //       const result = this.regex.exec(password);
+  //       if (!result) {
+  //         matches.push({
+  //           pattern: "passRegex",
+  //           token: password,
+  //           i: 0,
+  //           j: password.length - 1,
+  //           length: password.length,
+  //         });
+  //       }
+  //       return matches;
+  //     }
+  //   },
+  //   feedback(match: any, isSoleMatch?: boolean) {
+  //     return {
+  //       warning: "Your password does not meet the required criteria.",
+  //       suggestions: [
+  //         "Password must be at least 10 characters,",
+  //         "include uppercase,",
+  //         "lowercase,",
+  //         "number,",
+  //         "and special character!",
+  //       ],
+  //     };
+  //   },
+  //   scoring(match: any) {
+  //     // Customize the scoring as per the match strength
+  //     return match.token.length * 5; // Example scoring
+  //   },
+  // };
 
   const options = {
     translations: zxcvbnEnPackage.translations,
@@ -73,7 +73,7 @@ export const loadZxcvbn = async () => {
   };
 
   zxcvbnOptions.setOptions(options);
-  zxcvbnOptions.addMatcher("passRegex", regexMatcher);
+  // zxcvbnOptions.addMatcher("passRegex", regexMatcher);
   zxcvbnOptions.addMatcher("pwned", matcherPwned);
 
   return zxcvbnAsync;

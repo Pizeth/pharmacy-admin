@@ -16,7 +16,7 @@ import PasswordStrengthMeter from "./CustomComponents/PasswordStrengthMeter";
 import {
   useMatchPassword,
   usePasswordValidator,
-  useRequired,
+  // useRequired,
 } from "./Utils/validator";
 import { InputHelper } from "./CustomComponents/InputHelper";
 import ResettableIconInputField from "./Utils/ResettableIconInputField";
@@ -36,7 +36,7 @@ export const PasswordValidationInput = (props: IconTextInputProps) => {
     validate = [],
     initiallyVisible = false,
     strengthMeter = false,
-    passwordValue,
+    // passwordValue,
     ...rest
   } = props;
 
@@ -52,10 +52,10 @@ export const PasswordValidationInput = (props: IconTextInputProps) => {
   const { clearErrors } = useFormContext();
 
   // Get required and password validators
-  const require = useRequired();
-  const matchPassword = useMatchPassword(passwordValue);
+  // const require = useRequired();
+  const matchPassword = useMatchPassword();
   // const pass = matchPassword();
-  const { validator, result } = usePasswordValidator();
+  const { passwordValidator, result } = usePasswordValidator();
   const [focused, setFocused] = useState(false);
   const [visible, setVisible] = useState(initiallyVisible);
 
@@ -63,15 +63,15 @@ export const PasswordValidationInput = (props: IconTextInputProps) => {
   const validators = useMemo(() => {
     const normalizedValidate = Array.isArray(validate) ? validate : [validate];
     const baseValidators = [...normalizedValidate];
-    if (passwordValue) {
-      baseValidators.push(matchPassword());
-    }
-    if (strengthMeter) {
-      // baseValidators.push(require());
-      baseValidators.push(validator());
-    }
+    // if (passwordValue) {
+    //   baseValidators.push(matchPassword());
+    // }
+    // if (strengthMeter) {
+    //   baseValidators.push(passwordValidator());
+    // }
+    baseValidators.push(strengthMeter ? passwordValidator() : matchPassword());
     return baseValidators;
-  }, [validate, passwordValue, strengthMeter, require]);
+  }, [validate, strengthMeter]);
 
   const {
     field,
@@ -289,7 +289,7 @@ export const PasswordValidationInput = (props: IconTextInputProps) => {
     setFocused(false);
     if (
       field.value !== initialValueRef.current ||
-      (isRequired && isEmpty(field.value) && isEmpty(passwordValue))
+      (isRequired && isEmpty(field.value)) /*&& isEmpty(passwordValue)*/
     ) {
       field.onBlur();
     }
@@ -319,6 +319,7 @@ export const PasswordValidationInput = (props: IconTextInputProps) => {
     helperText ||
     errMsg ||
     result.feedbackMsg ||
+    isValidating ||
     invalid
   );
   const helper = !!(helperText || errMsg || isValidating);
@@ -439,7 +440,7 @@ export const PasswordValidationInput = (props: IconTextInputProps) => {
         <PasswordStrengthMeter
           passwordStrength={result.score}
           passwordFeedback={result.feedbackMsg}
-          value={field.value}
+          // value={field.value}
         />
       )}
     </Box>

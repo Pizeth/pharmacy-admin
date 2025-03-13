@@ -52,7 +52,7 @@ const MESSAGE = import.meta.env.VITE_PASSWORD_HINT;
 export const PasswordStrengthMeter = ({
   passwordStrength,
   passwordFeedback,
-  value,
+  // value,
 }: PasswordStrengthMeterProps) => (
   <Box mt={1}>
     <LinearProgressWithLabel
@@ -61,7 +61,8 @@ export const PasswordStrengthMeter = ({
       strength={passwordStrength} // Pass strength to LinearProgressWithLabel
     />
     <Typography className={"passHint"} variant="caption" color="textSecondary">
-      {value ? passwordFeedback : MESSAGE}
+      {passwordFeedback}
+      {/* {value ? passwordFeedback : MESSAGE} */}
     </Typography>
   </Box>
 );

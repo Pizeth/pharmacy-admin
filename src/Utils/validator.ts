@@ -305,7 +305,7 @@ export const usePasswordValidator = (options?: UseFieldOptions) => {
     feedbackMsg: "",
   });
 
-  const validator = useCallback(
+  const passwordValidator = useCallback(
     (callTimeOptions?: UseFieldOptions) => {
       const { message, debounce: interval } = merge<UseFieldOptions, any, any>(
         {
@@ -315,6 +315,10 @@ export const usePasswordValidator = (options?: UseFieldOptions) => {
         options,
         callTimeOptions,
       );
+
+      // Define the regex for policy enforcement
+      const regex =
+        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{10,}$/;
 
       return Object.assign(
         (value: any, allValues: any, props: IconTextInputProps) => {
@@ -329,6 +333,10 @@ export const usePasswordValidator = (options?: UseFieldOptions) => {
           };
 
           if (isEmpty(value)) {
+            setResult({
+              score: 0,
+              feedbackMsg: "",
+            });
             return MsgUtils.getMessage(message, args, value, allValues);
             // return Object.assign(
             //   MsgUtils.getMessage(message, args, value, allValues),
@@ -348,6 +356,22 @@ export const usePasswordValidator = (options?: UseFieldOptions) => {
 
           return new Promise<AsyncValidationErrorMessage | undefined>(
             (resolve) => {
+              // Step 1: Check regex immediately
+              if (!regex.test(value)) {
+                setResult({
+                  score: 0,
+                  feedbackMsg: String(
+                    translateLabel({
+                      label: "razeth.feedback.password",
+                      source,
+                    }) ?? "",
+                  ),
+                });
+                resolve(MsgUtils.setMsg("razeth.validation.password", args));
+                return;
+              }
+
+              // Step 2: If regex passes, proceed with debounced zxcvbn check
               timeoutRef.current = setTimeout(async () => {
                 // Only process if still the latest validation
                 if (validationId !== currentValidationId.current) {
@@ -361,11 +385,16 @@ export const usePasswordValidator = (options?: UseFieldOptions) => {
                   const warningMsg = result.feedback.warning;
                   const suggestMsg = result.feedback.suggestions.join(" ");
                   const score = result.score;
-                  const invalid = score <= 0;
+                  const invalid = score < 3; // Adjust threshold (e.g., require score >= 3)
 
                   // Adjust threshold as needed
                   if (invalid) {
-                    resolve(MsgUtils.setMsg(warningMsg || message, args));
+                    resolve(
+                      MsgUtils.setMsg(
+                        warningMsg || "razeth.feedback.weak",
+                        args,
+                      ),
+                    );
                   } else {
                     resolve(undefined);
                   }
@@ -394,7 +423,7 @@ export const usePasswordValidator = (options?: UseFieldOptions) => {
     [options, translateLabel],
   );
 
-  return { validator, result };
+  return { passwordValidator, result };
 };
 
 export const validateStrength = async (
@@ -452,47 +481,35 @@ export const validateStrength = async (
 // );
 
 export const useMatchPassword = (
-  password: string | undefined,
   message = ["razeth.validation.notmatch", "razeth.validation.required"],
 ) => {
   const translateLabel = useTranslateLabel();
 
   const validateField = (resource?: string) =>
     Object.assign(
-      (value: string, values: any, props: IconTextInputProps) => {
-        // Case 1: Both fields are empty
-        if (isEmpty(password) && isEmpty(value)) {
-          return undefined; // No error
-        }
-        // Case 2: Password empty, rePassword not empty
-        else if (isEmpty(password) && !isEmpty(value)) {
-          return MsgUtils.getMessage(message[0], { undefined }, value, values); // "notmatch"
-        }
-        // Case 3: Password not empty, rePassword empty
-        else if (!isEmpty(password) && isEmpty(value)) {
-          return MsgUtils.getMessage(
-            message[1],
-            {
-              source: props.source,
-              value,
-              field: translateLabel({
-                label: props.label,
-                source: props.source,
-                resource,
-              }),
-            },
-            value,
-            values,
-          ); // "required"
-        }
-        // Case 4: Both fields not empty
-        else if (value !== password) {
-          return MsgUtils.getMessage(message[0], { undefined }, value, values); // "notmatch"
-        } else {
-          // If all checks pass (they match), return no error
-          return undefined;
-        }
-      },
+      (value: string, values: any, props: IconTextInputProps) =>
+        isEmpty(values.password) && isEmpty(value)
+          ? undefined // Both empty
+          : isEmpty(values.password) && !isEmpty(value)
+            ? MsgUtils.getMessage(message[0], { undefined }, value, values) // Password empty, rePassword not empty
+            : !isEmpty(values.password) && isEmpty(value)
+              ? MsgUtils.getMessage(
+                  message[1],
+                  {
+                    source: props.source,
+                    value,
+                    field: translateLabel({
+                      label: props.label,
+                      source: props.source,
+                      resource,
+                    }),
+                  },
+                  value,
+                  values,
+                ) // Password not empty, rePassword empty
+              : value !== values.password
+                ? MsgUtils.getMessage(message[0], { undefined }, value, values) // Both not empty, don’t match
+                : undefined, // Both not empty, match
       { isRequired: true },
     );
 

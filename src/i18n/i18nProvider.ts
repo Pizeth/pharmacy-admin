@@ -14,9 +14,15 @@ const messages: { [key: string]: any } = {
         unique: "%{field} %{value} is already existed!",
         username:
           "%{field} %{value} is not allowed! Ensure it Starts with a letter Is 5-50 characters long Only uses letters, numbers, _, or ., No consecutive __ or ..",
+        password: "Your password does not meet the required criteria!",
         async: "An error occurred while validating the %{field}!",
         validating: "Validating...",
         error: "",
+      },
+      feedback: {
+        password:
+          "Password must be at least 10 characters, include uppercase, lowercase, number, and special character!",
+        weak: "Password is too weak!",
       },
     },
     // "razeth.validation.required": "%{field} is required!",

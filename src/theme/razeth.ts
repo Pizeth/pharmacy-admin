@@ -197,13 +197,13 @@ const customBaseTheme = createTheme({
         root: (props: { theme: Theme }) => ({}),
       },
     },
-    MuiIconButton: {
-      styleOverrides: {
-        root: (props: { theme: Theme }) => ({
-          padding: "0",
-        }),
-      },
-    },
+    // MuiIconButton: {
+    //   styleOverrides: {
+    //     root: (props: { theme: Theme }) => ({
+    //       padding: "0",
+    //     }),
+    //   },
+    // },
     MuiCssBaseline: {
       styleOverrides: (theme) => `
         // .MuiBox-root {

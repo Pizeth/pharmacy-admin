@@ -35,6 +35,10 @@
   margin-left: 0;
 }
 
+.icon-input .MuiIconButton-root {
+  padding: 0;
+}
+
 .passHint {
   margin-top: 1em;
 }
