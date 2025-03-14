@@ -2,7 +2,7 @@ import { Typography, Box } from "@mui/material";
 import LinearProgressWithLabel from "../CustomComponents/LinearProgessWithLabel";
 import { PasswordStrengthMeterProps } from "../Types/types";
 
-const MESSAGE = import.meta.env.VITE_PASSWORD_HINT;
+// const MESSAGE = import.meta.env.VITE_PASSWORD_HINT;
 
 // const getColor = (strength: number): string => {
 //   switch (strength) {

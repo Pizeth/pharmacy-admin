@@ -487,6 +487,64 @@ export const useMatchPassword = (
 
   const validateField = (resource?: string) =>
     Object.assign(
+      (value: string, values: any, props: IconTextInputProps) => {
+        // Case 1: Both fields empty → no error
+        if (isEmpty(value) && isEmpty(values.password)) {
+          return undefined;
+        }
+
+        // Case 2: password empty, rePassword not empty → notmatch error
+        if (isEmpty(values.password) && !isEmpty(value)) {
+          return MsgUtils.getMessage(message[0], { undefined }, value, values); // "notmatch"
+        }
+
+        // Case 3: password not empty, rePassword empty → required error
+        if (!isEmpty(values.password) && isEmpty(value)) {
+          return MsgUtils.getMessage(
+            message[1],
+            {
+              source: props.source,
+              value,
+              field: translateLabel({
+                label: props.label,
+                source: props.source,
+                resource,
+              }),
+            },
+            value,
+            values,
+          ); // "required"
+        }
+
+        // Case 4: Both not empty
+        if (!isEmpty(values.password) && !isEmpty(value)) {
+          if (value !== values.password) {
+            return MsgUtils.getMessage(
+              message[0],
+              { undefined },
+              value,
+              values,
+            ); // "notmatch"
+          }
+          return undefined; // Both match → no error
+        }
+
+        // Fallback (shouldn’t be reached due to exhaustive checks)
+        return undefined;
+      },
+      { isRequired: true },
+    );
+
+  return validateField;
+};
+
+export const useMatchPassword11 = (
+  message = ["razeth.validation.notmatch", "razeth.validation.required"],
+) => {
+  const translateLabel = useTranslateLabel();
+
+  const validateField = (resource?: string) =>
+    Object.assign(
       (value: string, values: any, props: IconTextInputProps) =>
         isEmpty(values.password) && isEmpty(value)
           ? undefined // Both empty

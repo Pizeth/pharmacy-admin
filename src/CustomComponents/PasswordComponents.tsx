@@ -2,7 +2,6 @@ import { useFormContext } from "react-hook-form";
 import { useEffect } from "react";
 import { Password } from "@mui/icons-material";
 import PasswordValidationInput from "../fortest";
-import { isEmpty } from "lodash";
 
 const PasswordFields = () => {
   // const [password, setPassword] = useState<string>("");
@@ -13,11 +12,6 @@ const PasswordFields = () => {
 
   // Trigger rePassword validation when password changes
   useEffect(() => {
-    // if (!isEmpty(passwordValue)) {
-    //   // if (passwordValue !== undefined && passwordValue !== "") {
-    //   console.log("revalidate");
-    //   trigger("rePassword");
-    // }
     trigger("rePassword");
   }, [passwordValue, trigger]);
 
@@ -28,13 +22,11 @@ const PasswordFields = () => {
         iconStart={<Password />}
         className="icon-input"
         strengthMeter
-        // onInput={() => trigger("rePassword")}
       />
       <PasswordValidationInput
         source="rePassword"
         iconStart={<Password />}
         className="icon-input"
-        // passwordValue={passwordValue}
       />
     </>
   );

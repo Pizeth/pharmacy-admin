@@ -33,8 +33,6 @@ export const ResettableIconInputField = forwardRef<
     isValidating,
     isSuccess,
     isFocused,
-    // isShake,
-    // labelRef,
     helper,
     ...rest
   } = props;
@@ -101,8 +99,6 @@ export const ResettableIconInputField = forwardRef<
         },
         inputLabel: {
           shrink: isFocused || value !== "",
-          // className: clsx({ shake: isShake }),
-          // ref: labelRef, // Attach ref for shake effect
         },
         formHelperText: {
           className: clsx({ helper: !helper }),

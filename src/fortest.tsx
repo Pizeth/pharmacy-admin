@@ -254,9 +254,13 @@ export const PasswordValidationInput = (props: IconTextInputProps) => {
   // ]);
 
   // Handle shake effect without useState
+  // console.log("Field state for", source, { invalid, error, isValidating });
   useEffect(() => {
+    console.log("Validation state:", { isValidating, invalid });
     if (!isValidating && invalid && inputRef.current) {
+      console.log("Applying shake effect");
       shakeRef.current = inputRef.current.querySelector(".MuiInputLabel-root");
+      console.log("Label found:", shakeRef.current, source);
       if (shakeRef.current) {
         shakeRef.current.classList.add("shake");
         setTimeout(() => {
@@ -266,6 +270,7 @@ export const PasswordValidationInput = (props: IconTextInputProps) => {
         }, 500); // Matches animation duration
       }
     } else {
+      console.log("Label not found in:", inputRef.current, source);
       clearErrors(source);
     }
   }, [isValidating, invalid, source, clearErrors]);
