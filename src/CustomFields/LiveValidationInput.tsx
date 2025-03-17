@@ -281,7 +281,7 @@ const ValidationInput = forwardRef((props: IconTextInputProps, ref) => {
   const [, clearValidationMessage] = useAtom(clearValidationMessageAtom);
 
   // Get required and async validators
-  const require = useRequired(translate);
+  const require = useRequired();
   const asyncValidate = useAsyncValidator(
     setValidationMessage,
     clearValidationMessage,
