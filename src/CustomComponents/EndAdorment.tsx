@@ -2,6 +2,7 @@ import clsx from "clsx";
 import ClearIcon from "@mui/icons-material/Clear";
 import { InputAdornment, IconButton } from "@mui/material";
 import { GetEndAdornmentParams } from "../Types/types";
+import { Visibility, VisibilityOff } from "@mui/icons-material";
 
 const EndAdornment = ({
   props,
@@ -13,7 +14,26 @@ const EndAdornment = ({
 }: GetEndAdornmentParams) => {
   if (!props.resettable) {
     return endAdornment;
-  } else if (!props.value) {
+  }
+  // else if (props.isPassword) {
+  //   console.log("jol password");
+  //   return (
+  //     <InputAdornment position="end">
+  //       <IconButton
+  //         aria-label={translate(
+  //           props.visible
+  //             ? "ra.input.password.toggle_visible"
+  //             : "ra.input.password.toggle_hidden",
+  //         )}
+  //         onClick={props.onTogglePassword}
+  //         size="large"
+  //       >
+  //         {props.visible ? <Visibility /> : <VisibilityOff />}
+  //       </IconButton>
+  //     </InputAdornment>
+  //   );
+  // }
+  else if (!props.value) {
     if (props.clearAlwaysVisible) {
       // show clear button, inactive
       return (

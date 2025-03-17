@@ -1,9 +1,10 @@
 import { useFormContext } from "react-hook-form";
 import { useEffect } from "react";
-import { Password } from "@mui/icons-material";
 import PasswordValidationInput from "../fortest";
+import { PasswordFieldProps } from "../Types/types";
 
-const PasswordFields = () => {
+const PasswordFields = (props: PasswordFieldProps) => {
+  const { className, iconStart, password, rePassword } = props;
   // const [password, setPassword] = useState<string>("");
   const { watch, trigger } = useFormContext();
 
@@ -13,20 +14,21 @@ const PasswordFields = () => {
   // Trigger rePassword validation when password changes
   useEffect(() => {
     trigger("rePassword");
-  }, [passwordValue, trigger]);
+  }, [trigger, passwordValue]);
 
   return (
     <>
       <PasswordValidationInput
-        source="password"
-        iconStart={<Password />}
-        className="icon-input"
+        source={password}
+        iconStart={iconStart}
+        className={className}
         strengthMeter
       />
       <PasswordValidationInput
-        source="rePassword"
-        iconStart={<Password />}
-        className="icon-input"
+        source={rePassword}
+        iconStart={iconStart}
+        className={className}
+        passwordValue={passwordValue}
       />
     </>
   );

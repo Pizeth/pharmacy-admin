@@ -1,10 +1,8 @@
 // types.ts
-import { ChangeEvent, MutableRefObject, ReactNode } from "react";
+import { ChangeEvent, ReactNode } from "react";
 import {
   LinearProgressProps,
   PasswordInputProps,
-  ResettableTextFieldClasses,
-  ResettableTextFieldProps,
   Translate,
   ValidationErrorMessage,
 } from "react-admin";
@@ -43,7 +41,7 @@ interface MessageFuncParams {
 }
 
 export interface GetEndAdornmentParams {
-  props: ResettableTextFieldProps;
+  props: IconTextInputProps;
   classess: {
     clearIcon: string;
     visibleClearIcon: string;
@@ -54,6 +52,7 @@ export interface GetEndAdornmentParams {
   endAdornment?: React.ReactNode;
   translate: Translate;
   handleClickClearButton: (e: React.MouseEvent<HTMLButtonElement>) => void;
+  // handleClickVisibleButton?: (e: React.MouseEvent<HTMLButtonElement>) => void;
   handleMouseDownClearButton: (e: React.MouseEvent<HTMLButtonElement>) => void;
 }
 
@@ -80,6 +79,13 @@ export type zxcvbnFeedBack = {
   warning?: string;
 };
 
+export type PasswordFieldProps = {
+  className: string;
+  iconStart: ReactNode;
+  password: string;
+  rePassword: string;
+};
+
 // export type ValidationResult =
 //   | string
 //   | { message: string; args?: Record<string, any> }
@@ -94,9 +100,12 @@ export interface IconTextInputProps extends PasswordInputProps {
   isValidating?: boolean;
   isSuccess?: boolean;
   isFocused?: boolean;
+  isPassword?: boolean;
   // isShake?: boolean;
   // labelRef?: React.RefObject<HTMLLabelElement>;
   helper?: boolean;
+  visible?: boolean;
+  onTogglePassword?: (e: React.MouseEvent<HTMLButtonElement>) => void;
   strengthMeter?: boolean;
   passwordValue?: string; // Props for RepasswordInput to receive the password field value
 }

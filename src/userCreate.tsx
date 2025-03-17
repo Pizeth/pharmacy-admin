@@ -10,7 +10,7 @@ import {
   Toolbar,
   ToolbarProps,
 } from "react-admin";
-import { useFormContext, useFormState } from "react-hook-form";
+import { useFormState } from "react-hook-form";
 import { InputAdornment } from "@mui/material";
 import {
   PermIdentity,
@@ -19,7 +19,7 @@ import {
   Password,
   MailOutline,
 } from "@mui/icons-material";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import IconInput from "./CustomFields/IconInput";
 import { useRequired } from "./Utils/validator";
 import { ValidationInput } from "./Utils/test2";
@@ -90,7 +90,12 @@ export const UserCreate = () => {
           className="icon-input"
           passwordValue={passwordValue}
         /> */}
-        <PasswordFields />
+        <PasswordFields
+          password="password"
+          rePassword="rePassword"
+          className="icon-input"
+          iconStart={<Password />}
+        />
         <IconInput
           source="authMethod"
           className="icon-input"

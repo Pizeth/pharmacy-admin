@@ -1,5 +1,5 @@
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
-import { useFormContext } from "react-hook-form";
+// import { useFormContext } from "react-hook-form";
 import { InputAdornment, IconButton, Box } from "@mui/material";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
@@ -36,7 +36,7 @@ export const PasswordValidationInput = (props: IconTextInputProps) => {
     validate = [],
     initiallyVisible = false,
     strengthMeter = false,
-    // passwordValue,
+    passwordValue,
     ...rest
   } = props;
 
@@ -49,7 +49,7 @@ export const PasswordValidationInput = (props: IconTextInputProps) => {
   const initialValueRef = useRef("");
   const inputRef = useRef<HTMLDivElement>(null);
   const shakeRef = useRef<HTMLLabelElement | null>(null); // Ref for shake effect
-  const { clearErrors } = useFormContext();
+  // const { clearErrors } = useFormContext();
 
   // Get required and password validators
   // const require = useRequired();
@@ -63,12 +63,6 @@ export const PasswordValidationInput = (props: IconTextInputProps) => {
   const validators = useMemo(() => {
     const normalizedValidate = Array.isArray(validate) ? validate : [validate];
     const baseValidators = [...normalizedValidate];
-    // if (passwordValue) {
-    //   baseValidators.push(matchPassword());
-    // }
-    // if (strengthMeter) {
-    //   baseValidators.push(passwordValidator());
-    // }
     baseValidators.push(strengthMeter ? passwordValidator() : matchPassword());
     return baseValidators;
   }, [validate, strengthMeter]);
@@ -255,25 +249,48 @@ export const PasswordValidationInput = (props: IconTextInputProps) => {
 
   // Handle shake effect without useState
   // console.log("Field state for", source, { invalid, error, isValidating });
+  // useEffect(() => {
+  //   // console.log("Validation state:", { isValidating, invalid });
+  //   // console.log("Password Value", passwordValue);
+  //   if (!isValidating && invalid && inputRef.current) {
+  //     console.log("Applying shake effect");
+  //     shakeRef.current = inputRef.current.querySelector(".MuiInputLabel-root");
+  //     // console.log("Label found:", shakeRef.current, source);
+  //     if (shakeRef.current) {
+  //       shakeRef.current.classList.add("shake");
+  //       setTimeout(() => {
+  //         if (shakeRef.current) {
+  //           shakeRef.current.classList.remove("shake");
+  //         }
+  //       }, 500); // Matches animation duration
+  //     }
+  //   } else {
+  //     // console.log("Label not found in:", inputRef.current, source);
+  //     clearErrors(source);
+  //   }
+  // }, [isValidating, invalid, source, passwordValue, clearErrors]);
+
   useEffect(() => {
-    console.log("Validation state:", { isValidating, invalid });
     if (!isValidating && invalid && inputRef.current) {
-      console.log("Applying shake effect");
       shakeRef.current = inputRef.current.querySelector(".MuiInputLabel-root");
-      console.log("Label found:", shakeRef.current, source);
       if (shakeRef.current) {
-        shakeRef.current.classList.add("shake");
+        // Remove the class to reset the animation state
+        shakeRef.current.classList.remove("shake");
+        // Add it back after a 0ms delay to ensure the browser registers a new animation
         setTimeout(() => {
           if (shakeRef.current) {
-            shakeRef.current.classList.remove("shake");
+            shakeRef.current.classList.add("shake");
+            // Remove it after the animation completes (500ms)
+            setTimeout(() => {
+              if (shakeRef.current) {
+                shakeRef.current.classList.remove("shake");
+              }
+            }, 500);
           }
-        }, 500); // Matches animation duration
+        }, 0);
       }
-    } else {
-      console.log("Label not found in:", inputRef.current, source);
-      clearErrors(source);
     }
-  }, [isValidating, invalid, source, clearErrors]);
+  }, [isValidating, invalid, passwordValue]);
 
   // Combine sync and async errors
   // const isError = invalid || !!asyncError;
@@ -328,25 +345,28 @@ export const PasswordValidationInput = (props: IconTextInputProps) => {
     invalid
   );
   const helper = !!(helperText || errMsg || isValidating);
+  console.log(renderHelperText, renderHelperText);
+  console.log(helper, helper);
 
   return (
     <Box width="100%">
       <ResettableIconInputField
         id={id}
         {...field}
-        // value={field.value}
-        // source={source}
         type={visible ? "text" : "password"}
         size="small"
         ref={inputRef}
         onChange={handlePasswordChange}
         onFocus={handleFocus}
         onBlur={handleBlur}
+        onTogglePassword={handleClick}
         fullWidth={true}
         className={clsx("ra-input", `ra-input-${source}`, className)}
         isValidating={isValidating}
         isFocused={focused}
+        isPassword={!!(strengthMeter || passwordValue)}
         helper={helper}
+        visible={visible}
         label={
           label !== "" && label !== false ? (
             <FieldTitle label={label} source={source} isRequired={isRequired} />
@@ -370,30 +390,30 @@ export const PasswordValidationInput = (props: IconTextInputProps) => {
             />
           )
         }
-        slotProps={{
-          input: {
-            endAdornment: (
-              <InputAdornment position="end">
-                <IconButton
-                  aria-label={translate(
-                    visible
-                      ? "ra.input.password.toggle_visible"
-                      : "ra.input.password.toggle_hidden",
-                  )}
-                  onClick={handleClick}
-                  size="large"
-                >
-                  {visible ? <Visibility /> : <VisibilityOff />}
-                </IconButton>
-              </InputAdornment>
-            ),
-          },
-          // inputLabel: {
-          //   shrink: focused || value !== "",
-          //   className: clsx({ shake: shake }),
-          // },
-          // formHelperText: CustomFormHelperTextProps,
-        }}
+        // slotProps={{
+        //   input: {
+        //     endAdornment: (
+        //       <InputAdornment position="end">
+        //         <IconButton
+        //           aria-label={translate(
+        //             visible
+        //               ? "ra.input.password.toggle_visible"
+        //               : "ra.input.password.toggle_hidden",
+        //           )}
+        //           onClick={handleClick}
+        //           size="large"
+        //         >
+        //           {visible ? <Visibility /> : <VisibilityOff />}
+        //         </IconButton>
+        //       </InputAdornment>
+        //     ),
+        //   },
+        // //   // inputLabel: {
+        // //   //   shrink: focused || value !== "",
+        // //   //   className: clsx({ shake: shake }),
+        // //   // },
+        // //   // formHelperText: CustomFormHelperTextProps,
+        // }}
         // InputProps={{
         //   startAdornment: iconStart ? (
         //     <InputAdornment position="start">{iconStart}</InputAdornment>
