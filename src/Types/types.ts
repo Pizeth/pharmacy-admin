@@ -104,8 +104,10 @@ export interface IconTextInputProps extends PasswordInputProps {
   // isShake?: boolean;
   // labelRef?: React.RefObject<HTMLLabelElement>;
   helper?: boolean;
-  visible?: boolean;
-  onTogglePassword?: (e: React.MouseEvent<HTMLButtonElement>) => void;
+  isVisible?: boolean;
+  togglePassword?: (e: React.MouseEvent<HTMLButtonElement>) => void;
+  toggleTouchStartPassword?: [];
+  toggleMouseDownPassword?: [];
   strengthMeter?: boolean;
   passwordValue?: string; // Props for RepasswordInput to receive the password field value
 }

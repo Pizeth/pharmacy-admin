@@ -34,7 +34,9 @@ export const ResettableIconInputField = forwardRef<
     isSuccess,
     isFocused,
     isPassword,
+    isVisible,
     helper,
+    togglePassword,
     ...rest
   } = props;
 

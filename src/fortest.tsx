@@ -1,4 +1,11 @@
-import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
+import {
+  ChangeEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 // import { useFormContext } from "react-hook-form";
 import { InputAdornment, IconButton, Box } from "@mui/material";
 import Visibility from "@mui/icons-material/Visibility";
@@ -297,6 +304,49 @@ export const PasswordValidationInput = (props: IconTextInputProps) => {
   // const errMsg = error?.message || asyncError || "";
   // const renderHelperText = helperText !== false || invalid;
   const handleClick = () => setVisible(!visible);
+  // Handle mouse press
+  const handleMouseDown = useCallback((e: React.MouseEvent<HTMLElement>) => {
+    e.preventDefault();
+    setVisible(!visible);
+    document.addEventListener("mouseup", handleMouseUp);
+  }, []);
+  // Handle mouse release (global)
+  const handleMouseUp = useCallback(() => {
+    setVisible(!visible);
+    document.removeEventListener("mouseup", handleMouseUp);
+  }, []);
+  // Handle touch press
+  const handleTouchStart = useCallback((e: React.TouchEvent<HTMLElement>) => {
+    e.preventDefault();
+    setVisible(!visible);
+    document.addEventListener("touchend", handleTouchEnd);
+  }, []);
+  // Handle touch release (global)
+  const handleTouchEnd = useCallback(() => {
+    setVisible(!visible);
+    document.removeEventListener("touchend", handleTouchEnd);
+  }, []);
+  // Handle key press (space or enter)
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLElement>) => {
+    if (e.key === " " || e.key === "Enter") {
+      e.preventDefault();
+      setVisible(!visible);
+    }
+  }, []);
+  // Handle key release
+  const handleKeyUp = useCallback((e: React.KeyboardEvent<HTMLElement>) => {
+    if (e.key === " " || e.key === "Enter") {
+      setVisible(!visible);
+    }
+  }, []);
+
+  // Cleanup global event listeners on unmount
+  useEffect(() => {
+    return () => {
+      document.removeEventListener("mouseup", handleMouseUp);
+      document.removeEventListener("touchend", handleTouchEnd);
+    };
+  }, [handleMouseUp, handleTouchEnd]);
 
   const handlePasswordChange = (e: ChangeEvent<HTMLInputElement>) => {
     const newValue = e?.target?.value ?? e;
@@ -345,8 +395,8 @@ export const PasswordValidationInput = (props: IconTextInputProps) => {
     invalid
   );
   const helper = !!(helperText || errMsg || isValidating);
-  console.log(renderHelperText, renderHelperText);
-  console.log(helper, helper);
+  // console.log(renderHelperText, renderHelperText);
+  // console.log(helper, helper);
 
   return (
     <Box width="100%">
@@ -359,14 +409,14 @@ export const PasswordValidationInput = (props: IconTextInputProps) => {
         onChange={handlePasswordChange}
         onFocus={handleFocus}
         onBlur={handleBlur}
-        onTogglePassword={handleClick}
+        togglePassword={handleClick}
         fullWidth={true}
         className={clsx("ra-input", `ra-input-${source}`, className)}
         isValidating={isValidating}
         isFocused={focused}
-        isPassword={!!(strengthMeter || passwordValue)}
+        isPassword={true}
         helper={helper}
-        visible={visible}
+        isVisible={visible}
         label={
           label !== "" && label !== false ? (
             <FieldTitle label={label} source={source} isRequired={isRequired} />

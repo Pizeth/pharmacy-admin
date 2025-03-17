@@ -12,28 +12,31 @@ const EndAdornment = ({
   handleClickClearButton,
   handleMouseDownClearButton,
 }: GetEndAdornmentParams) => {
-  if (!props.resettable) {
+  if (props.isPassword) {
+    console.log("jol password", props.source);
+    return (
+      <InputAdornment position="end">
+        <IconButton
+          aria-label={translate(
+            props.isVisible
+              ? "ra.input.password.toggle_visible"
+              : "ra.input.password.toggle_hidden",
+          )}
+          // onClick={props.togglePassword}
+          onMouseDown={handleMouseDown}
+          onTouchStart={handleTouchStart}
+          onKeyDown={handleKeyDown}
+          onKeyUp={handleKeyUp}
+          size="large"
+        >
+          {props.isVisible ? <Visibility /> : <VisibilityOff />}
+        </IconButton>
+      </InputAdornment>
+    );
+  } else if (!props.resettable) {
+    console.log("jol wut?");
     return endAdornment;
-  }
-  // else if (props.isPassword) {
-  //   console.log("jol password");
-  //   return (
-  //     <InputAdornment position="end">
-  //       <IconButton
-  //         aria-label={translate(
-  //           props.visible
-  //             ? "ra.input.password.toggle_visible"
-  //             : "ra.input.password.toggle_hidden",
-  //         )}
-  //         onClick={props.onTogglePassword}
-  //         size="large"
-  //       >
-  //         {props.visible ? <Visibility /> : <VisibilityOff />}
-  //       </IconButton>
-  //     </InputAdornment>
-  //   );
-  // }
-  else if (!props.value) {
+  } else if (!props.value) {
     if (props.clearAlwaysVisible) {
       // show clear button, inactive
       return (
