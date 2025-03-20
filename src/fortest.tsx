@@ -18,7 +18,7 @@ import {
   useInput,
 } from "react-admin";
 import { clsx } from "clsx";
-import { IconTextInputProps } from "./Types/types";
+import { IconTextInputProps, TogglePasswordEvent } from "./Types/types";
 import PasswordStrengthMeter from "./CustomComponents/PasswordStrengthMeter";
 import {
   useMatchPassword,
@@ -310,22 +310,14 @@ export const PasswordValidationInput = (props: IconTextInputProps) => {
     setVisible(!visible);
     document.addEventListener("mouseup", handleMouseUp);
   }, []);
-  // Handle mouse release (global)
-  const handleMouseUp = useCallback(() => {
-    setVisible(!visible);
-    document.removeEventListener("mouseup", handleMouseUp);
-  }, []);
+
   // Handle touch press
   const handleTouchStart = useCallback((e: React.TouchEvent<HTMLElement>) => {
     e.preventDefault();
     setVisible(!visible);
     document.addEventListener("touchend", handleTouchEnd);
   }, []);
-  // Handle touch release (global)
-  const handleTouchEnd = useCallback(() => {
-    setVisible(!visible);
-    document.removeEventListener("touchend", handleTouchEnd);
-  }, []);
+
   // Handle key press (space or enter)
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLElement>) => {
     if (e.key === " " || e.key === "Enter") {
@@ -339,6 +331,62 @@ export const PasswordValidationInput = (props: IconTextInputProps) => {
       setVisible(!visible);
     }
   }, []);
+
+  // Handle mouse release (global)
+  const handleMouseUp = useCallback(() => {
+    setVisible(!visible);
+    document.removeEventListener("mouseup", handleMouseUp);
+  }, []);
+
+  // Handle touch release (global)
+  const handleTouchEnd = useCallback(() => {
+    setVisible(!visible);
+    document.removeEventListener("touchend", handleTouchEnd);
+  }, []);
+  // Consolidated togglePassword function
+  // const togglePassword = useCallback(
+  //   (event: TogglePasswordEvent) => {
+  //     event.preventDefault(); // Prevent default for all press events
+
+  //     if (event.type === "mousedown") {
+  //       setVisible(!visible);
+  //       document.addEventListener("mouseup", handleMouseUp);
+  //     } else if (event.type === "touchstart") {
+  //       setVisible(!visible);
+  //       document.addEventListener("touchend", handleTouchEnd);
+  //     } else if (event.type === "keydown" || event.type === "keyup") {
+  //       const keyEvent = event as KeyboardEvent;
+  //       if (keyEvent.key === " " || keyEvent.key === "Enter") {
+  //         setVisible(!visible);
+  //       }
+  //     }
+  //   },
+  //   [visible, handleMouseUp, handleTouchEnd],
+  // );
+
+  // Consolidated togglePassword function
+  const togglePassword = useCallback(
+    (event: TogglePasswordEvent) => {
+      console.log("Toggle Password", event.type);
+      event.preventDefault(); // Prevent default for all press events
+
+      if (event.type === "mousedown") {
+        setVisible(!visible);
+        document.addEventListener("mouseup", handleMouseUp);
+      } else if (event.type === "touchstart") {
+        setVisible(!visible);
+        document.addEventListener("touchend", handleTouchEnd);
+      } else if (
+        event instanceof KeyboardEvent &&
+        (event.type === "keydown" || event.type === "keyup")
+      ) {
+        if (event.key === " " || event.key === "Enter") {
+          setVisible(!visible);
+        }
+      }
+    },
+    [visible, handleMouseUp, handleTouchEnd],
+  );
 
   // Cleanup global event listeners on unmount
   useEffect(() => {
