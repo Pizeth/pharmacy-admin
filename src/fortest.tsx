@@ -6,10 +6,7 @@ import {
   useRef,
   useState,
 } from "react";
-// import { useFormContext } from "react-hook-form";
-import { InputAdornment, IconButton, Box } from "@mui/material";
-import Visibility from "@mui/icons-material/Visibility";
-import VisibilityOff from "@mui/icons-material/VisibilityOff";
+import { Box } from "@mui/material";
 import {
   FieldTitle,
   useTranslate,
@@ -20,13 +17,11 @@ import {
 import { clsx } from "clsx";
 import { IconTextInputProps, TogglePasswordEvent } from "./Types/types";
 import PasswordStrengthMeter from "./CustomComponents/PasswordStrengthMeter";
-import {
-  useMatchPassword,
-  usePasswordValidator,
-  // useRequired,
-} from "./Utils/validator";
+import { useMatchPassword, usePasswordValidator } from "./Utils/validator";
 import { InputHelper } from "./CustomComponents/InputHelper";
 import ResettableIconInputField from "./Utils/ResettableIconInputField";
+import { useFormContext } from "react-hook-form";
+import { EventHandlers } from "./Utils/EventHandlers";
 
 export const PasswordValidationInput = (props: IconTextInputProps) => {
   const {
@@ -50,18 +45,15 @@ export const PasswordValidationInput = (props: IconTextInputProps) => {
   const translate = useTranslate();
   // const { setError, clearErrors } = useFormContext();
   // const [asyncError, setAsyncError] = useState<string | undefined>();
-  // const [isValidating, setIsValidating] = useState(false);
 
   // Use refs for transient UI states
   const initialValueRef = useRef("");
   const inputRef = useRef<HTMLDivElement>(null);
   const shakeRef = useRef<HTMLLabelElement | null>(null); // Ref for shake effect
-  // const { clearErrors } = useFormContext();
+  const { clearErrors } = useFormContext();
 
-  // Get required and password validators
-  // const require = useRequired();
+  // Get password validators
   const matchPassword = useMatchPassword();
-  // const pass = matchPassword();
   const { passwordValidator, result } = usePasswordValidator();
   const [focused, setFocused] = useState(false);
   const [visible, setVisible] = useState(initiallyVisible);
@@ -296,96 +288,64 @@ export const PasswordValidationInput = (props: IconTextInputProps) => {
           }
         }, 0);
       }
+    } else {
+      clearErrors(source);
     }
-  }, [isValidating, invalid, passwordValue]);
+  }, [isValidating, invalid, passwordValue, clearErrors, source]);
 
-  // Combine sync and async errors
-  // const isError = invalid || !!asyncError;
-  // const errMsg = error?.message || asyncError || "";
-  // const renderHelperText = helperText !== false || invalid;
-  const handleClick = () => setVisible(!visible);
-  // Handle mouse press
-  const handleMouseDown = useCallback((e: React.MouseEvent<HTMLElement>) => {
-    e.preventDefault();
-    setVisible(!visible);
-    document.addEventListener("mouseup", handleMouseUp);
-  }, []);
-
-  // Handle touch press
-  const handleTouchStart = useCallback((e: React.TouchEvent<HTMLElement>) => {
-    e.preventDefault();
-    setVisible(!visible);
-    document.addEventListener("touchend", handleTouchEnd);
-  }, []);
-
-  // Handle key press (space or enter)
-  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLElement>) => {
-    if (e.key === " " || e.key === "Enter") {
-      e.preventDefault();
-      setVisible(!visible);
-    }
-  }, []);
-  // Handle key release
-  const handleKeyUp = useCallback((e: React.KeyboardEvent<HTMLElement>) => {
-    if (e.key === " " || e.key === "Enter") {
-      setVisible(!visible);
-    }
-  }, []);
+  // const handleClick = () => setVisible(!visible);
 
   // Handle mouse release (global)
   const handleMouseUp = useCallback(() => {
-    setVisible(!visible);
+    setVisible(false);
     document.removeEventListener("mouseup", handleMouseUp);
   }, []);
 
   // Handle touch release (global)
   const handleTouchEnd = useCallback(() => {
-    setVisible(!visible);
+    setVisible(false);
     document.removeEventListener("touchend", handleTouchEnd);
   }, []);
-  // Consolidated togglePassword function
-  // const togglePassword = useCallback(
-  //   (event: TogglePasswordEvent) => {
-  //     event.preventDefault(); // Prevent default for all press events
-
-  //     if (event.type === "mousedown") {
-  //       setVisible(!visible);
-  //       document.addEventListener("mouseup", handleMouseUp);
-  //     } else if (event.type === "touchstart") {
-  //       setVisible(!visible);
-  //       document.addEventListener("touchend", handleTouchEnd);
-  //     } else if (event.type === "keydown" || event.type === "keyup") {
-  //       const keyEvent = event as KeyboardEvent;
-  //       if (keyEvent.key === " " || keyEvent.key === "Enter") {
-  //         setVisible(!visible);
-  //       }
-  //     }
-  //   },
-  //   [visible, handleMouseUp, handleTouchEnd],
-  // );
 
   // Consolidated togglePassword function
   const togglePassword = useCallback(
     (event: TogglePasswordEvent) => {
       console.log("Toggle Password", event.type);
-      event.preventDefault(); // Prevent default for all press events
+      event.preventDefault();
 
-      if (event.type === "mousedown") {
-        setVisible(!visible);
-        document.addEventListener("mouseup", handleMouseUp);
-      } else if (event.type === "touchstart") {
-        setVisible(!visible);
-        document.addEventListener("touchend", handleTouchEnd);
-      } else if (
-        event instanceof KeyboardEvent &&
-        (event.type === "keydown" || event.type === "keyup")
-      ) {
-        if (event.key === " " || event.key === "Enter") {
-          setVisible(!visible);
-        }
+      switch (event.type) {
+        // Handle mouse press
+        case "mousedown":
+          setVisible(true);
+          document.addEventListener("mouseup", handleMouseUp);
+          break;
+        // Handle touch press
+        case "touchstart":
+          setVisible(true);
+          document.addEventListener("touchend", handleTouchEnd);
+          break;
+        // Handle key press (space or enter)
+        case "keydown":
+          EventHandlers.handleKeyboardEvent(
+            EventHandlers.toKeyboardEvent(event),
+            true,
+            setVisible,
+          );
+          break;
+        // Handle key release
+        case "keyup":
+          EventHandlers.handleKeyboardEvent(
+            EventHandlers.toKeyboardEvent(event),
+            false,
+            setVisible,
+          );
+          break;
+        default:
+          // Do nothing for unhandled event types
+          break;
       }
     },
-    [visible, handleMouseUp, handleTouchEnd],
+    [handleMouseUp, handleTouchEnd],
   );
 
   // Cleanup global event listeners on unmount
@@ -399,8 +359,6 @@ export const PasswordValidationInput = (props: IconTextInputProps) => {
   const handlePasswordChange = (e: ChangeEvent<HTMLInputElement>) => {
     const newValue = e?.target?.value ?? e;
     initialValueRef.current = newValue;
-    // setTyping(true);
-    // setValue(newValue); // Ensure value state is updated
     field.onChange(newValue); // Ensure form data is in sync
   };
 
@@ -411,29 +369,11 @@ export const PasswordValidationInput = (props: IconTextInputProps) => {
       field.value !== initialValueRef.current ||
       (isRequired && isEmpty(field.value)) /*&& isEmpty(passwordValue)*/
     ) {
-      field.onBlur();
+      field.onBlur(); // Ensure React Admin's onBlur is called
     }
-    // field.onBlur(); // Ensure React Admin's onBlur is called
-    // console.log(isRequired);
-    // if (isError || (isRequired && value == "")) {
-    //   console.log(invalid);
-    //   // if (invalid || (isRequired && value == "")) {
-    //   setShake(true);
-    //   setTimeout(() => setShake(false), 500);
-    // }
-    // if (value === "") {
-    //   setValidateError(true);
-    //   setShake(true);
-    //   setTimeout(() => setShake(false), 500);
-    //   const displayLabel = label ? label : StringUtils.capitalize(source);
-    //   setErrMessage(`${displayLabel} is required`);
-    // }
   };
 
-  // const isError = validateError || invalid;
-  // const errMsg = errMessage || error?.message;
   // Combine sync and async errors
-  // const successMessage = useAtomValue(validationMessagesAtom);
   const errMsg = error?.message;
   const renderHelperText = !!(
     helperText ||
@@ -442,9 +382,7 @@ export const PasswordValidationInput = (props: IconTextInputProps) => {
     isValidating ||
     invalid
   );
-  const helper = !!(helperText || errMsg || isValidating);
-  // console.log(renderHelperText, renderHelperText);
-  // console.log(helper, helper);
+  // const helper = !!(helperText || errMsg || isValidating);
 
   return (
     <Box width="100%">
@@ -457,13 +395,13 @@ export const PasswordValidationInput = (props: IconTextInputProps) => {
         onChange={handlePasswordChange}
         onFocus={handleFocus}
         onBlur={handleBlur}
-        togglePassword={handleClick}
+        togglePassword={togglePassword}
         fullWidth={true}
         className={clsx("ra-input", `ra-input-${source}`, className)}
         isValidating={isValidating}
         isFocused={focused}
         isPassword={true}
-        helper={helper}
+        helper={renderHelperText}
         isVisible={visible}
         label={
           label !== "" && label !== false ? (
@@ -488,60 +426,73 @@ export const PasswordValidationInput = (props: IconTextInputProps) => {
             />
           )
         }
-        // slotProps={{
-        //   input: {
-        //     endAdornment: (
-        //       <InputAdornment position="end">
-        //         <IconButton
-        //           aria-label={translate(
-        //             visible
-        //               ? "ra.input.password.toggle_visible"
-        //               : "ra.input.password.toggle_hidden",
-        //           )}
-        //           onClick={handleClick}
-        //           size="large"
-        //         >
-        //           {visible ? <Visibility /> : <VisibilityOff />}
-        //         </IconButton>
-        //       </InputAdornment>
-        //     ),
-        //   },
-        // //   // inputLabel: {
-        // //   //   shrink: focused || value !== "",
-        // //   //   className: clsx({ shake: shake }),
-        // //   // },
-        // //   // formHelperText: CustomFormHelperTextProps,
-        // }}
-        // InputProps={{
-        //   startAdornment: iconStart ? (
-        //     <InputAdornment position="start">{iconStart}</InputAdornment>
-        //   ) : null,
-        //   endAdornment: isValidating ? (
-        //     <CircularProgress size={20} /> // Show loading spinner
-        //   ) : (
-        //     <InputAdornment position="end">
-        //       <IconButton
-        //         aria-label={translate(
-        //           visible
-        //             ? "ra.input.password.toggle_visible"
-        //             : "ra.input.password.toggle_hidden",
-        //         )}
-        //         onClick={handleClick}
-        //         size="large"
-        //       >
-        //         {visible ? <Visibility /> : <VisibilityOff />}
-        //       </IconButton>
-        //     </InputAdornment>
-        //   ),
-        // }}
-        // InputLabelProps={{
-        //   shrink: focused || value !== "",
-        //   className: clsx({ shake: shake }),
-        // }}
-
         {...sanitizeInputRestProps(rest)}
       />
-      {/* {strengthMeter && (
+      {props.strengthMeter && (
+        <PasswordStrengthMeter
+          passwordStrength={result.score}
+          passwordFeedback={result.feedbackMsg}
+        />
+      )}
+    </Box>
+  );
+};
+
+export default PasswordValidationInput;
+
+// slotProps={{
+//   input: {
+//     endAdornment: (
+//       <InputAdornment position="end">
+//         <IconButton
+//           aria-label={translate(
+//             visible
+//               ? "ra.input.password.toggle_visible"
+//               : "ra.input.password.toggle_hidden",
+//           )}
+//           onClick={handleClick}
+//           size="large"
+//         >
+//           {visible ? <Visibility /> : <VisibilityOff />}
+//         </IconButton>
+//       </InputAdornment>
+//     ),
+//   },
+// //   // inputLabel: {
+// //   //   shrink: focused || value !== "",
+// //   //   className: clsx({ shake: shake }),
+// //   // },
+// //   // formHelperText: CustomFormHelperTextProps,
+// }}
+// InputProps={{
+//   startAdornment: iconStart ? (
+//     <InputAdornment position="start">{iconStart}</InputAdornment>
+//   ) : null,
+//   endAdornment: isValidating ? (
+//     <CircularProgress size={20} /> // Show loading spinner
+//   ) : (
+//     <InputAdornment position="end">
+//       <IconButton
+//         aria-label={translate(
+//           visible
+//             ? "ra.input.password.toggle_visible"
+//             : "ra.input.password.toggle_hidden",
+//         )}
+//         onClick={handleClick}
+//         size="large"
+//       >
+//         {visible ? <Visibility /> : <VisibilityOff />}
+//       </IconButton>
+//     </InputAdornment>
+//   ),
+// }}
+// InputLabelProps={{
+//   shrink: focused || value !== "",
+//   className: clsx({ shake: shake }),
+// }}
+
+{
+  /* {strengthMeter && (
         <Box>
           <LinearProgressWithLabel
             variant="determinate"
@@ -558,16 +509,5 @@ export const PasswordValidationInput = (props: IconTextInputProps) => {
             {field.value ? passwordFeedback : MESSAGE}
           </Typography>
         </Box>
-      )} */}
-      {props.strengthMeter && (
-        <PasswordStrengthMeter
-          passwordStrength={result.score}
-          passwordFeedback={result.feedbackMsg}
-          // value={field.value}
-        />
-      )}
-    </Box>
-  );
-};
-
-export default PasswordValidationInput;
+      )} */
+}

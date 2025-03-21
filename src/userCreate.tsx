@@ -4,6 +4,7 @@ import {
   ImageInput,
   isRequired,
   NumberInput,
+  PasswordInput,
   SaveButton,
   SelectInput,
   SimpleForm,
@@ -23,7 +24,7 @@ import { useState } from "react";
 import IconInput from "./CustomFields/IconInput";
 import { useRequired } from "./Utils/validator";
 import { ValidationInput } from "./Utils/test2";
-import PasswordValidationInput from "./fortest";
+// import PasswordValidationInput from "./fortest";
 import PasswordFields from "./CustomComponents/PasswordComponents";
 
 const choices = [
@@ -90,6 +91,7 @@ export const UserCreate = () => {
           className="icon-input"
           passwordValue={passwordValue}
         /> */}
+        {/* <PasswordInput></PasswordInput> */}
         <PasswordFields
           password="password"
           rePassword="rePassword"

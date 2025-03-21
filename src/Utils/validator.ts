@@ -116,84 +116,87 @@ export const useAsyncValidator = (
         callTimeOptions,
       );
 
-      return async (value: any, allValues: any, props: IconTextInputProps) => {
-        const { source, label } = props;
-        const args = {
-          source,
-          value,
-          // field: { label, source },
-          field: translateLabel({
-            label: label,
+      return Object.assign(
+        (value: any, allValues: any, props: IconTextInputProps) => {
+          const { source, label } = props;
+          const args = {
             source,
-          }),
-        };
+            value,
+            // field: { label, source },
+            field: translateLabel({
+              label: label,
+              source,
+            }),
+          };
 
-        if (isEmpty(value)) {
-          return Object.assign(
-            MsgUtils.getMessage(message, args, value, allValues),
-            { isRequired: true },
-            { status: statusCode.ACCEPTED },
-          );
-        }
+          if (isEmpty(value)) {
+            return Object.assign(
+              MsgUtils.getMessage(message, args, value, allValues),
+              { isRequired: true },
+              { status: statusCode.ACCEPTED },
+            );
+          }
 
-        // Clear previous validation
-        if (timeoutRef.current) clearTimeout(timeoutRef.current);
-        if (cancelTokenRef.current) {
-          cancelTokenRef.current.cancel("New validation started");
-        }
+          // Clear previous validation
+          if (timeoutRef.current) clearTimeout(timeoutRef.current);
+          if (cancelTokenRef.current) {
+            cancelTokenRef.current.cancel("New validation started");
+          }
 
-        // Generate new validation ID
-        const validationId = ++currentValidationId.current;
+          // Generate new validation ID
+          const validationId = ++currentValidationId.current;
 
-        return new Promise<AsyncValidationErrorMessage | undefined>(
-          (resolve) => {
-            timeoutRef.current = setTimeout(async () => {
-              // Only process if still the latest validation
-              if (validationId !== currentValidationId.current) {
-                resolve(undefined);
-                return;
-              }
-              // if (value === lastValueRef.current) return;
-              // lastValueRef.current = value;
-
-              try {
-                cancelTokenRef.current = axios.CancelToken.source();
-                const response = await axios.get(
-                  `${API_URL}/validate/${source}/${value}`,
-                  {
-                    cancelToken: cancelTokenRef.current.token,
-                  },
-                );
-
-                const data = response.data;
-                const status = statusCode.getStatusCode(data.status);
-
-                // Proper success case handling
-                if (status === statusCode.OK) {
-                  setMessage({ source, message: data.message });
-                  resolve(undefined); // ✅ Clear errors automatically
-                } else {
-                  clearMessage(source);
-                  resolve(MsgUtils.setMsg(data.message, args, status));
+          return new Promise<AsyncValidationErrorMessage | undefined>(
+            (resolve) => {
+              timeoutRef.current = setTimeout(async () => {
+                // Only process if still the latest validation
+                if (validationId !== currentValidationId.current) {
+                  resolve(undefined);
+                  return;
                 }
-              } catch (error) {
-                if (!axios.isCancel(error)) {
-                  clearMessage(source);
-                  resolve(
-                    MsgUtils.setMsg(
-                      "razeth.validation.async",
-                      args,
-                      statusCode.INTERNAL_SERVER_ERROR,
-                    ),
+                // if (value === lastValueRef.current) return;
+                // lastValueRef.current = value;
+
+                try {
+                  cancelTokenRef.current = axios.CancelToken.source();
+                  const response = await axios.get(
+                    `${API_URL}/validate/${source}/${value}`,
+                    {
+                      cancelToken: cancelTokenRef.current.token,
+                    },
                   );
-                } else {
-                  resolve(undefined); // Canceled request, no error
+
+                  const data = response.data;
+                  const status = statusCode.getStatusCode(data.status);
+
+                  // Proper success case handling
+                  if (status === statusCode.OK) {
+                    setMessage({ source, message: data.message });
+                    resolve(undefined); // ✅ Clear errors automatically
+                  } else {
+                    clearMessage(source);
+                    resolve(MsgUtils.setMsg(data.message, args, status));
+                  }
+                } catch (error) {
+                  if (!axios.isCancel(error)) {
+                    clearMessage(source);
+                    resolve(
+                      MsgUtils.setMsg(
+                        "razeth.validation.async",
+                        args,
+                        statusCode.INTERNAL_SERVER_ERROR,
+                      ),
+                    );
+                  } else {
+                    resolve(undefined); // Canceled request, no error
+                  }
                 }
-              }
-            }, interval ?? DEFAULT_DEBOUNCE);
-          },
-        );
-      };
+              }, interval ?? DEFAULT_DEBOUNCE);
+            },
+          );
+        },
+        { isRequired: true },
+      );
     },
     [clearMessage, options, /*resource,*/ setMessage /*translateLabel*/],
   );

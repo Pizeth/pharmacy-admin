@@ -13,7 +13,6 @@ const EndAdornment = ({
   handleMouseDownClearButton,
 }: GetEndAdornmentParams) => {
   if (props.isPassword) {
-    console.log("jol password", props.source);
     return (
       <InputAdornment position="end">
         <IconButton
@@ -23,10 +22,10 @@ const EndAdornment = ({
               : "ra.input.password.toggle_hidden",
           )}
           // onClick={props.togglePassword}
-          onMouseDown={handleMouseDown}
-          onTouchStart={handleTouchStart}
-          onKeyDown={handleKeyDown}
-          onKeyUp={handleKeyUp}
+          onMouseDown={props.togglePassword}
+          onTouchStart={props.togglePassword}
+          onKeyDown={props.togglePassword}
+          onKeyUp={props.togglePassword}
           size="large"
         >
           {props.isVisible ? <Visibility /> : <VisibilityOff />}

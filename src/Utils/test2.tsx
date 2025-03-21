@@ -40,7 +40,7 @@ export const ValidationInput = forwardRef((props: IconTextInputProps, ref) => {
   const { clearErrors } = useFormContext();
 
   // Get required and async validators
-  const require = useRequired();
+  // const require = useRequired();
   const asyncValidate = useAsyncValidator(setMessage, clearMessage);
   // const [shake, setShake] = useState(false);
   const [focused, setFocused] = useState(false);
@@ -49,10 +49,10 @@ export const ValidationInput = forwardRef((props: IconTextInputProps, ref) => {
   const validators = useMemo(() => {
     const normalizedValidate = Array.isArray(validate) ? validate : [validate];
     const baseValidators = [...normalizedValidate];
-    baseValidators.push(require());
+    // baseValidators.push(require());
     baseValidators.push(asyncValidate());
     return baseValidators;
-  }, [validate, require, asyncValidate]);
+  }, [validate, asyncValidate]);
 
   const {
     field,
@@ -87,7 +87,7 @@ export const ValidationInput = forwardRef((props: IconTextInputProps, ref) => {
     } else {
       clearErrors(source);
     }
-  }, [isValidating, invalid, source, clearErrors]);
+  }, [isValidating, invalid, source, clearErrors, source]);
 
   // Handle shake effect without useState
   // useEffect(() => {
