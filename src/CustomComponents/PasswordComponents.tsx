@@ -2,6 +2,7 @@ import { useFormContext } from "react-hook-form";
 import { useEffect } from "react";
 import PasswordValidationInput from "../fortest";
 import { PasswordFieldProps } from "../Types/types";
+import { isEmpty } from "lodash";
 
 const PasswordFields = (props: PasswordFieldProps) => {
   const { className, iconStart, password, rePassword } = props;

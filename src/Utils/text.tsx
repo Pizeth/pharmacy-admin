@@ -1,8 +1,12 @@
-import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
-import { useFormContext } from "react-hook-form";
-import { InputAdornment, IconButton, Box } from "@mui/material";
-import Visibility from "@mui/icons-material/Visibility";
-import VisibilityOff from "@mui/icons-material/VisibilityOff";
+import {
+  ChangeEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { Box } from "@mui/material";
 import {
   FieldTitle,
   useTranslate,
@@ -11,8 +15,11 @@ import {
   useInput,
 } from "react-admin";
 import { clsx } from "clsx";
-import { IconTextInputProps } from "../Types/types";
+
+import { useFormContext } from "react-hook-form";
+import { IconTextInputProps, TogglePasswordEvent } from "../Types/types";
 import { useMatchPassword, usePasswordValidator } from "./validator";
+import { EventHandlers } from "./EventHandlers";
 import ResettableIconInputField from "./ResettableIconInputField";
 import { InputHelper } from "../CustomComponents/InputHelper";
 import PasswordStrengthMeter from "../CustomComponents/PasswordStrengthMeter";
@@ -32,6 +39,7 @@ export const PasswordValidationInput = (props: IconTextInputProps) => {
     validate = [],
     initiallyVisible = false,
     strengthMeter = false,
+    passwordValue,
     ...rest
   } = props;
 
@@ -43,7 +51,7 @@ export const PasswordValidationInput = (props: IconTextInputProps) => {
   const shakeRef = useRef<HTMLLabelElement | null>(null); // Ref for shake effect
   const { clearErrors } = useFormContext();
 
-  // Get required and password validators
+  // Get password validators
   const matchPassword = useMatchPassword();
   const { passwordValidator, result } = usePasswordValidator();
   const [focused, setFocused] = useState(false);
@@ -75,24 +83,90 @@ export const PasswordValidationInput = (props: IconTextInputProps) => {
     ...rest,
   });
 
-  // Handle shake effect without useState
   useEffect(() => {
     if (!isValidating && invalid && inputRef.current) {
       shakeRef.current = inputRef.current.querySelector(".MuiInputLabel-root");
       if (shakeRef.current) {
-        shakeRef.current.classList.add("shake");
+        // Remove the class to reset the animation state
+        shakeRef.current.classList.remove("shake");
+        // Add it back after a 0ms delay to ensure the browser registers a new animation
         setTimeout(() => {
           if (shakeRef.current) {
-            shakeRef.current.classList.remove("shake");
+            shakeRef.current.classList.add("shake");
+            // Remove it after the animation completes (500ms)
+            setTimeout(() => {
+              if (shakeRef.current) {
+                shakeRef.current.classList.remove("shake");
+              }
+            }, 500);
           }
-        }, 500); // Matches animation duration
+        }, 0);
       }
     } else {
-      // clearErrors(source);
+      clearErrors(source);
     }
-  }, [isValidating, invalid, source, clearErrors]);
+  }, [isValidating, invalid, passwordValue, clearErrors, source]);
 
-  const handleClick = () => setVisible(!visible);
+  // Handle mouse release (global)
+  const handleMouseUp = useCallback(() => {
+    setVisible(false);
+    document.removeEventListener("mouseup", handleMouseUp);
+  }, []);
+
+  // Handle touch release (global)
+  const handleTouchEnd = useCallback(() => {
+    setVisible(false);
+    document.removeEventListener("touchend", handleTouchEnd);
+  }, []);
+
+  // Consolidated togglePassword function
+  const togglePassword = useCallback(
+    (event: TogglePasswordEvent) => {
+      console.log("Toggle Password", event.type);
+      event.preventDefault();
+
+      switch (event.type) {
+        // Handle mouse press
+        case "mousedown":
+          setVisible(true);
+          document.addEventListener("mouseup", handleMouseUp);
+          break;
+        // Handle touch press
+        case "touchstart":
+          setVisible(true);
+          document.addEventListener("touchend", handleTouchEnd);
+          break;
+        // Handle key press (space or enter)
+        case "keydown":
+          EventHandlers.handleKeyboardEvent(
+            EventHandlers.toKeyboardEvent(event),
+            true,
+            setVisible,
+          );
+          break;
+        // Handle key release
+        case "keyup":
+          EventHandlers.handleKeyboardEvent(
+            EventHandlers.toKeyboardEvent(event),
+            false,
+            setVisible,
+          );
+          break;
+        default:
+          // Do nothing for unhandled event types
+          break;
+      }
+    },
+    [handleMouseUp, handleTouchEnd],
+  );
+
+  // Cleanup global event listeners on unmount
+  useEffect(() => {
+    return () => {
+      document.removeEventListener("mouseup", handleMouseUp);
+      document.removeEventListener("touchend", handleTouchEnd);
+    };
+  }, [handleMouseUp, handleTouchEnd]);
 
   const handlePasswordChange = (e: ChangeEvent<HTMLInputElement>) => {
     const newValue = e?.target?.value ?? e;
@@ -107,10 +181,11 @@ export const PasswordValidationInput = (props: IconTextInputProps) => {
       field.value !== initialValueRef.current ||
       (isRequired && isEmpty(field.value)) /*&& isEmpty(passwordValue)*/
     ) {
-      field.onBlur();
+      field.onBlur(); // Ensure React Admin's onBlur is called
     }
   };
 
+  // Combine sync and async errors
   const errMsg = error?.message;
   const renderHelperText = !!(
     helperText ||
@@ -119,7 +194,7 @@ export const PasswordValidationInput = (props: IconTextInputProps) => {
     isValidating ||
     invalid
   );
-  const helper = !!(helperText || errMsg || isValidating);
+  // const helper = !!(helperText || errMsg || isValidating);
 
   return (
     <Box width="100%">
@@ -132,11 +207,14 @@ export const PasswordValidationInput = (props: IconTextInputProps) => {
         onChange={handlePasswordChange}
         onFocus={handleFocus}
         onBlur={handleBlur}
+        togglePassword={togglePassword}
         fullWidth={true}
         className={clsx("ra-input", `ra-input-${source}`, className)}
         isValidating={isValidating}
         isFocused={focused}
-        helper={helper}
+        isPassword={true}
+        helper={renderHelperText}
+        isVisible={visible}
         label={
           label !== "" && label !== false ? (
             <FieldTitle label={label} source={source} isRequired={isRequired} />
@@ -160,25 +238,6 @@ export const PasswordValidationInput = (props: IconTextInputProps) => {
             />
           )
         }
-        slotProps={{
-          input: {
-            endAdornment: (
-              <InputAdornment position="end">
-                <IconButton
-                  aria-label={translate(
-                    visible
-                      ? "ra.input.password.toggle_visible"
-                      : "ra.input.password.toggle_hidden",
-                  )}
-                  onClick={handleClick}
-                  size="large"
-                >
-                  {visible ? <Visibility /> : <VisibilityOff />}
-                </IconButton>
-              </InputAdornment>
-            ),
-          },
-        }}
         {...sanitizeInputRestProps(rest)}
       />
       {props.strengthMeter && (

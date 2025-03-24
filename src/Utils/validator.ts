@@ -503,6 +503,7 @@ export const useMatchPassword = (
 
         // Case 3: password not empty, rePassword empty → required error
         if (!isEmpty(values.password) && isEmpty(value)) {
+          console.log("rePassword empty");
           return MsgUtils.getMessage(
             message[1],
             {

@@ -1,3 +1,4 @@
+import { Animations } from "./Utils/Animations";
 import {
   ChangeEvent,
   useCallback,
@@ -22,6 +23,8 @@ import { InputHelper } from "./CustomComponents/InputHelper";
 import ResettableIconInputField from "./Utils/ResettableIconInputField";
 import { useFormContext } from "react-hook-form";
 import { EventHandlers } from "./Utils/EventHandlers";
+import { isEqual } from "lodash";
+import StringUtils from "./Utils/StringUtils";
 
 export const PasswordValidationInput = (props: IconTextInputProps) => {
   const {
@@ -269,28 +272,47 @@ export const PasswordValidationInput = (props: IconTextInputProps) => {
   //   }
   // }, [isValidating, invalid, source, passwordValue, clearErrors]);
 
+  // useEffect(() => {
+  //   if (!isValidating && invalid && inputRef.current) {
+  //     shakeRef.current = inputRef.current.querySelector(".MuiInputLabel-root");
+  //     if (shakeRef.current) {
+  //       // Remove the class to reset the animation state
+  //       shakeRef.current.classList.remove("shake");
+  //       // Add it back after a 0ms delay to ensure the browser registers a new animation
+  //       setTimeout(() => {
+  //         if (shakeRef.current) {
+  //           shakeRef.current.classList.add("shake");
+  //           // Remove it after the animation completes (500ms)
+  //           setTimeout(() => {
+  //             if (shakeRef.current) {
+  //               shakeRef.current.classList.remove("shake");
+  //             }
+  //           }, 500);
+  //         }
+  //       }, 0);
+  //     }
+  //   } else {
+  //     clearErrors(source);
+  //   }
+  // }, [isValidating, invalid, passwordValue, clearErrors, source]);
+
+  // Set shakeRef once on mount or when inputRef changes
   useEffect(() => {
-    if (!isValidating && invalid && inputRef.current) {
-      shakeRef.current = inputRef.current.querySelector(".MuiInputLabel-root");
-      if (shakeRef.current) {
-        // Remove the class to reset the animation state
-        shakeRef.current.classList.remove("shake");
-        // Add it back after a 0ms delay to ensure the browser registers a new animation
-        setTimeout(() => {
-          if (shakeRef.current) {
-            shakeRef.current.classList.add("shake");
-            // Remove it after the animation completes (500ms)
-            setTimeout(() => {
-              if (shakeRef.current) {
-                shakeRef.current.classList.remove("shake");
-              }
-            }, 500);
-          }
-        }, 0);
-      }
-    } else {
-      clearErrors(source);
+    // Query the label element inside the container
+    if (inputRef.current) {
+      shakeRef.current = inputRef.current.querySelector(
+        ".MuiInputLabel-root",
+      ) as HTMLLabelElement | null;
     }
+  }, []);
+
+  // Apply shake effect when validation state changes
+  useEffect(() => {
+    if (StringUtils.isEqual(field.value, passwordValue)) {
+      console.log("equal");
+      return;
+    }
+    Animations.shake(isValidating, invalid, shakeRef, clearErrors, source);
   }, [isValidating, invalid, passwordValue, clearErrors, source]);
 
   // const handleClick = () => setVisible(!visible);
@@ -369,8 +391,12 @@ export const PasswordValidationInput = (props: IconTextInputProps) => {
       field.value !== initialValueRef.current ||
       (isRequired && isEmpty(field.value)) /*&& isEmpty(passwordValue)*/
     ) {
+      // console.log("Field value ", field.value, source);
+      // console.log("initialValueRef ", initialValueRef.current, source);
+      // console.log("Field value changed", source);
       field.onBlur(); // Ensure React Admin's onBlur is called
     }
+    // Animations.shake(isValidating, invalid, shakeRef, clearErrors, source);
   };
 
   // Combine sync and async errors

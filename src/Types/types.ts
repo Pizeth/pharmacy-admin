@@ -52,7 +52,6 @@ export interface GetEndAdornmentParams {
   endAdornment?: React.ReactNode;
   translate: Translate;
   handleClickClearButton: (e: React.MouseEvent<HTMLButtonElement>) => void;
-  // handleClickVisibleButton?: (e: React.MouseEvent<HTMLButtonElement>) => void;
   handleMouseDownClearButton: (e: React.MouseEvent<HTMLButtonElement>) => void;
 }
 
@@ -101,8 +100,6 @@ export interface IconTextInputProps extends PasswordInputProps {
   isSuccess?: boolean;
   isFocused?: boolean;
   isPassword?: boolean;
-  // isShake?: boolean;
-  // labelRef?: React.RefObject<HTMLLabelElement>;
   helper?: boolean;
   isVisible?: boolean;
   togglePassword?: (event: TogglePasswordEvent) => void;
@@ -120,7 +117,6 @@ export type TogglePasswordEvent =
 export interface PasswordStrengthMeterProps {
   passwordStrength: number;
   passwordFeedback: string;
-  // value: string;
 }
 
 export interface LinearProgressWithLabelProps extends LinearProgressProps {
