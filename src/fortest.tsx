@@ -24,7 +24,7 @@ import ResettableIconInputField from "./Utils/ResettableIconInputField";
 import { useFormContext } from "react-hook-form";
 import { EventHandlers } from "./Utils/EventHandlers";
 import { isEqual } from "lodash";
-import StringUtils from "./Utils/StringUtils";
+import Utils from "./Utils/Utils";
 
 export const PasswordValidationInput = (props: IconTextInputProps) => {
   const {
@@ -308,7 +308,7 @@ export const PasswordValidationInput = (props: IconTextInputProps) => {
 
   // Apply shake effect when validation state changes
   useEffect(() => {
-    if (StringUtils.isEqual(field.value, passwordValue)) {
+    if (Utils.isEqual(field.value, passwordValue)) {
       console.log("equal");
       return;
     }

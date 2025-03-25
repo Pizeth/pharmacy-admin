@@ -8,7 +8,7 @@ import { clsx } from "clsx";
 import { IconTextInputProps } from "../Types/types";
 import zxcvbn from "../Utils/lazyZxcvbn";
 import PasswordStrengthMeter from "../CustomComponents/PasswordStrengthMeter";
-import StringUtils from "../Utils/StringUtils";
+import StringUtils from "../Utils/Utils";
 
 const zxcvbnAsync = await zxcvbn.loadZxcvbn();
 

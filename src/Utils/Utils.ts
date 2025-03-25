@@ -1,4 +1,4 @@
-export class StringUtils {
+export class Utils {
   /**
    * Capitalizes the first letter and adds spaces before capital letters
    * @param str - Input string to transform
@@ -128,11 +128,88 @@ export class StringUtils {
    * StringUtils.isEqual("hello", "world") // returns false
    * ```
    */
-  static isEqual(a: any, b: any): boolean {
-    console.log("isEqual", a, b);
-    if (this.isEmpty(a) && this.isEmpty(b)) return true;
-    return a === b;
+  // static isEqual(a: any, b: any): boolean {
+  //   console.log("isEqual", a, b);
+  //   if (this.isEmpty(a) && this.isEmpty(b)) return true;
+  //   return a === b;
+  // }
+
+  static isEqual(value: any, other: any): boolean {
+    // if (this.isEmpty(value) && this.isEmpty(other)) return true;
+    return this.deepEqual(value, other, new WeakMap<object, object>());
+  }
+
+  static deepEqual(a: any, b: any, seen: WeakMap<object, object>): boolean {
+    // Handle strict equality, including special cases like -0 vs +0
+    if (a === b) return a !== 0 || 1 / a === 1 / b;
+
+    // Handle NaN equality
+    if (Number.isNaN(a) && Number.isNaN(b)) return true;
+
+    // Check for type mismatch
+    if (typeof a !== typeof b) return false;
+
+    // Functions and DOM nodes are not deeply compared
+    if (typeof a === "function" || a instanceof Node || b instanceof Node)
+      return false;
+
+    // Handle objects (including arrays, maps, sets, etc.)
+    if (typeof a === "object" && a !== null && b !== null) {
+      // Check for circular references
+      if (seen.has(a)) return seen.get(a) === b;
+      seen.set(a, b);
+
+      // Ensure constructors match
+      if (a.constructor !== b.constructor) return false;
+
+      // Handle Date objects
+      if (a instanceof Date && b instanceof Date)
+        return a.getTime() === b.getTime();
+
+      // Handle RegExp objects
+      if (a instanceof RegExp && b instanceof RegExp)
+        return a.source === b.source && a.flags === b.flags;
+
+      // Handle Map objects
+      if (a instanceof Map && b instanceof Map) {
+        if (a.size !== b.size) return false;
+        for (const [key, val] of a) {
+          if (!b.has(key) || !this.deepEqual(val, b.get(key), seen))
+            return false;
+        }
+        return true;
+      }
+
+      // Handle Set objects
+      if (a instanceof Set && b instanceof Set) {
+        if (a.size !== b.size) return false;
+        return Array.from(a).every((val) => b.has(val));
+      }
+
+      // Handle typed arrays
+      if (ArrayBuffer.isView(a) && ArrayBuffer.isView(b)) {
+        if (a.constructor !== b.constructor || a.byteLength !== b.byteLength)
+          return false;
+        const viewA = new Uint8Array(a.buffer, a.byteOffset, a.byteLength);
+        const viewB = new Uint8Array(b.buffer, b.byteOffset, b.byteLength);
+        return viewA.every((val, i) => val === viewB[i]);
+      }
+
+      // Handle arrays
+      if (Array.isArray(a) && Array.isArray(b)) {
+        if (a.length !== b.length) return false;
+        return a.every((val, i) => this.deepEqual(val, b[i], seen));
+      }
+
+      // Handle general objects
+      const keysA = Reflect.ownKeys(a);
+      const keysB = Reflect.ownKeys(b);
+      if (keysA.length !== keysB.length) return false;
+      return keysA.every((key) => this.deepEqual(a[key], b[key], seen));
+    }
+
+    return false;
   }
 }
 
-export default StringUtils;
+export default Utils;

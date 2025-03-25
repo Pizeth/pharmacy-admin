@@ -1,6 +1,6 @@
 import axios from "axios";
 import statusCode from "http-status-codes";
-import StringUtils from "../Utils/StringUtils";
+import StringUtils from "../Utils/Utils";
 import zxcvbn from "../Utils/lazyZxcvbn";
 import {
   InputProps,
