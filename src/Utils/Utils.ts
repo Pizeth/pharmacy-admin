@@ -56,6 +56,24 @@ export class Utils {
   }
 
   /**
+   * Checks if a value is a string, null, or undefined.
+   * @param value - The value to check.
+   * @returns A type predicate indicating whether the value is a string, null, or undefined.
+   * @example
+   * ```typescript
+   * isPlainText("hello") // true
+   * isPlainText(null) // true
+   * isPlainText(undefined) // true
+   * isPlainText(123) // false
+   * ```
+   */
+  private static isPlainText(
+    value: unknown,
+  ): value is string | null | undefined {
+    return typeof value === "string" || value === null || value === undefined;
+  }
+
+  /**
    * Checks if a value is empty based on its type.
    *
    * @param value - The value to check for emptiness
@@ -97,9 +115,10 @@ export class Utils {
       // 1. Check special collection types first
       if (value instanceof Map || value instanceof Set) return value.size === 0;
 
-      // 2. Check plain Plain objects ({} or new Object()) before length checks
+      // 2. Check plain objects ({} or new Object()) before length checks
       if (Object.getPrototypeOf(value) === Object.prototype) {
-        return Object.keys(value).length === 0; // Plain objects use keys
+        const keys = this.getEnumerableOwnKeys(value);
+        return keys.length === 0; // Plain objects use keys
       }
 
       // 3. Handle array-like objects (arguments, NodeList, etc) AFTER plain object check
@@ -114,32 +133,94 @@ export class Utils {
   };
 
   /**
-   * Compares two strings for equality.
-   * Empty strings are considered equal to each other.
+   * Performs a deep comparison between two values to determine if they are equivalent.
+   * Uses WeakMap to handle circular references during comparison.
+   * Supports comparing arrays, maps, sets, dates, regexes, errors, and plain objects.
+   * Functions, DOM nodes, WeakMap, WeakSet, and Promise are not supported.
+   * If an object has an `equals` method, it will be used to determine equality.
+   * Note: If only one object has an `equals` method, the result may depend on the order of arguments.
    *
-   * @param a - The first string to compare
-   * @param b - The second string to compare
-   * @returns True if both strings are equal or both are empty, false otherwise
+   * @param value - The first value to compare
+   * @param other - The second value to compare
+   * @param options - Optional configuration object
+   * @param options.isPassword - If `true`, treats both values as equal if they are plain text (string, null, or undefined) and empty
+   * @returns boolean - `true` if the values are deeply equal, `false` otherwise.
    *
    * @example
    * ```typescript
-   * StringUtils.isEqual("hello", "hello") // returns true
-   * StringUtils.isEqual("", "") // returns true
-   * StringUtils.isEqual("hello", "world") // returns false
+   * const obj1 = { a: 1, b: { c: 2 } };
+   * const obj2 = { a: 1, b: { c: 2 } };
+   * Utils.isEqual(obj1, obj2); // returns true
    * ```
    */
-  // static isEqual(a: any, b: any): boolean {
-  //   console.log("isEqual", a, b);
-  //   if (this.isEmpty(a) && this.isEmpty(b)) return true;
-  //   return a === b;
-  // }
+  static isEqual(
+    value: any,
+    other: any,
+    options: { isPassword?: boolean } = {},
+  ): boolean {
+    if (
+      options.isPassword &&
+      this.isPlainText(value) &&
+      this.isPlainText(other)
+    ) {
+      return this.isEmpty(value) && this.isEmpty(other);
+    }
 
-  static isEqual(value: any, other: any): boolean {
-    // if (this.isEmpty(value) && this.isEmpty(other)) return true;
     return this.deepEqual(value, other, new WeakMap<object, object>());
   }
 
-  static deepEqual(a: any, b: any, seen: WeakMap<object, object>): boolean {
+  /**
+   * Asynchronously compares two values for deep equality.
+   * This method handles complex objects and circular references using WeakMap.
+   *
+   * @param value - The first value to compare
+   * @param other - The second value to compare
+   * @returns A Promise that resolves to `true` if the values are deeply equal, `false` otherwise.
+   *
+   * @example
+   * ```typescript
+   * const obj1 = { a: 1, b: { c: 2 } };
+   * const obj2 = { a: 1, b: { c: 2 } };
+   * const isEqual = await Utils.asyncIsEqual(obj1, obj2); // Returns true
+   * ```
+   */
+  static async asyncIsEqual(value: any, other: any): Promise<boolean> {
+    return this.asyncDeepEqual(value, other, new WeakMap<object, object>());
+  }
+
+  /**
+   * Performs a deep equality, recursively compares between two values of any type.
+   * This method handles various JavaScript built-in types and complex objects.
+   *
+   * @param a - First value to compare
+   * @param b - Second value to compare
+   * @param seen - WeakMap to track visited objects and handle circular references during comparison
+   * @returns boolean - `true` if the values are deeply equal, `false` otherwise.
+   *
+   * @remarks
+   * Handles the following cases:
+   * - Primitive values (including special cases like -0 vs +0)
+   * - NaN equality
+   * - Functions (by reference)
+   * - DOM nodes (by reference)
+   * - Date objects (by timestamp)
+   * - RegExp objects (by source and flags)
+   * - Error objects (by name and message)
+   * - Map objects (by entries)
+   * - Set objects (by values with deep equality)
+   * - TypedArrays (by byte-level comparison)
+   * - Arrays (by elements with deep equality)
+   * - Plain objects (by enumerable properties)
+   * - Circular references
+   *
+   * @private
+   * @static
+   */
+  private static deepEqual(
+    a: any,
+    b: any,
+    seen: WeakMap<object, object>,
+  ): boolean {
     // Handle strict equality, including special cases like -0 vs +0
     if (a === b) return a !== 0 || 1 / a === 1 / b;
 
@@ -149,9 +230,26 @@ export class Utils {
     // Check for type mismatch
     if (typeof a !== typeof b) return false;
 
+    // Symbols can be compared by their description (optional)
+    if (typeof a === "symbol" && typeof b === "symbol") {
+      return a === b || a.toString() === b.toString();
+    }
+
     // Functions and DOM nodes are not deeply compared
     if (typeof a === "function" || a instanceof Node || b instanceof Node)
       return false;
+
+    // WeakMap, WeakSet, and Promise are not deeply compared
+    if (
+      a instanceof WeakMap ||
+      a instanceof WeakSet ||
+      a instanceof Promise ||
+      b instanceof WeakMap ||
+      b instanceof WeakSet ||
+      b instanceof Promise
+    ) {
+      return false;
+    }
 
     // Handle objects (including arrays, maps, sets, etc.)
     if (typeof a === "object" && a !== null && b !== null) {
@@ -159,8 +257,35 @@ export class Utils {
       if (seen.has(a)) return seen.get(a) === b;
       seen.set(a, b);
 
-      // Ensure constructors match
-      if (a.constructor !== b.constructor) return false;
+      // Use type tags instead of constructors
+      const aTag = Object.prototype.toString.call(a);
+      const bTag = Object.prototype.toString.call(b);
+      if (aTag !== bTag) return false;
+
+      // Support custom equals methods
+      // if (typeof a.equals === "function" && typeof b.equals === "function") {
+      //   return a.equals(b);
+      // }
+
+      // Support custom equals methods (asymmetric)
+      // if (typeof a.equals === "function") {
+      //   return a.equals(b);
+      // }
+      // if (typeof b.equals === "function") {
+      //   return b.equals(a);
+      // }
+
+      // Support custom equals methods
+      if (typeof a.equals === "function" && typeof b.equals === "function") {
+        // Both have equals: enforce symmetry
+        return a.equals(b) && b.equals(a);
+      } else if (typeof a.equals === "function") {
+        // Only a has equals: delegate to a
+        return a.equals(b);
+      } else if (typeof b.equals === "function") {
+        // Only b has equals: delegate to b
+        return b.equals(a);
+      }
 
       // Handle Date objects
       if (a instanceof Date && b instanceof Date)
@@ -170,20 +295,93 @@ export class Utils {
       if (a instanceof RegExp && b instanceof RegExp)
         return a.source === b.source && a.flags === b.flags;
 
+      // Handle Error objects
+      if (a instanceof Error && b instanceof Error)
+        return a.name === b.name && a.message === b.message;
+
       // Handle Map objects
       if (a instanceof Map && b instanceof Map) {
-        if (a.size !== b.size) return false;
-        for (const [key, val] of a) {
-          if (!b.has(key) || !this.deepEqual(val, b.get(key), seen))
-            return false;
-        }
-        return true;
+        return this.deepEqual(
+          Array.from(a.entries()),
+          Array.from(b.entries()),
+          seen,
+        );
       }
 
       // Handle Set objects
+      // if (a instanceof Set && b instanceof Set) {
+      //   if (a.size !== b.size) return false;
+      //   return Array.from(a).every((val) => b.has(val));
+      // }
+
+      // Handle Set objects with deep equality
+      // if (a instanceof Set && b instanceof Set) {
+      //   if (a.size !== b.size) return false;
+      //   for (const valA of a) {
+      //     let found = false;
+      //     for (const valB of b) {
+      //       if (this.deepEqual(valA, valB, seen)) {
+      //         found = true;
+      //         break;
+      //       }
+      //     }
+      //     if (!found) return false;
+      //   }
+      //   return true;
+      // }
+
+      // Handle Set objects with deep equality
       if (a instanceof Set && b instanceof Set) {
         if (a.size !== b.size) return false;
-        return Array.from(a).every((val) => b.has(val));
+
+        const aArray = Array.from(a);
+        // Optimization: Check if sets are equal using reference equality first
+        const allMatchByReference = aArray.every((val) => b.has(val));
+        if (allMatchByReference) return true;
+
+        // Convert b to an array to allow tracking of used elements
+        const bArray = Array.from(b);
+
+        const isSerializable = (val: any) => {
+          try {
+            JSON.stringify(val);
+            return true;
+          } catch {
+            return false;
+          }
+        };
+
+        if (aArray.every(isSerializable) && bArray.every(isSerializable)) {
+          const hashCount = new Map<string, number>();
+          for (const val of aArray) {
+            const hash = JSON.stringify(val);
+            hashCount.set(hash, (hashCount.get(hash) || 0) + 1);
+          }
+          for (const val of bArray) {
+            const hash = JSON.stringify(val);
+            const count = hashCount.get(hash);
+            if (count === undefined || count === 0) return false;
+            hashCount.set(hash, count - 1);
+          }
+          return true;
+        }
+
+        // Fallback to deep equality with tracking
+        const usedIndices = new Set<number>(); // Tracks which elements in b have been matched
+
+        for (const valA of aArray) {
+          let found = false;
+          for (let i = 0; i < bArray.length; i++) {
+            if (usedIndices.has(i)) continue; // Skip already matched elements
+            if (this.deepEqual(valA, bArray[i], seen)) {
+              usedIndices.add(i);
+              found = true;
+              break;
+            }
+          }
+          if (!found) return false;
+        }
+        return true;
       }
 
       // Handle typed arrays
@@ -201,15 +399,133 @@ export class Utils {
         return a.every((val, i) => this.deepEqual(val, b[i], seen));
       }
 
-      // Handle general objects
-      const keysA = Reflect.ownKeys(a);
-      const keysB = Reflect.ownKeys(b);
+      // Handle ALL objects (plain and non-plain) with enumerable properties
+      const keysA = this.getEnumerableOwnKeys(a);
+      const keysB = this.getEnumerableOwnKeys(b);
       if (keysA.length !== keysB.length) return false;
       return keysA.every((key) => this.deepEqual(a[key], b[key], seen));
     }
 
     return false;
   }
+
+  /**
+   * Asynchronously performs a deep equality, recursively compares between two values of any type, handling Promises.
+   *
+   * @param a - The first value to compare
+   * @param b - The second value to compare
+   * @param seen - WeakMap to track visited objects and handle circular references during comparison
+   * @returns A Promise that resolves to a boolean indicating whether the values are deeply equal
+   * @throws {Error} If Promise resolution fails
+   *
+   * @remarks
+   * This method handles Promise objects by awaiting their resolution before comparison.
+   * For non-Promise values, it delegates to the synchronous deepEqual method.
+   *
+   * @private
+   * @static
+   */
+  private static async asyncDeepEqual(
+    a: any,
+    b: any,
+    seen: WeakMap<object, object>,
+  ): Promise<boolean> {
+    if (a instanceof Promise && b instanceof Promise) {
+      try {
+        const [resolvedA, resolvedB] = await Promise.all([a, b]);
+        return this.asyncDeepEqual(resolvedA, resolvedB, seen);
+      } catch {
+        return false;
+      }
+    }
+
+    return this.deepEqual(a, b, seen);
+  }
+
+  /**
+   * Returns an array of all enumerable own property keys (both string and symbol) of an object.
+   * @param obj - The object to get enumerable keys from.
+   * @returns An array containing all enumerable string keys and symbol properties.
+   * @private
+   * @static
+   */
+  private static getEnumerableOwnKeys(obj: object): Array<string | symbol> {
+    return [
+      ...Object.keys(obj),
+      ...Object.getOwnPropertySymbols(obj).filter((sym) =>
+        obj.propertyIsEnumerable(sym),
+      ),
+    ];
+  }
 }
 
 export default Utils;
+
+// Ensure constructors match
+// if (a.constructor !== b.constructor) return false;
+
+// // Handle Map objects
+// if (a instanceof Map && b instanceof Map) {
+//   if (a.size !== b.size) return false;
+//   for (const [key, val] of a) {
+//     if (!b.has(key) || !this.deepEqual(val, b.get(key), seen)) return false;
+//   }
+//   return true;
+// }
+
+// Handle Set objects with deep equality
+// if (a instanceof Set && b instanceof Set) {
+//   if (a.size !== b.size) return false;
+
+//   // Optimization: Check if sets are equal using reference equality first
+//   const allMatchByReference = Array.from(a).every((val) => b.has(val));
+//   if (allMatchByReference) return true;
+
+//   // Fallback to deep equality with tracking
+//   const bArray = Array.from(b);
+//   const usedIndices = new Set<number>();
+
+//   for (const valA of a) {
+//     let found = false;
+//     for (let i = 0; i < bArray.length; i++) {
+//       if (usedIndices.has(i)) continue;
+//       if (this.deepEqual(valA, bArray[i], seen)) {
+//         usedIndices.add(i);
+//         found = true;
+//         break;
+//       }
+//     }
+//     if (!found) return false;
+//   }
+//   return true;
+// }
+
+// Handle plain objects (only enumerable properties)
+// if (
+//   Object.getPrototypeOf(a) === Object.prototype &&
+//   Object.getPrototypeOf(b) === Object.prototype
+// ) {
+//   const keysA = [
+//     ...Object.keys(a),
+//     ...Object.getOwnPropertySymbols(a).filter((sym) =>
+//       a.propertyIsEnumerable(sym),
+//     ),
+//   ];
+//   const keysB = [
+//     ...Object.keys(b),
+//     ...Object.getOwnPropertySymbols(b).filter((sym) =>
+//       b.propertyIsEnumerable(sym),
+//     ),
+//   ];
+//   if (keysA.length !== keysB.length) return false;
+//   return keysA.every((key) => this.deepEqual(a[key], b[key], seen));
+// }
+
+// Handle general objects
+// const keysA = Reflect.ownKeys(a);
+// const keysB = Reflect.ownKeys(b);
+
+// 2. Check plain Plain objects ({} or new Object()) before length checks
+// if (Object.getPrototypeOf(value) === Object.prototype) {
+//   return Object.keys(value).length === 0; // Plain objects use keys
+// }
