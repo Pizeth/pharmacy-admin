@@ -120,6 +120,13 @@ export class Utils {
         const keys = this.getEnumerableOwnKeys(value);
         return keys.length === 0; // Plain objects use keys
       }
+      // Handle all plain objects (including Object.create(null))
+      if (Object.prototype.toString.call(value) === "[object Object]") {
+        return (
+          Object.keys(value).length === 0 &&
+          Object.getOwnPropertySymbols(value).length === 0
+        );
+      }
 
       // 3. Handle array-like objects (arguments, NodeList, etc) AFTER plain object check
       if (typeof value.length === "number") return value.length === 0; // Non-plain objects with length
