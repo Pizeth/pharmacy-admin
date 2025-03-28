@@ -1,3 +1,5 @@
+import { isEmpty } from "react-admin";
+
 export class Utils {
   /**
    * Capitalizes the first letter and adds spaces before capital letters
@@ -82,60 +84,89 @@ export class Utils {
    * @remarks
    * This method considers a value empty if:
    * - It is null or undefined
-   * - It is a string or array with length 0
+   * - It is a string (primitive or String object) with length 0
+   * - It is an array with length 0
    * - It is an empty Map or Set
+   * - It is an empty ArrayBuffer or typed array (e.g., Int8Array)
    * - It is a plain object ({} or new Object()) with no own properties
-   * - It is an array-like object with length 0
+   * - It is an array-like object with length 0 (ignoring symbol properties)
    *
    * Non-empty cases include:
+   * - WeakMap and WeakSet (since their size cannot be determined)
    * - Non-plain objects (Date, RegExp, custom classes)
    * - Primitive values (numbers, booleans, symbols)
    * - Functions
    *
    * @example
    * ```typescript
-   * isEmpty(null);       // returns true
-   * isEmpty("");         // returns true
-   * isEmpty([]);         // returns true
-   * isEmpty({});         // returns true
-   * isEmpty(new Map());  // returns true
-   * isEmpty(0);          // returns false
-   * isEmpty(false);      // returns false
-   * isEmpty(new Date()); // returns false
+   * isEmpty(null);               // returns true
+   * isEmpty("");                 // returns true
+   * isEmpty([]);                 // returns true
+   * isEmpty(new Int8Array(0));   // returns true
+   * isEmpty(new ArrayBuffer(0)); // returns true
+   * isEmpty({});                 // returns true
+   * isEmpty(new Map());          // returns true
+   * isEmpty(0);                  // returns false
+   * isEmpty(false);              // returns false
+   * isEmpty(new Date());         // returns false
+   * isEmpty(new WeakMap());      // returns false
    * ```
    */
-  static isEmpty = (value: any): boolean => {
-    if (value == null) return true; // null/undefined
+  static isEmpty = (value: unknown): boolean => {
+    // Handle null and undefined as empty
+    if (value === null || value === undefined) return true;
 
-    // Handle strings and arrays first
-    if (typeof value === "string" || Array.isArray(value))
-      return value.length === 0;
-
-    if (typeof value === "object") {
-      // 1. Check special collection types first
-      if (value instanceof Map || value instanceof Set) return value.size === 0;
-
-      // 2. Check plain objects ({} or new Object()) before length checks
-      if (Object.getPrototypeOf(value) === Object.prototype) {
-        const keys = this.getEnumerableOwnKeys(value);
-        return keys.length === 0; // Plain objects use keys
-      }
-      // Handle all plain objects (including Object.create(null))
-      if (Object.prototype.toString.call(value) === "[object Object]") {
-        return (
-          Object.keys(value).length === 0 &&
-          Object.getOwnPropertySymbols(value).length === 0
-        );
-      }
-
-      // 3. Handle array-like objects (arguments, NodeList, etc) AFTER plain object check
-      if (typeof value.length === "number") return value.length === 0; // Non-plain objects with length
-
-      // 4. Other object types (Date, RegExp, custom classes, etc.)
-      return false; // Other non-plain objects
+    // Handle strings (both primitive and object)
+    if (typeof value === "string" || value instanceof String) {
+      return String(value).length === 0;
     }
 
-    // All Non-object primitives (numbers, booleans, symbols, functions, etx)
+    // Handle strings (both primitive and object)
+    if (typeof value === "string") {
+      return value.length === 0;
+    }
+    if (value instanceof String) {
+      return String(value).length === 0;
+    }
+
+    // Handle arrays
+    if (Array.isArray(value)) {
+      return value.length === 0;
+    }
+
+    // Skip non-objects (e.g., numbers, strings, booleans) are not empty
+    if (typeof value !== "object") return false;
+
+    // Helper to identify plain objects, including those with no prototype (e.g., Object.create(null))
+    const isPlainObject = (val: object) =>
+      Object.prototype.toString.call(val) === "[object Object]" ||
+      Object.getPrototypeOf(val) === null;
+
+    // 1. Check special collection types first (Maps and Sets use size)
+    if (value instanceof Map || value instanceof Set) return value.size === 0;
+
+    if (value instanceof ArrayBuffer) {
+      return value.byteLength === 0;
+    }
+    if (ArrayBuffer.isView(value)) {
+      return (value as any).length === 0;
+    }
+
+    // 2. Check plain objects ({} or new Object()) for no keys or symbol properties before length checks
+    const plainObject = isPlainObject(value);
+    if (plainObject) {
+      return (
+        Object.keys(value).length === 0 &&
+        Object.getOwnPropertySymbols(value).length === 0
+      );
+    }
+
+    // 3. Handle array-like objects (arguments, NodeList, etc) AFTER plain object check
+    if (typeof (value as any).length === "number" && !plainObject) {
+      return (value as any).length === 0; // Non-plain objects with length
+    }
+
+    // 4. Other object types (Date, RegExp, custom classes, etc.) and non-object primitives (numbers, booleans, symbols, functions, etx)
     return false;
   };
 
@@ -535,4 +566,29 @@ export default Utils;
 // 2. Check plain Plain objects ({} or new Object()) before length checks
 // if (Object.getPrototypeOf(value) === Object.prototype) {
 //   return Object.keys(value).length === 0; // Plain objects use keys
+// }
+
+// // 3. Handle array-like objects (e.g., arrays, argumentss, NodeList, etc) AFTER plain object check
+// if (typeof value.length === "number") return value.length === 0; // Non-plain objects with length
+
+// // Handle strings and arrays first
+// if (typeof value === "string" || Array.isArray(value))
+//   return value.length === 0;
+
+// if (typeof value === "object") {
+//   // 2. Check plain objects ({} or new Object()) before length checks
+//   if (Object.getPrototypeOf(value) === Object.prototype) {
+//     const keys = this.getEnumerableOwnKeys(value);
+//     return keys.length === 0; // Plain objects use keys
+//   }
+//   // Handle all plain objects (including Object.create(null))
+//   if (Object.prototype.toString.call(value) === "[object Object]") {
+//     return (
+//       Object.keys(value).length === 0 &&
+//       Object.getOwnPropertySymbols(value).length === 0
+//     );
+//   }
+
+//   // 4. Other object types (Date, RegExp, custom classes, etc.)
+//   return false; // Other non-plain objects
 // }
