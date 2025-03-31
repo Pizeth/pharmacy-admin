@@ -153,6 +153,25 @@ export interface PasswordValidationResults {
   handleBlur: () => void;
 }
 
+export interface ArrayLike {
+  length: number;
+}
+
+/**
+ * A custom function to determine if an object is empty.
+ * This function is called after standard checks for Maps, Sets, ArrayBuffers,
+ * but before checks for plain objects or array-like objects.
+ * @param value - The object value to check.
+ * @returns `true` if the custom logic considers the value empty, `false` otherwise.
+ */
+export interface IsEmptyOptions {
+  customIsEmpty?: (value: object) => boolean;
+}
+
+export interface WithIsEmpty {
+  isEmpty(): boolean;
+}
+
 // export interface PasswordInputUIProps extends IconTextInputProps {
 //   id?: string;
 //   validateError: boolean;

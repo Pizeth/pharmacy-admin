@@ -1,4 +1,5 @@
 import { isEmpty } from "react-admin";
+import { ArrayLike, IsEmptyOptions, WithIsEmpty } from "../Types/types";
 
 export class Utils {
   /**
@@ -69,11 +70,40 @@ export class Utils {
    * isPlainText(123) // false
    * ```
    */
-  private static isPlainText(
-    value: unknown,
-  ): value is string | null | undefined {
+  static isPlainText(value: unknown): value is string | null | undefined {
     return typeof value === "string" || value === null || value === undefined;
   }
+
+  /**
+   * Helper to determines whether a value is a plain object, including those with no prototype
+   * (i.e. created by {} or new Object(), or with a null prototype Object.create(null)).
+   *
+   * @param value - The object to check.
+   * @returns `true` if the value is a plain object, `false` otherwise .
+   */
+  static isPlainObject = (val: object): boolean => {
+    if (typeof val !== "object" || val === null) {
+      // Basic sanity check
+      return false;
+    }
+
+    // Check if the object is a plain object by checking its prototype chain
+    const toString = Object.prototype.toString.call(val);
+    if (toString !== "[object Object]") return false;
+
+    // Check if the object has a prototype chain that leads to null
+    // This is a more reliable way to check for plain objects
+    const proto = Object.getPrototypeOf(val);
+    // Objects with no prototype are plain objects.
+    if (proto === null) return true; // Object.create(null)
+    // Otherwise, check if the prototype is Object.prototype or inherits from an object with a null prototype.
+    return proto === Object.prototype || Object.getPrototypeOf(proto) === null;
+  };
+
+  // // Helper to identify plain objects, including those with no prototype (e.g., Object.create(null))
+  // isPlainObject = (val: object) =>
+  //   Object.prototype.toString.call(val) === "[object Object]" ||
+  //   Object.getPrototypeOf(val) === null;
 
   /**
    * Checks if a value is empty based on its type.
@@ -86,6 +116,8 @@ export class Utils {
    * - It is null or undefined
    * - It is a string (primitive or String object) with length 0
    * - It is an array with length 0
+   * - It has a custom `isEmpty` method that returns true
+   * - It matches custom emptiness logic provided via options
    * - It is an empty Map or Set
    * - It is an empty ArrayBuffer or typed array (e.g., Int8Array)
    * - It is a plain object ({} or new Object()) with no own properties
@@ -93,35 +125,55 @@ export class Utils {
    *
    * Non-empty cases include:
    * - WeakMap and WeakSet (since their size cannot be determined)
-   * - Non-plain objects (Date, RegExp, custom classes)
-   * - Primitive values (numbers, booleans, symbols)
+   * - Non-plain objects (Date, RegExp, custom classes) unless they have a custom `isEmpty` method or match custom logic
+   * - Custom objects with a length property (unless they are plain objects)
+   * - Primitive values (numbers, booleans, BigInt, symbols)
    * - Functions
-   *
+   * - Proxy objects may not behave as expected (their emptiness depends on the Proxy's implementation)
    * @example
    * ```typescript
-   * isEmpty(null);               // returns true
-   * isEmpty("");                 // returns true
-   * isEmpty([]);                 // returns true
-   * isEmpty(new Int8Array(0));   // returns true
-   * isEmpty(new ArrayBuffer(0)); // returns true
-   * isEmpty({});                 // returns true
-   * isEmpty(new Map());          // returns true
-   * isEmpty(0);                  // returns false
-   * isEmpty(false);              // returns false
-   * isEmpty(new Date());         // returns false
-   * isEmpty(new WeakMap());      // returns false
+   * isEmpty(null);                             // returns true
+   * isEmpty("");                               // returns true
+   * isEmpty([]);                               // returns true
+   * isEmpty(new Int8Array(0));                 // returns true
+   * isEmpty(new ArrayBuffer(0));               // returns true
+   * isEmpty(new DataView(new ArrayBuffer(0))); // returns true
+   * isEmpty({});                               // returns true
+   * isEmpty(new Map());                        // returns true
+   * isEmpty(0);                                // returns false
+   * isEmpty(false);                            // returns false
+   * isEmpty(new Date());                       // returns false
+   * isEmpty(new WeakMap());                    // returns false
+   * isEmpty(new WeakSet());                    // returns false
+   *
+   * class CustomCollection {
+   * private items: any[] = [];
+   * isEmpty() { return this.items.length === 0; }
+   * }
+   * isEmpty(new CustomCollection());           // returns true
+   *
+   * // Using options
+   * class MyType { value: number | null = null }
+   * isEmpty(new MyType(), { customIsEmpty: (v) => (v as MyType).value === null }); // => true
    * ```
    */
-  static isEmpty = (value: unknown): boolean => {
-    // Handle null and undefined as empty
+  static isEmpty = (value: unknown, options: IsEmptyOptions = {}): boolean => {
+    // 1. Null or undefined are empty.
     if (value === null || value === undefined) return true;
 
-    // Handle strings (both primitive and object)
-    if (typeof value === "string" || value instanceof String) {
-      return String(value).length === 0;
+    // 2. Handle primitive types quickly
+    const type = typeof value;
+    if (
+      type === "number" ||
+      type === "boolean" ||
+      type === "function" ||
+      type === "symbol" ||
+      type === "bigint"
+    ) {
+      return false;
     }
 
-    // Handle strings (both primitive and object)
+    // 3. Handle strings (both primitive and object).
     if (typeof value === "string") {
       return value.length === 0;
     }
@@ -129,31 +181,68 @@ export class Utils {
       return String(value).length === 0;
     }
 
-    // Handle arrays
+    // 4. Arrays are empty when they have no elements.
     if (Array.isArray(value)) {
       return value.length === 0;
     }
 
-    // Skip non-objects (e.g., numbers, strings, booleans) are not empty
+    // 5. Skip out remaining non-object, they are considered non-empty unless handled above (like empty strings).
     if (typeof value !== "object") return false;
 
-    // Helper to identify plain objects, including those with no prototype (e.g., Object.create(null))
-    const isPlainObject = (val: object) =>
-      Object.prototype.toString.call(val) === "[object Object]" ||
-      Object.getPrototypeOf(val) === null;
+    // At this point, value is guaranteed to be an object and not null
+    // Note: typeof null === 'object', but it was handled in step 1.
+    const obj = value as object;
 
-    // 1. Check special collection types first (Maps and Sets use size)
-    if (value instanceof Map || value instanceof Set) return value.size === 0;
-
-    if (value instanceof ArrayBuffer) {
-      return value.byteLength === 0;
-    }
-    if (ArrayBuffer.isView(value)) {
-      return (value as any).length === 0;
+    // 6. Check for custom emptiness logic first (options or method)
+    if (options.customIsEmpty) {
+      return options.customIsEmpty(obj);
     }
 
-    // 2. Check plain objects ({} or new Object()) for no keys or symbol properties before length checks
-    const plainObject = isPlainObject(value);
+    if (typeof (obj as WithIsEmpty).isEmpty === "function") {
+      return (obj as WithIsEmpty).isEmpty();
+    }
+
+    // 7. Check special collection types first (Maps, Sets, ArrayBuffers, typed arrays)
+    // Use Object.prototype.toString for reliable cross-realm type checking
+    const tag = Object.prototype.toString.call(value);
+    const ArrayLike = obj as ArrayLike;
+    switch (tag) {
+      case "[object Map]":
+      case "[object Set]":
+        return (value as Map<any, any> | Set<any>).size === 0;
+      // Check for ArrayBuffer and TypedArray types
+      // ArrayBuffer is a special case, as it doesn't have a length property
+      case "[object ArrayBuffer]":
+        return (value as ArrayBuffer).byteLength === 0;
+      // Catches TypedArrays (Int8Array, Float32Array, etc.) and DataView
+      case "[object Int8Array]":
+      case "[object Uint8Array]":
+      case "[object Uint8ClampedArray]":
+      case "[object Int16Array]":
+      case "[object Uint16Array]":
+      case "[object Int32Array]":
+      case "[object Uint32Array]":
+      case "[object Float32Array]":
+      case "[object Float64Array]":
+      case "[object BigInt64Array]":
+      case "[object BigUint64Array]":
+      case "[object DataView]":
+        return (value as ArrayBufferView).byteLength === 0;
+
+      case "[object HTMLCollection]":
+      case "[object NodeList]":
+      case "[object Arguments]":
+        return ArrayLike.length === 0;
+    }
+
+    // // 7. Check special collection types first (Maps, Sets, ArrayBuffers, typed arrays)
+    // if (value instanceof Map || value instanceof Set) return value.size === 0;
+    // if (value instanceof ArrayBuffer) return value.byteLength === 0;
+    // // Catches TypedArrays (Int8Array, Float32Array, etc.) and DataView
+    // if (ArrayBuffer.isView(value)) return value.byteLength === 0;
+
+    // 8. Check plain objects ({} or new Object()) for no keys or symbol properties before length checks
+    const plainObject = this.isPlainObject(value);
     if (plainObject) {
       return (
         Object.keys(value).length === 0 &&
@@ -161,12 +250,42 @@ export class Utils {
       );
     }
 
-    // 3. Handle array-like objects (arguments, NodeList, etc) AFTER plain object check
-    if (typeof (value as any).length === "number" && !plainObject) {
-      return (value as any).length === 0; // Non-plain objects with length
+    // 9. Handle remaining array-like objects after plain object check
+    if ("length" in obj && typeof ArrayLike.length === "number") {
+      // For other array-like objects, only consider them empty if they're not custom class instances
+      // Otherwise (custom class instance with length), treat as non-empty by default
+      const proto = Object.getPrototypeOf(obj);
+      return proto === Object.prototype || proto === null
+        ? ArrayLike.length === 0
+        : false;
     }
 
-    // 4. Other object types (Date, RegExp, custom classes, etc.) and non-object primitives (numbers, booleans, symbols, functions, etx)
+    // // 9. Handle array-like objects (arguments, NodeList, and HTMLCollection) after plain object check
+    // if ("length" in obj && typeof ArrayLike.length === "number") {
+    //   // Check for standard DOM collections
+    //   // Use both constructor name and toString for broader compatibility
+    //   const typeTag = Object.prototype.toString.call(obj);
+    //   const ctrName = obj.constructor?.name;
+    //   if (
+    //     typeTag === "[object HTMLCollection]" ||
+    //     typeTag === "[object NodeList]" ||
+    //     typeTag === "[object Arguments]" ||
+    //     ctrName === "NodeList" ||
+    //     ctrName === "HTMLCollection" ||
+    //     ctrName === "Arguments"
+    //   ) {
+    //     return ArrayLike.length === 0;
+    //   }
+
+    //   // For other array-like objects, only consider them empty if they're not custom class instances
+    //   // Otherwise (custom class instance with length), treat as non-empty by default
+    //   const proto = Object.getPrototypeOf(obj);
+    //   return proto === Object.prototype || proto === null
+    //     ? ArrayLike.length === 0
+    //     : false;
+    // }
+
+    // 10. Other object types (Date, RegExp, custom classes, etc.) and non-object primitives (numbers, booleans, symbols, functions, etx)
     return false;
   };
 
@@ -191,19 +310,37 @@ export class Utils {
    * Utils.isEqual(obj1, obj2); // returns true
    * ```
    */
+  // static isEqual(
+  //   value: any,
+  //   other: any,
+  //   options: { isPassword?: boolean } = {},
+  // ): boolean {
+  //   if (
+  //     options.isPassword &&
+  //     this.isPlainText(value) &&
+  //     this.isPlainText(other)
+  //   ) {
+  //     return this.isEmpty(value) && this.isEmpty(other);
+  //   }
+
+  //   return this.deepEqual(value, other, new WeakMap<object, object>());
+  // }
+
   static isEqual(
     value: any,
     other: any,
-    options: { isPassword?: boolean } = {},
+    options: {
+      isPassword?: boolean;
+      customIsEmpty?: (value: object) => boolean;
+    } = {},
   ): boolean {
     if (
       options.isPassword &&
       this.isPlainText(value) &&
       this.isPlainText(other)
     ) {
-      return this.isEmpty(value) && this.isEmpty(other);
+      return this.isEmpty(value, options) && this.isEmpty(other, options);
     }
-
     return this.deepEqual(value, other, new WeakMap<object, object>());
   }
 
@@ -591,4 +728,9 @@ export default Utils;
 
 //   // 4. Other object types (Date, RegExp, custom classes, etc.)
 //   return false; // Other non-plain objects
+// }
+
+// // Handle strings (both primitive and object)
+// if (typeof value === "string" || value instanceof String) {
+//   return String(value).length === 0;
 // }
