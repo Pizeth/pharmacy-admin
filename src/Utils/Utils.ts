@@ -228,11 +228,16 @@ export class Utils {
       case "[object BigUint64Array]":
       case "[object DataView]":
         return (value as ArrayBufferView).byteLength === 0;
-
+      // DOM collections and array-like objects
       case "[object HTMLCollection]":
       case "[object NodeList]":
       case "[object Arguments]":
         return ArrayLike.length === 0;
+      // Known non-empty object types (can add more if needed)
+      case "[object Date]":
+      case "[object RegExp]":
+      case "[object Error]": // Errors are generally not considered empty
+        return false;
     }
 
     // // 7. Check special collection types first (Maps, Sets, ArrayBuffers, typed arrays)
