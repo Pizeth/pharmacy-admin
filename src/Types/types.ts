@@ -157,15 +157,23 @@ export interface ArrayLike {
   length: number;
 }
 
-/**
- * A custom function to determine if an object is empty.
- * This function is called after standard checks for Maps, Sets, ArrayBuffers,
- * but before checks for plain objects or array-like objects.
- * @param value - The object value to check.
- * @returns `true` if the custom logic considers the value empty, `false` otherwise.
- */
 export interface IsEmptyOptions {
+  /**
+   * A custom function to determine if an object is empty.
+   * IMPORTANT: This function is called FIRST for any object type,
+   * allowing override of all subsequent standard checks.
+   * @param value - The object value to check.
+   * @returns `true` if the custom logic considers the value empty, `false` otherwise.
+   */
   customIsEmpty?: (value: object) => boolean;
+  /** Treat the number 0 as empty. Defaults to false. */
+  zeroAsEmpty?: boolean;
+  /** Treat the boolean false as empty. Defaults to false. */
+  falseAsEmpty?: boolean;
+  /** Treat Date, RegExp, Error instances as empty. Defaults to false. */
+  specialObjectsAsEmpty?: boolean;
+  /** Internal flag for recursion protection (e.g., with WeakRef). */
+  _internalCall?: boolean;
 }
 
 export interface WithIsEmpty {
