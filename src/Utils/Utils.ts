@@ -4,8 +4,20 @@ import { ArrayLike, IsEmptyOptions, WithIsEmpty } from "../Types/types";
 const objectToString = Object.prototype.toString;
 const objectProto = Object.prototype;
 const getProto = Object.getPrototypeOf;
-
 export class Utils {
+  // Add at the top of your class (cache proxy check once)
+  private static proxyTag: string | null = null;
+
+  static {
+    // Initialize proxy tag once
+    try {
+      const { proxy, revoke } = Proxy.revocable({}, {});
+      this.proxyTag = Object.prototype.toString.call(proxy);
+      revoke();
+    } catch {
+      this.proxyTag = null;
+    }
+  }
   /**
    * Capitalizes the first letter and adds spaces before capital letters
    * @param str - Input string to transform
@@ -168,6 +180,7 @@ export class Utils {
    *
    * @param value - The value to check for emptiness
    * @param options - Optional configuration for custom emptiness checks.
+   * @param _seen - Internal WeakSet used for circular reference tracking.
    * @returns `true` if the value is considered empty, `false` otherwise
    *
    * @remarks
@@ -196,6 +209,7 @@ export class Utils {
    * 4. Strings -> length === 0
    * 5. Arrays -> length === 0
    * 6. Non-object -> false (includes functions, symbols, bigints)
+   * 7. Circular Reference Check -> false if seen
    * 7. Custom emptiness logic (`customIsEmpty` option or `.isEmpty()` method)
    * 8. Proxy -> checks constructor (if supported)
    * 9. WeakRef -> checks dereferenced value recursively (if WeakRef exists)
@@ -205,6 +219,21 @@ export class Utils {
    * 13. Plain Objects ({} or new Object()) -> checks own properties (special handling for `{ length: 0 }`)
    * 14. Other Array-Likes (non-plain, prototype check) -> checks length property
    * 15. Default -> false (includes Proxies by default, WeakMap, WeakSet, other objects)
+   *
+   * Order of checks:
+   * 1. Global objects -> false
+   * 2. null, undefined -> true
+   * 3. Primitives (number, boolean based on options; function, symbol, bigint -> false)
+   * 4. Strings -> length === 0
+   * 5. Arrays -> length === 0
+   * 6. Circular Reference Check -> false if seen
+   * 7. Custom logic (`customIsEmpty` option or `.isEmpty()` method)
+   * 8. WeakRef -> checks dereferenced value recursively
+   * 9. Built-ins via `Object.prototype.toString` (Map, Set, ArrayBuffer, TypedArrays, Arguments, Date, RegExp, Error etc.)
+   * 10. Plain Objects (special handling for `{ length: 0 }`)
+   * 11. Other Iterables (non-Array/String/Map/Set) -> checks if iteration yields items
+   * 12. Other Array-Likes (non-plain, non-iterable) -> checks length
+   * 13. Default -> false
    *
    * Performance characteristics:
    * - Primitive checks are O(1)
@@ -285,21 +314,17 @@ export class Utils {
     value: unknown,
     options: IsEmptyOptions & { _seen?: WeakSet<object> } = {},
   ): boolean => {
-    // Initialize circular reference tracking
+    // --- Initialization Phase ---
+    // Circular reference tracking (always needed)
     const seen = options._seen || new WeakSet<object>();
-    const newOptions = {
-      ...options,
-      _seen: seen,
-      _internalCall: true, // Inherit internal call flag
-    };
 
-    // Internal options for recursion protection (used by WeakRef check)
-    // Create only if not already an internal call to avoid unnecessary object creation
-    const internalOptions = options._internalCall
+    // Options preparation for recursion protection (used by WeakRef check)
+    // Create only if not already seen to avoid unnecessary object creation
+    const internalOptions = options._seen
       ? options
-      : { ...options, _internalCall: true };
+      : { ...options, _seen: seen, _internalCall: true };
 
-    // --- Pre-checks ---
+    // --- Pre-checks for early returns ---
 
     // Check for global objects (usually not considered empty)
     if (
@@ -344,25 +369,50 @@ export class Utils {
     // 5. Skip out remaining non-object, they are considered non-empty unless handled above (like empty strings).
     if (typeof value !== "object") return false;
 
-    // Check for circular references
-    if (typeof value === "object" && value !== null) {
-      if (seen.has(value)) {
-        return false; // Circular reference detected
-      }
-      seen.add(value);
-    }
-
     // At this point, value is guaranteed to be an object and not null
     // Note: typeof null === 'object', but it was handled in step 1.
     const obj = value as object;
 
+    // --- Circular Reference Check ---
+    if (seen.has(value)) return false; // Circular reference detected
+    seen.add(value);
+
     // 6. Handle iterable objects
     if (Symbol.iterator in obj) {
       try {
-        return this.isEmpty([...(obj as Iterable<unknown>)], newOptions);
+        return this.isEmpty([...(obj as Iterable<unknown>)], internalOptions);
       } catch {
         // If spreading fails, treat as non-empty
         return false;
+      }
+    }
+
+    // 6. Handle iterable objects
+    if (Symbol.iterator in obj && obj[Symbol.iterator] instanceof Function) {
+      try {
+        // Check if iterator is actually callable
+        const iterator = (obj as any)[Symbol.iterator];
+        if (typeof iterator !== "function") return false;
+
+        // Attempt to spread with safety
+        return this.isEmpty([...(obj as Iterable<unknown>)], internalOptions);
+      } catch {
+        return false;
+      }
+    }
+
+    // 11. Handle *other* Iterables (non-Array/String/Map/Set/etc.)
+    // Check this *after* specific types and plain objects
+    if (typeof (obj as any)[Symbol.iterator] === "function") {
+      try {
+        // Check if the iterator yields any value
+        for (const _ of obj as Iterable<unknown>) {
+          return false; // Found an item, therefore not empty
+        }
+        return true; // No items yielded
+      } catch (e) {
+        console.warn("Utils.isEmpty: Error iterating object:", e);
+        return false; // Treat as non-empty if iteration fails
       }
     }
 
@@ -413,29 +463,38 @@ export class Utils {
       }
     }
 
-    // 9. Check WeakRef objects (if supported) - Requires recursion protection
-    if (
-      typeof WeakRef !== "undefined" &&
-      typeof (obj as any).deref === "function"
-    ) {
+    // 8. Handle Proxy objects
+    if (this.proxyTag !== null && objectToString.call(obj) === this.proxyTag) {
+      try {
+        // Try basic checks, fallback to treating as non-empty
+        const constructor = Object.prototype.hasOwnProperty.call(
+          obj,
+          "constructor",
+        )
+          ? (obj as any).constructor
+          : null;
+
+        if (constructor && /Proxy/.test(constructor.name)) {
+          return false;
+        }
+      } catch (e) {
+        return false; // Proxies might throw on property access
+      }
+    }
+
+    // 9. Check WeakRef objects (cross-environment safe) - Requires recursion protection
+    const WeakRefExists =
+      typeof WeakRef !== "undefined" ||
+      (typeof window !== "undefined" && "WeakRef" in window);
+
+    if (WeakRefExists && typeof (obj as any).deref === "function") {
       try {
         const referent = (obj as any).deref();
         // An empty WeakRef (pointing to undefined) is considered empty.
         // Otherwise, check the emptiness of the referenced object recursively.
         return referent === undefined
           ? true
-          : this.isEmpty(referent, internalOptions);
-      } catch (e) {
-        return false;
-      }
-    }
-
-    if (typeof (obj as any).deref === "function") {
-      try {
-        const referent = (obj as any).deref();
-        return referent === undefined
-          ? true
-          : this.isEmpty(referent, { ...newOptions, _seen: seen });
+          : this.isEmpty(referent, { ...internalOptions, _seen: seen });
       } catch (e) {
         return false;
       }
