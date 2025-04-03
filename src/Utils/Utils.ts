@@ -171,13 +171,22 @@ export class Utils {
    * @returns `true` if the value is considered empty, `false` otherwise
    *
    * @remarks
+   * Circular Reference Protection:
+   * - Automatically detects circular references and returns false
+   * - Uses WeakSet for efficient tracking without memory leaks
    * Checks for null/undefined, primitives, strings, and arrays.
+   * Iterable Handling:
+   * - Objects implementing Symbol.iterator will be converted to arrays for checking
+   * - Examples: Generators, custom iterables, etc.
    * Then checks for custom logic (`options.customIsEmpty` or `.isEmpty()` method).
    * Uses `Object.prototype.toString` for reliable checks on built-ins (Map, Set, TypedArrays, Arguments, etc.).
    * Handles plain objects using `Object.getOwnPropertyNames/Symbols`:
    * - If it has 0 own properties, it's empty.
    * - If the *only* own property is `length` (enumerable or not), emptiness is determined by `length === 0`.
    * - Otherwise (more properties, or a single non-length property), it's not empty.
+   * Non-Enumerable Properties:
+   * - Plain objects with non-enumerable length properties are considered empty if length === 0
+   * - Example: Object.defineProperty({}, 'length', { value: 0 }) → true
    * Handles other array-like objects (non-plain, not caught by `toString`) based on `length === 0`, excluding custom class instances.
    *
    * Order of checks:
@@ -272,7 +281,18 @@ export class Utils {
    * isEmpty(new Date(), { specialObjectsAsEmpty: true });                          // => true
    *  ```
    */
-  static isEmpty = (value: unknown, options: IsEmptyOptions = {}): boolean => {
+  static isEmpty = (
+    value: unknown,
+    options: IsEmptyOptions & { _seen?: WeakSet<object> } = {},
+  ): boolean => {
+    // Initialize circular reference tracking
+    const seen = options._seen || new WeakSet<object>();
+    const newOptions = {
+      ...options,
+      _seen: seen,
+      _internalCall: true, // Inherit internal call flag
+    };
+
     // Internal options for recursion protection (used by WeakRef check)
     // Create only if not already an internal call to avoid unnecessary object creation
     const internalOptions = options._internalCall
@@ -289,6 +309,7 @@ export class Utils {
     ) {
       return false;
     }
+
     // 1. Null or undefined are empty.
     if (value === null || value === undefined) return true;
 
@@ -323,12 +344,30 @@ export class Utils {
     // 5. Skip out remaining non-object, they are considered non-empty unless handled above (like empty strings).
     if (typeof value !== "object") return false;
 
+    // Check for circular references
+    if (typeof value === "object" && value !== null) {
+      if (seen.has(value)) {
+        return false; // Circular reference detected
+      }
+      seen.add(value);
+    }
+
     // At this point, value is guaranteed to be an object and not null
     // Note: typeof null === 'object', but it was handled in step 1.
     const obj = value as object;
 
+    // 6. Handle iterable objects
+    if (Symbol.iterator in obj) {
+      try {
+        return this.isEmpty([...(obj as Iterable<unknown>)], newOptions);
+      } catch {
+        // If spreading fails, treat as non-empty
+        return false;
+      }
+    }
+
     // Custom Emptiness Overrides
-    // 6. Check for custom emptiness logic first (options or method)
+    // 7. Check for custom emptiness logic first (options or method)
     // IMPORTANT: This runs first for ALL objects now.
     if (options.customIsEmpty) {
       try {
@@ -358,7 +397,7 @@ export class Utils {
     }
 
     // Proxy and WeakRef Checks
-    // 7. Handle Proxy objects
+    // 8. Handle Proxy objects
     if (typeof Proxy === "function" && obj instanceof Proxy) {
       try {
         // Try basic checks, fallback to treating as non-empty
@@ -374,7 +413,7 @@ export class Utils {
       }
     }
 
-    // 8. Check WeakRef objects (if supported) - Requires recursion protection
+    // 9. Check WeakRef objects (if supported) - Requires recursion protection
     if (
       typeof WeakRef !== "undefined" &&
       typeof (obj as any).deref === "function"
@@ -391,7 +430,18 @@ export class Utils {
       }
     }
 
-    // 9. Fast path for collections and buffers using instanceof (not cross-realm safe)
+    if (typeof (obj as any).deref === "function") {
+      try {
+        const referent = (obj as any).deref();
+        return referent === undefined
+          ? true
+          : this.isEmpty(referent, { ...newOptions, _seen: seen });
+      } catch (e) {
+        return false;
+      }
+    }
+
+    // 10. Fast path for collections and buffers using instanceof (not cross-realm safe)
     // The toString check later provides cross-realm safety as a fallback.
     if (obj instanceof Map || obj instanceof Set) {
       return (obj as Map<any, any> | Set<any>).size === 0;
@@ -405,7 +455,7 @@ export class Utils {
       return (obj as ArrayBufferView).byteLength === 0;
     }
 
-    // 10. Handle specific object types potentially treated as empty with specialObjectsAsEmpty option
+    // 11. Handle specific object types potentially treated as empty with specialObjectsAsEmpty option
     if (options.specialObjectsAsEmpty) {
       if (
         obj instanceof Date ||
@@ -416,7 +466,7 @@ export class Utils {
       }
     }
 
-    // 11. Check special collection types first (Maps, Sets, ArrayBuffers, typed arrays, etc)
+    // 12. Check special collection types first (Maps, Sets, ArrayBuffers, typed arrays, etc)
     // Use Object.prototype.toString for reliable cross-realm type checking
     const tag = objectToString.call(obj);
     switch (tag) {
@@ -458,7 +508,7 @@ export class Utils {
       // They will fall through and default to non-empty.
     }
 
-    // 12. Handle Plain Objects (({} or new Object())) specifically - optimized for performance
+    // 13. Handle Plain Objects (({} or new Object())) specifically - optimized for performance
     const plainObject = this.isPlainObject(value);
     const arrayLikeObj = obj as ArrayLike;
 
@@ -496,7 +546,7 @@ export class Utils {
       return false;
     }
 
-    // 13. Handle remaining Array-Like objects (non-plain, not caught by toString or isPlainObject)
+    // 14. Handle remaining Array-Like objects (non-plain, not caught by toString or isPlainObject)
     // This catches generic array-likes or custom classes missed earlier.
     if ("length" in obj && typeof arrayLikeObj.length === "number") {
       // For other array-like objects, only consider them empty if they're not custom class instances
@@ -507,7 +557,7 @@ export class Utils {
         : false;
     }
 
-    // 14. Other object types (Date, RegExp, custom classes, etc.) and non-object primitives (numbers, booleans, symbols, functions, etx)
+    // 15. Other object types (Date, RegExp, custom classes, etc.) and non-object primitives (numbers, booleans, symbols, functions, etx)
     return false;
   };
 
