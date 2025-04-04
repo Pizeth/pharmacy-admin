@@ -174,6 +174,8 @@ export interface IsEmptyOptions {
   specialObjectsAsEmpty?: boolean;
   /** Internal flag for recursion protection (e.g., with WeakRef). */
   _internalCall?: boolean;
+  /** Halt on Custom Error flag for rethrows customIsEmpty errors*/
+  haltOnCustomError?: boolean;
 }
 
 export interface WithIsEmpty {
