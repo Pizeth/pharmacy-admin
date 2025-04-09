@@ -368,6 +368,11 @@ export class Utils {
    * @param _seen - Internal WeakSet used for circular reference tracking.
    * @returns `true` if the value is considered empty, `false` otherwise
    *
+   * @complexity
+   * - Time: O(1) for primitives, arrays, collections
+   * - Time: O(n) for objects with n properties
+   * - Space: O(d) where d is the maximum depth of nested objects due to circular reference tracking
+   *
    * @remarks
    * Circular Reference Protection:
    * - Automatically detects circular references and returns false
@@ -611,7 +616,7 @@ export class Utils {
     }
 
     //Updated Approach
-    // 8. Handle Proxy objects
+    // 9. Handle Proxy objects
     if (this.proxyTag !== null && objectToString.call(obj) === this.proxyTag) {
       try {
         // Try basic checks, fallback to treating as non-empty
