@@ -184,45 +184,12 @@ export class Utils {
    * isEmptyPlainObject({ length: 1 })
    */
   static isEmptyPlainObject = (obj: object): boolean => {
-    // Fast check for enumerable keys first
-    const keys = Object.keys(obj);
-    if (keys.length === 0) {
-      // Get all own properties (enumerable AND non-enumerable string keys, and all symbols)
-      const allProps = Object.getOwnPropertyNames(obj);
-      const allSymbols = Object.getOwnPropertySymbols(obj);
-
-      // Case 1: Truly empty object (no own properties at all)
-      if (allProps.length === 0 && allSymbols.length === 0) {
-        return true;
-      }
-
-      // Case 2: Only has "length" property (enumerable or not) and no symbols
-      if (
-        allProps.length === 1 &&
-        allProps[0] === "length" &&
-        allSymbols.length === 0
-      ) {
-        const len = (obj as ArrayLike).length;
-        // Ensure length is a number before comparing
-        return typeof len === "number" && len === 0;
-      }
-    } else if (keys.length === 1 && keys[0] === "length") {
-      // Quick check for just length property (enumerable)
-      const len = (obj as ArrayLike).length;
-      return typeof len === "number" && len === 0;
-    }
-
-    // Case 3: Any other properties, not empty
-    return false;
-  };
-
-  static isEmptyPlainObject = (obj: object): boolean => {
     // Check for enumerable keys first (fastest)
     const keys = objectKeys(obj);
 
     // Quick path: no enumerable keys
     if (keys.length === 0) {
-      // Get all property names (including non-enumerable)
+      // Get all own properties (enumerable AND non-enumerable string keys, and all symbols)
       const allProps = getOwnPropertyNames(obj);
       const allSymbols = getOwnPropertySymbols(obj);
 
@@ -238,6 +205,7 @@ export class Utils {
         allSymbols.length === 0
       ) {
         const len = (obj as ArrayLike).length;
+        // Ensure length is a number before comparing
         return typeof len === "number" && len === 0;
       }
 
@@ -246,10 +214,12 @@ export class Utils {
 
     // Check single enumerable "length" property case
     if (keys.length === 1 && keys[0] === "length") {
+      // Quick check for just length property (enumerable)
       const len = (obj as ArrayLike).length;
       return typeof len === "number" && len === 0;
     }
 
+    // Any other properties, not empty
     return false;
   };
   /**
@@ -297,25 +267,7 @@ export class Utils {
   };
 
   /**
-   * Type guard for ArrayBufferView
-   * Checks if a value is an instance of ArrayBufferView (TypedArray or DataView).
-   *
-   * @param value - The value to check
-   * @returns {boolean} `true` if the value is an ArrayBufferView, `false` otherwise
-   *
-   * @example
-   * ```typescript
-   * isBufferView(new Int8Array(10)); // true
-   * isBufferView(new DataView(new ArrayBuffer(10))); // true
-   * isBufferView([]); // false
-   * ```
-   */
-  static isBufferView = (value: unknown): value is ArrayBufferView => {
-    return ArrayBuffer.isView(value) && !(value instanceof DataView);
-  };
-
-  /**
-   * Determines if the given value is an ArrayBuffer or ArrayBufferView type.
+   * Type guard to determines if the given value is an ArrayBuffer or ArrayBufferView type.
    * This method provides cross-realm safety checks for buffer types.
    *
    * @param value - The value to check
@@ -333,24 +285,10 @@ export class Utils {
    * ```
    */
   static isBufferType(value: unknown): value is ArrayBuffer | ArrayBufferView {
-    if (this.isBufferView(value) || value instanceof ArrayBuffer) return true;
-    //fallback to Object.prototype.toString for cross-realm safety
-    const tag = Object.prototype.toString.call(value);
-    return (
-      tag === "[object ArrayBuffer]" ||
-      (tag.includes("Array") && tag.includes("Buffer")) ||
-      tag === "[object DataView]"
-    );
-  }
-
-  // Enhanced buffer type check
-  static isBufferType = (
-    value: unknown,
-  ): value is ArrayBuffer | ArrayBufferView => {
     // Direct instanceof checks first (fastest path)
     if (value instanceof ArrayBuffer || ArrayBuffer.isView(value)) return true;
 
-    // Fall back to toString for cross-realm safety
+    //fallback to Object.prototype.toString for cross-realm safety
     const tag = objectToString.call(value);
     return (
       tag === "[object ArrayBuffer]" ||
@@ -358,7 +296,7 @@ export class Utils {
         ((tag.includes("Array") && tag.includes("Buffer")) ||
           tag === "[object DataView]"))
     );
-  };
+  }
 
   /**
    * Checks if a value is empty based on its type.
@@ -566,7 +504,7 @@ export class Utils {
         if (options.haltOnCustomError) {
           throw e; // Halt and let the user handle the error
         }
-        if (process.env.NODE_ENV !== "production") {
+        if (Utils.isDevelopment()) {
           console.warn(
             "Utils.isEmpty: Custom isEmpty function threw an error:",
             e,
@@ -584,7 +522,7 @@ export class Utils {
       try {
         return !!(obj as WithIsEmpty).isEmpty();
       } catch (e) {
-        if (process.env.NODE_ENV !== "production") {
+        if (Utils.isDevelopment()) {
           console.warn(
             "Utils.isEmpty: Custom isEmpty function threw an error:",
             e,
@@ -620,7 +558,7 @@ export class Utils {
     if (this.proxyTag !== null && objectToString.call(obj) === this.proxyTag) {
       try {
         // Try basic checks, fallback to treating as non-empty
-        const constructor = objectProto.hasOwnProperty.call(obj, "constructor")
+        const constructor = hasOwnProperty.call(obj, "constructor")
           ? (obj as any).constructor
           : null;
 
@@ -640,7 +578,7 @@ export class Utils {
     if (this.proxyTag !== null && objectToString.call(obj) === this.proxyTag) {
       try {
         // Try basic checks, fallback to treating as non-empty
-        const constructor = objectProto.hasOwnProperty.call(obj, "constructor")
+        const constructor = hasOwnProperty.call(obj, "constructor")
           ? (obj as any).constructor
           : null;
 
@@ -740,6 +678,20 @@ export class Utils {
 
     // More performant WeakRef check
     if (typeof WeakRef !== "undefined" && obj instanceof WeakRef) {
+      const referent = obj.deref();
+      return referent === undefined
+        ? true
+        : this.isEmpty(referent, internalOptions, _seen);
+    }
+
+    // Cross-realm WeakRef check
+    const isWeakRef = (obj: any): obj is WeakRef<object> =>
+      typeof WeakRef !== "undefined" &&
+      (obj instanceof WeakRef ||
+        (typeof obj.deref === "function" &&
+          obj.constructor?.name === "WeakRef"));
+
+    if (isWeakRef(obj)) {
       const referent = obj.deref();
       return referent === undefined
         ? true
@@ -865,7 +817,9 @@ export class Utils {
     if (Symbol.iterator in obj && typeof obj[Symbol.iterator] === "function") {
       try {
         // Fast check: get first item and return immediately if found
-        const iterator = obj[Symbol.iterator]();
+        const iterator = (
+          obj as { [Symbol.iterator]: () => Iterator<unknown> }
+        )[Symbol.iterator]();
         const first = iterator.next();
 
         // If done is true, no items (empty)
