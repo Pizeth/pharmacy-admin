@@ -13,21 +13,11 @@ export class Utils {
   // cache proxy check once
   static proxyTag: string | null = "[object Object]";
 
-  static {
-    // Initialize proxy tag once
-    try {
-      const { proxy, revoke } = Proxy.revocable({}, {});
-      this.proxyTag = objectToString.call(proxy);
-      revoke();
-    } catch {
-      this.proxyTag = null;
-    }
-  }
-
   // Modify the static initialization block
   static {
     // Initialize proxy tag once
     try {
+      // Create and immediately revoke proxy for safety
       const { proxy, revoke } = Proxy.revocable({}, {});
       this.proxyTag = objectToString.call(proxy);
       revoke();
@@ -48,15 +38,41 @@ export class Utils {
     }
   }
 
-  static {
-    try {
-      // Create and immediately revoke proxy for safety
-      const { proxy, revoke } = Proxy.revocable({}, {});
-      this.proxyTag = objectToString.call(proxy);
-      revoke();
-    } catch {
-      this.proxyTag = null; // Proxy not supported
+  private static isProxyObject(obj: object): boolean {
+    if (typeof Proxy !== "function") {
+      return false;
     }
+    if (this.proxyTag !== null && objectToString.call(obj) === this.proxyTag) {
+      try {
+        const hasCtor = objectProto.hasOwnProperty.call(obj, "constructor");
+        const ctor = hasCtor ? (obj as any).constructor : null;
+        if (
+          ctor &&
+          (/Proxy/.test(ctor.name) ||
+            ctor.name === "Proxy" ||
+            (typeof ctor.toString === "function" &&
+              ctor.toString().includes("[native code]") &&
+              ctor.toString().includes("Proxy")))
+        ) {
+          try {
+            Object.keys(obj);
+          } catch (e) {
+            logger.warn("Utils.isEmpty: Proxy property access error:", e);
+            return true;
+          }
+          return true;
+        }
+      } catch (e) {
+        logger.warn("Utils.isEmpty: Proxy check error:", e);
+        return true;
+      }
+    }
+    try {
+      if (obj instanceof Proxy) {
+        return true;
+      }
+    } catch (e) {}
+    return false;
   }
 
   // static isWeakRef = (obj: any): obj is WeakRef<object> =>
@@ -67,7 +83,7 @@ export class Utils {
   //         objectToString.call(obj) === "[object WeakRef]")
   //     : false;
 
-  private static isWeakRef(obj: unknown): obj is WeakRef<object> {
+  static isWeakRef(obj: unknown): obj is WeakRef<object> {
     // Narrow from unknown → object
     if (typeof obj !== "object" || obj === null) {
       return false;
@@ -100,17 +116,6 @@ export class Utils {
     // Use a unique symbol to differentiate failure from `undefined` referent
     const DEREF_FAILED = Symbol("deref_failed");
     try {
-      return obj.deref();
-    } catch (e) {
-      logger.warn("Utils.safeDeref: Failed to dereference WeakRef:", e);
-      return undefined;
-    }
-  }
-
-  private static safeDeref1(obj: { deref?: Function }): unknown | symbol {
-    // Use a unique symbol to differentiate failure from `undefined` referent
-    const DEREF_FAILED = Symbol("deref_failed");
-    try {
       // Check if deref exists and is a function before calling
       if (typeof obj.deref === "function") {
         return obj.deref();
@@ -118,10 +123,7 @@ export class Utils {
       // If deref doesn't exist or isn't a function, treat as failure
       return DEREF_FAILED;
     } catch (e) {
-      console.warn(
-        "Utils.isEmpty: Failed to dereference potential WeakRef:",
-        e,
-      );
+      logger.warn("Utils.safeDeref: Failed to dereference WeakRef:", e);
       return DEREF_FAILED; // Return failure symbol on error
     }
   }
@@ -302,7 +304,8 @@ export class Utils {
       typeof value === "object" &&
       value !== null &&
       "length" in value &&
-      typeof (value as ArrayLike).length === "number"
+      typeof (value as ArrayLike).length === "number" &&
+      (value as ArrayLike).length >= 0 // Ensure length is non-negative
     );
   };
 
@@ -544,10 +547,6 @@ export class Utils {
 
     // Prepare options for potential recursive calls, ensuring _seen is passed (used by WeakRef check)
     // Create only if not already seen to avoid unnecessary object creation
-    // const internalOptions = options._seen
-    //   ? options
-    //   : { ...options, _seen: seen, _internalCall: true }; // _internalCall prevents re-checking .isEmpty()
-
     const internalOptions = { ...options, _seen, _internalCall: true }; // _internalCall prevents re-checking .isEmpty()
 
     // Custom Emptiness Overrides
@@ -689,108 +688,6 @@ export class Utils {
     }
 
     // 9. Check WeakRef objects (cross-environment safe) - Requires recursion protection
-    // Enhanced WeakRef check
-    const WeakRefExists =
-      typeof WeakRef !== "undefined" ||
-      (typeof window !== "undefined" && "WeakRef" in window) ||
-      (typeof global !== "undefined" && "WeakRef" in global);
-
-    if (WeakRefExists && typeof (obj as any).deref === "function") {
-      try {
-        const referent = (obj as any).deref();
-        // An empty WeakRef (pointing to undefined) is considered empty.
-        // Otherwise, check the emptiness of the referenced object recursively.
-        return referent === undefined
-          ? true
-          : this.isEmpty(referent, internalOptions, _seen); // Pass _seen
-      } catch (e) {
-        if (process.env.NODE_ENV !== "production") {
-          console.warn(
-            "Utils.isEmpty: Failed to dereference potential WeakRef:",
-            e,
-          );
-        }
-        return false;
-      }
-    }
-
-    if (WeakRefExists && typeof (obj as any).deref === "function") {
-      try {
-        const referent = (obj as any).deref();
-        return referent === undefined
-          ? true
-          : this.isEmpty(referent, internalOptions, _seen);
-      } catch (e) {
-        logger.warn(
-          "Utils.isEmpty: WeakRef deref error, treating as non-empty:",
-          e,
-        );
-        return false;
-      }
-    }
-
-    // More performant WeakRef check
-    if (typeof WeakRef !== "undefined" && obj instanceof WeakRef) {
-      const referent = obj.deref();
-      return referent === undefined
-        ? true
-        : this.isEmpty(referent, internalOptions, _seen);
-    }
-
-    // Cross-realm WeakRef check
-    const isWeakRef = (obj: any): obj is WeakRef<object> =>
-      typeof WeakRef !== "undefined" &&
-      (obj instanceof WeakRef ||
-        (typeof obj.deref === "function" &&
-          obj.constructor?.name === "WeakRef"));
-
-    if (isWeakRef(obj)) {
-      const referent = obj.deref();
-      return referent === undefined
-        ? true
-        : this.isEmpty(referent, internalOptions, _seen);
-    }
-
-    if (
-      typeof WeakRef !== "undefined" &&
-      typeof (obj as any).deref === "function" &&
-      Object.prototype.toString.call(obj) === "[object WeakRef]"
-    ) {
-      try {
-        const referent = (obj as any).deref();
-        return referent === undefined
-          ? true
-          : this.isEmpty(referent, internalOptions, _seen);
-      } catch (e) {
-        console.warn(
-          "Utils.isEmpty: Failed to dereference potential WeakRef:",
-          e,
-        );
-        return false;
-      }
-    }
-
-    // Combine direct checks with cross-realm safety
-    if (typeof WeakRef !== "undefined") {
-      // Fast path for same-realm WeakRefs
-      if (obj instanceof WeakRef) {
-        const referent = obj.deref();
-        return referent === undefined
-          ? true
-          : this.isEmpty(referent, internalOptions, _seen);
-      }
-      // Cross-realm fallback
-      if (
-        typeof (obj as any).deref === "function" &&
-        obj.constructor?.name === "WeakRef" // Safer but not foolproof
-      ) {
-        const referent = (obj as any).deref();
-        return referent === undefined
-          ? true
-          : this.isEmpty(referent, internalOptions, _seen);
-      }
-    }
-
     if (this.isWeakRef(obj)) {
       const referent = this.safeDeref(obj);
       // Check if deref failed (symbol returned)

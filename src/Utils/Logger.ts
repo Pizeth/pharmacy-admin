@@ -1,7 +1,25 @@
 // logger.ts
 export type LogLevel = "debug" | "info" | "warn" | "error";
 
+/**
+ * Logger class for structured logging.
+ *
+ * @remarks
+ * - Automatically detects development mode based on environment variables (`NODE_ENV`, `import.meta.env.MODE`, `__DEV__`).
+ * - Use `Logger.setDevelopmentMode(isDev)` to manually override the development mode in edge cases or custom environments.
+ */
 class Logger {
+  // Static property to override development mode
+  private static forceDevelopment: boolean | null = null;
+
+  /**
+   * Manually set the development mode.
+   * @param isDev - True to force development mode, false to force production mode.
+   */
+  static setDevelopmentMode(isDev: boolean): void {
+    Logger.forceDevelopment = isDev;
+  }
+
   // Only log messages at or above the current level.
   private levelPriority: Record<LogLevel, number> = {
     debug: 0,
@@ -11,6 +29,11 @@ class Logger {
   };
 
   private static isDevelopment(): boolean {
+    // Use the forced value if set
+    if (Logger.forceDevelopment !== null) {
+      return Logger.forceDevelopment;
+    }
+    // Otherwise, fall back to automatic detection
     return (
       (typeof process !== "undefined" &&
         process.env.NODE_ENV !== "production") ||
