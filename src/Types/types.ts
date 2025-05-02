@@ -174,8 +174,9 @@ export interface IsEmptyOptions {
   specialObjectsAsEmpty?: boolean;
   /** Internal flag for recursion protection (e.g., with WeakRef). */
   _internalCall?: boolean;
-  /** Halt on Custom Error flag for rethrows customIsEmpty errors*/
+  /** Halt on Custom Error flag for rethrows customIsEmpty errors. */
   haltOnCustomError?: boolean;
+  /** Override with `unwrapProxy` option if you need to inspect the target. */
   unwrapProxy?: UnwrapProxy;
 }
 
@@ -184,6 +185,10 @@ export interface WithIsEmpty {
 }
 
 export type UnwrapProxy = (proxy: object) => unknown;
+
+export type LogLevel = "debug" | "info" | "warn" | "error";
+
+export const unwrapProxySymbol: unique symbol = Symbol("unwrapProxy");
 
 // export interface PasswordInputUIProps extends IconTextInputProps {
 //   id?: string;

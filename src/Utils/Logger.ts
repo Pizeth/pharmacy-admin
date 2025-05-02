@@ -1,5 +1,4 @@
-// logger.ts
-export type LogLevel = "debug" | "info" | "warn" | "error";
+import { LogLevel } from "../Types/types";
 
 /**
  * Logger class for structured logging.

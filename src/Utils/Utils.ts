@@ -2,6 +2,7 @@ import {
   ArrayLike,
   IsEmptyOptions,
   UnwrapProxy,
+  unwrapProxySymbol,
   WithIsEmpty,
 } from "../Types/types";
 import logger from "./Logger";
@@ -44,7 +45,16 @@ export class Utils {
   }
 
   // Define this at the class level or module scope
-  private static unwrapProxySymbol = Symbol("unwrapProxy");
+  /**
+   * Symbol for unwrapping Proxies. Attach this to custom Proxy targets 
+   * to enable reliable unwrapping:
+   * 
+   * @example
+   * const target = { [unwrapProxySymbol]: () => actualTarget };
+   * const proxy = new Proxy(target, handler);
+   * Utils.isEmpty(proxy); // Will unwrap via your symbol
+   */
+  private static unwrapProxySymbol = unwrapProxySymbol;
 
   // Optional: Basic unwrap helper (override for custom Proxies)
   private static defaultUnwrapProxy: UnwrapProxy = (proxy) => {
@@ -57,7 +67,7 @@ export class Utils {
     }
     if (this.proxyTag !== null && objectToString.call(obj) === this.proxyTag) {
       try {
-        const hasCtor = objectProto.hasOwnProperty.call(obj, "constructor");
+        const hasCtor = hasOwnProperty.call(obj, "constructor");
         const ctor = hasCtor ? (obj as any).constructor : null;
         if (
           ctor &&
@@ -87,14 +97,6 @@ export class Utils {
     } catch (e) {}
     return false;
   }
-
-  // static isWeakRef = (obj: any): obj is WeakRef<object> =>
-  //   typeof WeakRef !== "undefined"
-  //     ? obj instanceof WeakRef ||
-  //       (typeof obj.deref === "function" &&
-  //         obj.constructor?.name === "WeakRef" &&
-  //         objectToString.call(obj) === "[object WeakRef]")
-  //     : false;
 
   static isWeakRef(obj: unknown): obj is WeakRef<object> {
     // Narrow from unknown → object
@@ -152,13 +154,6 @@ export class Utils {
     const rest = str.slice(1).replace(/([A-Z])/g, " $1");
     return firstChar + rest;
   }
-
-  // const getLastSegment = (path: string): string => {
-  //   // Split the string by '/' and filter out empty segments
-  //   const segments = path.split("/").filter((segment) => segment.length > 0);
-  //   // Return the last segment
-  //   return segments[segments.length - 1] || "";
-  // };
 
   /**
    * Extracts the last segment from a URL path
@@ -372,6 +367,21 @@ export class Utils {
     );
   }
 
+
+ * **Proxy Detection Limitations**: 
+ * - Proxy objects are detected on a best-effort basis and may not be identified reliably across execution realms (iframes, workers).
+ * - Proxies with custom handlers that trap `Object.prototype.toString` or constructor properties may evade detection.
+ * - To inspect Proxy targets, provide the `unwrapProxy` option.
+ * 
+ * **Iterable Side Effects**:
+ * - Checking iterable objects (generators, custom iterables) will invoke their `Symbol.iterator` method, which may have side effects.
+ * - Use caution when checking objects where iteration triggers mutations or external operations.
+ * 
+ * **Performance Considerations**:
+ * - Plain object checks (objects created with `{}` or `new Object()`) use `Object.getOwnPropertyNames` and `Object.getOwnPropertySymbols`, 
+ *   resulting in O(n) complexity where n is the number of properties (including non-enumerable ones).
+ * - Avoid using this method on large plain objects with thousands of properties.
+
   /**
    * Checks if a value is empty based on its type.
    *
@@ -403,6 +413,8 @@ export class Utils {
    * - Plain objects with non-enumerable length properties are considered empty if length === 0
    * - Example: Object.defineProperty({}, 'length', { value: 0 }) → true
    * Handles other array-like objects (non-plain, not caught by `toString`) based on `length === 0`, excluding custom class instances.
+   * Proxies are treated as non-empty by default due to detection limitations.
+   * - Override with `unwrapProxy` option if you need to inspect the target.
    *
    * Order of checks:
    * 1. Global objects (window, globalThis) -> false
@@ -605,106 +617,6 @@ export class Utils {
 
     // Proxy and WeakRef Checks
     // 9. Handle Proxy objects
-    if (typeof Proxy === "function" && obj instanceof Proxy) {
-      try {
-        // Try basic checks, fallback to treating as non-empty
-        const handler = Object.getOwnPropertyDescriptor(
-          obj,
-          "constructor",
-        )?.value;
-        if (handler && typeof handler === "object") {
-          return false;
-        }
-      } catch (e) {
-        console.warn(
-          "Utils.isEmpty: Proxy isEmpty property access threw an error:",
-          e,
-        );
-        return false; // Proxies might throw on property access
-      }
-    }
-
-    //Updated Approach
-    // 9. Handle Proxy objects
-    if (this.proxyTag !== null && objectToString.call(obj) === this.proxyTag) {
-      try {
-        // Try basic checks, fallback to treating as non-empty
-        const constructor = hasOwnProperty.call(obj, "constructor")
-          ? (obj as any).constructor
-          : null;
-
-        if (constructor && /Proxy/.test(constructor.name)) {
-          return false;
-        }
-      } catch (e) {
-        console.warn(
-          "Utils.isEmpty: Proxy isEmpty property access threw an error:",
-          e,
-        );
-        return false; // Proxies might throw on property access
-      }
-    }
-
-    // Modified Proxy check section
-    if (this.proxyTag !== null && objectToString.call(obj) === this.proxyTag) {
-      try {
-        // Try basic checks, fallback to treating as non-empty
-        const constructor = hasOwnProperty.call(obj, "constructor")
-          ? (obj as any).constructor
-          : null;
-
-        // Fallback check for Proxy constructor name
-        if (
-          constructor &&
-          (/Proxy/.test(constructor.name) ||
-            constructor.name === "Proxy" ||
-            (constructor.toString().includes("[native code]") &&
-              constructor.toString().includes("Proxy")))
-        ) {
-          return false;
-        }
-      } catch (e) {
-        logger.warn("Utils.isEmpty: Proxy check error:", e);
-        return false; // Proxies might throw on property access
-      }
-    }
-
-    if (
-      this.proxyTag !== null &&
-      Object.prototype.toString.call(obj) === this.proxyTag
-    ) {
-      try {
-        Object.keys(obj); // Test property access
-        return false;
-      } catch (e) {
-        console.warn("Utils.isEmpty: Proxy property access threw an error:", e);
-        return false;
-      }
-    }
-
-    // 9. Proxy Handling: Combine both proxy checks.
-    if (typeof Proxy === "function") {
-      // Check if the object has the same tag as a proxy.
-      if (
-        this.proxyTag !== null &&
-        objectToString.call(obj) === this.proxyTag
-      ) {
-        try {
-          const ctor = Object.prototype.hasOwnProperty.call(obj, "constructor")
-            ? (obj as any).constructor
-            : null;
-          if (ctor && /Proxy/.test(ctor.name)) {
-            return false;
-          }
-        } catch (e) {
-          if (process.env.NODE_ENV !== "production") {
-            console.warn("Utils.isEmpty: Proxy check error:", e);
-          }
-          return false;
-        }
-      }
-    }
-
     if (this.isProxyObject(obj)) {
       // Best-effort detection
       try {
@@ -715,7 +627,7 @@ export class Utils {
       }
     }
 
-    // 9. Check WeakRef objects (cross-environment safe) - Requires recursion protection
+    // 10. Check WeakRef objects (cross-environment safe) - Requires recursion protection
     if (this.isWeakRef(obj)) {
       const referent = this.safeDeref(obj);
       // Check if deref failed (symbol returned)
@@ -730,7 +642,7 @@ export class Utils {
 
     // Built-in Collections
 
-    // 10. Fast path for collections and buffers using instanceof (not cross-realm safe)
+    // 11. Fast path for collections and buffers using instanceof (not cross-realm safe)
     // The toString check later provides cross-realm safety as a fallback.
     if (this.isCollection(obj)) {
       return (obj as Map<any, any> | Set<any>).size === 0;
@@ -740,7 +652,7 @@ export class Utils {
       return (obj as ArrayBufferView | ArrayBuffer).byteLength === 0;
     }
 
-    // 11. Handle specific object types potentially treated as empty with specialObjectsAsEmpty option
+    // 12. Handle specific object types potentially treated as empty with specialObjectsAsEmpty option
     if (options.specialObjectsAsEmpty) {
       if (
         obj instanceof Date ||
@@ -751,7 +663,7 @@ export class Utils {
       }
     }
 
-    // 12. Check special collection types first (Maps, Sets, ArrayBuffers, typed arrays, etc)
+    // 13. Check special collection types first (Maps, Sets, ArrayBuffers, typed arrays, etc)
     // Use Object.prototype.toString for reliable cross-realm type checking
     const tag = objectToString.call(obj);
     switch (tag) {
@@ -793,57 +705,14 @@ export class Utils {
 
     // Plain Object Handling
 
-    // 13. Handle Plain Objects (({} or new Object())) specifically - optimized for performance
+    // 14. Handle Plain Objects (({} or new Object())) specifically - optimized for performance
     if (this.isPlainObject(value)) {
       // Check if the object has no own properties (including symbols)
       return this.isEmptyPlainObject(obj); // Check for empty object
     }
 
-    // 14. Handle *other* Iterables (non-Array/String/Map/Set/etc.)
+    // 15. Handle *other* Iterables (non-Array/String/Map/Set/etc.)
     // Check this *after* specific types and plain objects
-    if (typeof (obj as any)[Symbol.iterator] === "function") {
-      try {
-        // Check if the iterator yields any value
-        for (const _ of obj as Iterable<unknown>) {
-          return false; // Found an item, therefore not empty
-        }
-        return true; // No items yielded
-      } catch (e) {
-        if (process.env.NODE_ENV !== "production") {
-          console.warn("Utils.isEmpty: Error iterating object:", e);
-        }
-        return false; // Treat as non-empty if iteration fails
-      }
-    }
-
-    // Another approach using manual iteration for performance
-
-    // 14. Handle *other* Iterables (non-Array/String/Map/Set/etc.)
-    // Check this *after* specific types and plain objects
-    if (Symbol.iterator in obj) {
-      // Verify iterator is actually a function
-      const iterator = (obj as any)[Symbol.iterator];
-      if (typeof iterator !== "function") return false;
-
-      try {
-        // Manual iteration for performance
-        const it = iterator.call(obj);
-        let result = it.next();
-        while (!result.done) {
-          // Found at least one item → not empty
-          return false;
-        }
-        // No items yielded → empty
-        return true;
-      } catch (e) {
-        if (process.env.NODE_ENV !== "production") {
-          console.warn("Utils.isEmpty: Error iterating object:", e);
-        }
-        return false; // Treat as non-empty on failure
-      }
-    }
-
-    // More efficient iterables check
     if (Symbol.iterator in obj && typeof obj[Symbol.iterator] === "function") {
       try {
         // Fast check: get first item and return immediately if found
@@ -854,14 +723,15 @@ export class Utils {
 
         // If done is true, no items (empty)
         return first.done === true;
-      } catch {
+      } catch (e) {
+        logger.warn("Utils.isEmpty: Error iterating object:", e);
         return false; // Error during iteration, consider non-empty
       }
     }
 
     // Fallback Array-Like Check
 
-    // 15. Handle remaining Array-Like objects (non-plain, not caught by toString or isPlainObject)
+    // 16. Handle remaining Array-Like objects (non-plain, not caught by toString or isPlainObject)
     // This catches generic array-likes or custom classes missed earlier.
     if (this.isArrayLike(obj)) {
       // For other array-like objects, only consider them empty if they're not custom class instances
@@ -872,7 +742,7 @@ export class Utils {
         : false;
     }
 
-    // 16. Other object types (Date, RegExp, custom classes, etc.) and non-object primitives (numbers, booleans, symbols, functions, etx)
+    // 17. Other object types (Date, RegExp, custom classes, etc.) and non-object primitives (numbers, booleans, symbols, functions, etx)
     return false;
   };
 
