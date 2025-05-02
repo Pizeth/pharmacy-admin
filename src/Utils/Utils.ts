@@ -1,4 +1,9 @@
-import { ArrayLike, IsEmptyOptions, WithIsEmpty } from "../Types/types";
+import {
+  ArrayLike,
+  IsEmptyOptions,
+  UnwrapProxy,
+  WithIsEmpty,
+} from "../Types/types";
 import logger from "./Logger";
 
 // Cache frequently used references for performance
@@ -37,6 +42,14 @@ export class Utils {
       }
     }
   }
+
+  // Define this at the class level or module scope
+  private static unwrapProxySymbol = Symbol("unwrapProxy");
+
+  // Optional: Basic unwrap helper (override for custom Proxies)
+  private static defaultUnwrapProxy: UnwrapProxy = (proxy) => {
+    return (proxy as any)[this.unwrapProxySymbol]?.() ?? proxy;
+  };
 
   private static isProxyObject(obj: object): boolean {
     if (typeof Proxy !== "function") {
@@ -547,8 +560,13 @@ export class Utils {
 
     // Prepare options for potential recursive calls, ensuring _seen is passed (used by WeakRef check)
     // Create only if not already seen to avoid unnecessary object creation
-    const internalOptions = { ...options, _seen, _internalCall: true }; // _internalCall prevents re-checking .isEmpty()
-    const internalOptions = { unwrapProxy: defaultUnwrapProxy, ...options };
+    const internalOptions = {
+      ...options,
+      _seen,
+      _internalCall: true,
+      unwrapProxy: this.defaultUnwrapProxy,
+    }; // _internalCall prevents re-checking .isEmpty()
+
     // Custom Emptiness Overrides
 
     // 8. Check for custom emptiness logic first (options or method)
@@ -684,6 +702,16 @@ export class Utils {
           }
           return false;
         }
+      }
+    }
+
+    if (this.isProxyObject(obj)) {
+      // Best-effort detection
+      try {
+        const target = internalOptions.unwrapProxy(obj);
+        return this.isEmpty(target, internalOptions, _seen);
+      } catch (e) {
+        return false; // Fallback to non-empty
       }
     }
 
