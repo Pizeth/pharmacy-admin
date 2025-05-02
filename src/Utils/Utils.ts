@@ -548,7 +548,7 @@ export class Utils {
     // Prepare options for potential recursive calls, ensuring _seen is passed (used by WeakRef check)
     // Create only if not already seen to avoid unnecessary object creation
     const internalOptions = { ...options, _seen, _internalCall: true }; // _internalCall prevents re-checking .isEmpty()
-
+    const internalOptions = { unwrapProxy: defaultUnwrapProxy, ...options };
     // Custom Emptiness Overrides
 
     // 8. Check for custom emptiness logic first (options or method)

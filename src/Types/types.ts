@@ -50,7 +50,7 @@ export interface GetEndAdornmentParams {
     inputAdornedEnd: string;
   };
   endAdornment?: React.ReactNode;
-  translate: Translate;
+  translate: typeof Translate;
   handleClickClearButton: (e: React.MouseEvent<HTMLButtonElement>) => void;
   handleMouseDownClearButton: (e: React.MouseEvent<HTMLButtonElement>) => void;
 }
@@ -60,7 +60,7 @@ export type UseFieldOptions = {
   source?: string;
   message?: string;
   debounce?: number;
-  translate?: Translate;
+  translate?: typeof Translate;
   // timeOut?: MutableRefObject<NodeJS.Timeout | undefined>;
   // abortController?: MutableRefObject<AbortController | null>;
   options?: { endpoint?: string; successMessage?: string };
@@ -176,11 +176,14 @@ export interface IsEmptyOptions {
   _internalCall?: boolean;
   /** Halt on Custom Error flag for rethrows customIsEmpty errors*/
   haltOnCustomError?: boolean;
+  unwrapProxy?: UnwrapProxy;
 }
 
 export interface WithIsEmpty {
   isEmpty(): boolean;
 }
+
+export type UnwrapProxy = (proxy: object) => unknown;
 
 // export interface PasswordInputUIProps extends IconTextInputProps {
 //   id?: string;
