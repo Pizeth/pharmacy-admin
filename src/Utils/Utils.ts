@@ -8,16 +8,43 @@ import {
 import logger from "./Logger";
 
 // Cache frequently used references for performance
-const objectProto = Object.prototype;
-const objectToString = objectProto.toString;
-const getProto = Object.getPrototypeOf;
-const hasOwnProperty = objectProto.hasOwnProperty;
-const objectKeys = Object.keys;
-const getOwnPropertyNames = Object.getOwnPropertyNames;
-const getOwnPropertySymbols = Object.getOwnPropertySymbols;
+// const objectProto = Object.prototype;
+// const objectToString = objectProto.toString;
+// const getProto = Object.getPrototypeOf;
+// const hasOwnProperty = objectProto.hasOwnProperty;
+// const objectKeys = Object.keys;
+// const getOwnPropertyNames = Object.getOwnPropertyNames;
+// const getOwnPropertySymbols = Object.getOwnPropertySymbols;
+
 export class Utils {
+  // Cache frequently used references for performance
+  private static readonly getProto = Object.prototype;
+  private static readonly toString = Utils.getProto.toString;
+  private static readonly hasOwn = Utils.prototype.hasOwnProperty;
+  private static readonly getPrototypeOf = Object.getPrototypeOf;
+  private static readonly getKeys = Object.keys;
+  private static readonly getOwnPropertyNames = Object.getOwnPropertyNames;
+  private static readonly getOwnPropertySymbols = Object.getOwnPropertySymbols;
+  private static readonly objectTag = "[object Object]";
+  private static readonly arrayTag = "[object Array]";
+  private static readonly setTag = "[object Set]";
+  private static readonly mapTag = "[object Map]";
+  private static readonly dateTag = "[object Date]";
+  private static readonly errorTag = "[object Error]";
+  private static readonly bufferTag = "[object ArrayBuffer]";
+  private static readonly dataViewTag = "[object DataView]";
+  private static readonly weakMapTag = "[object WeakMap]";
+  private static readonly weakSetTag = "[object WeakSet]";
+
   // cache proxy check once
-  static proxyTag: string | null = "[object Object]";
+  // static proxyTag: string | null = "[object Object]";
+  private static readonly proxyTag: string = (() => {
+    try {
+      const tag = this.toString.call(Proxy.revocable({}, {}).proxy);
+      if (tag !== "[object Object]") return tag;
+    } catch {}
+    return "[object Object]"; // fallback
+  })();
 
   // Modify the static initialization block
   static {
@@ -25,7 +52,7 @@ export class Utils {
     try {
       // Create and immediately revoke proxy for safety
       const { proxy, revoke } = Proxy.revocable({}, {});
-      this.proxyTag = objectToString.call(proxy);
+      this.proxyTag = this.toString.call(proxy);
       revoke();
     } catch (e) {
       // Fallback for environments where Proxy creation fails
@@ -34,7 +61,7 @@ export class Utils {
         // If Proxy exists but instantiation failed, check constructor name fallback
         try {
           const proxy = new Proxy({}, {});
-          this.proxyTag = objectToString.call(proxy);
+          this.proxyTag = this.toString.call(proxy);
           delete (proxy as any).constructor; // Try to break potential infinite loops
         } catch (subError) {
           // Final fallback to constructor name check
@@ -46,15 +73,15 @@ export class Utils {
 
   // Define this at the class level or module scope
   /**
-   * Symbol for unwrapping Proxies. Attach this to custom Proxy targets 
+   * Symbol for unwrapping Proxies. Attach this to custom Proxy targets
    * to enable reliable unwrapping:
-   * 
+   *
    * @example
    * const target = { [unwrapProxySymbol]: () => actualTarget };
    * const proxy = new Proxy(target, handler);
    * Utils.isEmpty(proxy); // Will unwrap via your symbol
    */
-  private static unwrapProxySymbol = unwrapProxySymbol;
+  private static readonly unwrapProxySymbol = unwrapProxySymbol;
 
   // Optional: Basic unwrap helper (override for custom Proxies)
   private static defaultUnwrapProxy: UnwrapProxy = (proxy) => {
@@ -367,21 +394,6 @@ export class Utils {
     );
   }
 
-
- * **Proxy Detection Limitations**: 
- * - Proxy objects are detected on a best-effort basis and may not be identified reliably across execution realms (iframes, workers).
- * - Proxies with custom handlers that trap `Object.prototype.toString` or constructor properties may evade detection.
- * - To inspect Proxy targets, provide the `unwrapProxy` option.
- * 
- * **Iterable Side Effects**:
- * - Checking iterable objects (generators, custom iterables) will invoke their `Symbol.iterator` method, which may have side effects.
- * - Use caution when checking objects where iteration triggers mutations or external operations.
- * 
- * **Performance Considerations**:
- * - Plain object checks (objects created with `{}` or `new Object()`) use `Object.getOwnPropertyNames` and `Object.getOwnPropertySymbols`, 
- *   resulting in O(n) complexity where n is the number of properties (including non-enumerable ones).
- * - Avoid using this method on large plain objects with thousands of properties.
-
   /**
    * Checks if a value is empty based on its type.
    *
@@ -403,6 +415,9 @@ export class Utils {
    * Iterable Handling:
    * - Objects implementing Symbol.iterator will be converted to arrays for checking
    * - Examples: Generators, custom iterables, etc.
+   * Iterable Side Effects**:
+   * - Checking iterable objects (generators, custom iterables) will invoke their `Symbol.iterator` method, which may have side effects.
+   * - Use caution when checking objects where iteration triggers mutations or external operations.
    * Then checks for custom logic (`options.customIsEmpty` or `.isEmpty()` method).
    * Uses `Object.prototype.toString` for reliable checks on built-ins (Map, Set, TypedArrays, Arguments, etc.).
    * Handles plain objects using `Object.getOwnPropertyNames/Symbols`:
@@ -415,6 +430,9 @@ export class Utils {
    * Handles other array-like objects (non-plain, not caught by `toString`) based on `length === 0`, excluding custom class instances.
    * Proxies are treated as non-empty by default due to detection limitations.
    * - Override with `unwrapProxy` option if you need to inspect the target.
+   * Proxy Detection Limitations**:
+   * - Proxy objects are detected on a best-effort basis and may not be identified reliably across execution realms (iframes, workers).
+   * - Proxies with custom handlers that trap `Object.prototype.toString` or constructor properties may evade detection.
    *
    * Order of checks:
    * 1. Global objects (window, globalThis) -> false
@@ -440,6 +458,10 @@ export class Utils {
    * - Array/String checks are O(1)
    * - Plain object checks are O(n) where n is the number of properties
    * - Custom isEmpty methods may have varying performance
+   * Performance Considerations**:
+   * - Plain object checks (objects created with `{}` or `new Object()`) use `Object.getOwnPropertyNames` and `Object.getOwnPropertySymbols`,
+   *   resulting in O(n) complexity where n is the number of properties (including non-enumerable ones).
+   * - Avoid using this method on large plain objects with thousands of properties.
    *
    * Edge cases:
    * - Proxy objects will generally be treated as non-empty by default due to inspection difficulty.

@@ -19,6 +19,14 @@ class Logger {
     Logger.forceDevelopment = isDev;
   }
 
+  /**
+   * Sets the current logging level.
+   * @param level - The new logging level ('debug', 'info', 'warn', 'error').
+   */
+  setLevel(level: LogLevel): void {
+    this.currentLevel = level;
+  }
+
   // Only log messages at or above the current level.
   private levelPriority: Record<LogLevel, number> = {
     debug: 0,
