@@ -71,6 +71,42 @@ export class Utils {
     }
   }
 
+  private static readonly proxyTag: string = (() => {
+    let tag: string | null = null;
+
+    // First attempt: Use a revocable proxy to ensure no lingering side effects.
+    try {
+      const { proxy, revoke } = Proxy.revocable({}, {});
+      tag = this.toString.call(proxy);
+      revoke();
+    } catch (e) {
+      // Revocable proxy creation might fail in some environments.
+      tag = null;
+    }
+
+    // Check if the result is meaningful (not the generic "[object Object]").
+    if (tag && tag !== "[object Object]") {
+      return tag;
+    }
+
+    // Second attempt: If Proxy exists, try a standard proxy.
+    if (typeof Proxy !== "undefined") {
+      try {
+        const proxy = new Proxy({}, {});
+        tag = this.toString.call(proxy);
+        // Remove the constructor property as a safeguard against potential infinite loops.
+        delete (proxy as any).constructor;
+        return tag;
+      } catch (subError) {
+        // If even a standard proxy fails, provide a less generic fallback.
+        return "[object Proxy]";
+      }
+    }
+
+    // Final fallback: Return the default tag if Proxy isn't available or both attempts failed.
+    return "[object Object]";
+  })();
+
   // Define this at the class level or module scope
   /**
    * Symbol for unwrapping Proxies. Attach this to custom Proxy targets
