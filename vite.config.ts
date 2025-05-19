@@ -15,6 +15,20 @@ export default defineConfig({
     host: true,
     port: 8080,
   },
+  build: {
+    target: "es2022",
+  },
+  esbuild: {
+    supported: {
+      "top-level-await": true,
+    },
+    target: "es2022",
+  },
+  optimizeDeps: {
+    esbuildOptions: {
+      target: "es2022",
+    },
+  },
   base: "./",
 });
 
